@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "firsttris.vscode-jest-runner",
+    "editorconfig.editorconfig",
+    "dbaeumer.vscode-eslint",
+    "humao.rest-client",
+    "esbenp.prettier-vscode"
+  ]
+}

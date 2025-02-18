@@ -1,0 +1,321 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CRM API",
+    "description": "This is a sample CRM API, which is system instance aware.",
+    "version": "1.0.0"
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://ord-reference-application.cfapps.sap.hana.ondemand.com/crm/v1"
+    },
+    {
+      "url": "http://localhost:8080/crm/v1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "customers",
+      "description": "Customers"
+    }
+  ],
+  "paths": {
+    "/customers": {
+      "get": {
+        "operationId": "getCustomers",
+        "summary": "Returns a list of customers.",
+        "description": "Longer description of this API Operation...",
+        "tags": ["customers"],
+        "responses": {
+          "200": {
+            "description": "A JSON array of customers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomersResponse"
+                },
+                "example": {
+                  "value": [
+                    {
+                      "id": 1,
+                      "firstName": "Hans",
+                      "lastName": "Wurst",
+                      "email": "hanswurst@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/customers/{id}": {
+      "get": {
+        "operationId": "getCustomer",
+        "summary": "Returns a specific customers.",
+        "description": "Longer description of this API Operation...",
+        "tags": ["customers"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of customer to discover",
+            "schema": {
+              "$ref": "#/components/schemas/Customer/properties/id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested customer data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                },
+                "example": {
+                  "id": 1,
+                  "firstName": "Hans",
+                  "lastName": "Wurst",
+                  "email": "hanswurst@example.com"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
+    "schemas": {
+      "Customer": {
+        "type": "object",
+        "description": "A customer",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "ID of the customer",
+            "minimum": 0
+          },
+          "firstName": {
+            "type": "string",
+            "description": "First name of the customer"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name of the customer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "First name of the customer"
+          }
+        },
+        "required": ["id", "firstName", "lastName", "email"],
+        "additionalProperties": false
+      },
+      "CustomersResponse": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          }
+        },
+        "required": ["value"],
+        "additionalProperties": false,
+        "description": "Response returning a list of customers"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "title": "Error Response",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorItem"
+          }
+        }
+      },
+      "ErrorItem": {
+        "type": "object",
+        "title": "Error Item",
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Technical code of the error situation to be used for support purposes"
+          },
+          "message": {
+            "type": "string",
+            "title": "User-facing (localizable) message, describing the error"
+          },
+          "target": {
+            "type": "string",
+            "title": "Describes the error related data element (e.g. using a resource path)"
+          },
+          "details": {
+            "type": "array",
+            "title": "Error Details",
+            "items": {
+              "$ref": "#/components/schemas/DetailError"
+            }
+          }
+        },
+        "additionalProperties": true,
+        "required": ["code", "message"]
+      },
+      "DetailError": {
+        "type": "object",
+        "title": "Detail Error",
+        "description": "Error data that can be placed in the ErrorItem.details array",
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Technical code of the error situation to be used for support purposes"
+          },
+          "message": {
+            "type": "string",
+            "title": "User-facing (localizable) message, describing the error"
+          }
+        },
+        "additionalProperties": true,
+        "required": ["code", "message"]
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request - Invalid User Input.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "code": "BAD_REQUEST",
+                    "message": "The request the client made is incorrect or corrupt, likely due to invalid input."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized - Action requires user authentication.",
+        "headers": {
+          "WWW_Authenticate": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "code": "UNAUTHORIZED",
+                    "message": "To access the API, you have to login"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "User or client is not authorized to perform the requested operation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "User or client is not authorized to perform the requested operation."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "message": "Requested resource not found.",
+                    "code": "NOT_FOUND",
+                    "target": "<Resource ID>"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "message": "Internal server error occurred.",
+                    "code": "INTERNAL_SERVER_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

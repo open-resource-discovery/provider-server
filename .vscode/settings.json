@@ -1,0 +1,40 @@
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "javascript.preferences.importModuleSpecifierEnding": "index",
+  "javascript.preferences.quoteStyle": "single",
+  "markdown.extension.tableFormatter.enabled": false,
+  "markdown.extension.tableFormatter.normalizeIndentation": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "cSpell.words": [
+    "APIV",
+    "Fastify",
+    "IIFE",
+    "Kubernetes",
+    "buildpack",
+    "buildpacks",
+    "cfapps",
+    "codeframe",
+    "eqeqeq",
+    "etag",
+    "linebreak",
+    "middlewares",
+    "ondemand",
+    "openapi",
+    "pino",
+    "preinstall",
+    "typeahead"
+  ],
+  "jest.runMode": "on-demand"
+}

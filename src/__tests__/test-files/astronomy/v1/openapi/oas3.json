@@ -1,0 +1,250 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Astronomy API V1",
+    "description": "This is just a sample API",
+    "version": "1.0.3"
+  },
+  "servers": [
+    {
+      "url": "https://ord.example.com"
+    },
+    {
+      "url": "http://localhost:8080/astronomy/v1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "constellations",
+      "description": "Constellations"
+    }
+  ],
+  "paths": {
+    "/constellations": {
+      "get": {
+        "operationId": "getConstellations",
+        "summary": "Returns a list of constellations.",
+        "description": "Longer description of this API Operation...",
+        "tags": ["constellations"],
+        "responses": {
+          "200": {
+            "description": "A JSON array of constellations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConstellationsResponse"
+                },
+                "example": {
+                  "value": [
+                    {
+                      "id": "And",
+                      "name": "Andromeda"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/constellations/{id}": {
+      "get": {
+        "operationId": "getConstellation",
+        "summary": "Returns a specific constellations.",
+        "description": "Longer description of this API Operation...",
+        "tags": ["constellations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of constellation to discover",
+            "schema": {
+              "$ref": "#/components/schemas/Constellation/properties/id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested constellation JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Constellation"
+                },
+                "example": {
+                  "id": "And",
+                  "name": "Andromeda"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Constellation": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the Constellation"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID (also abbreviation)",
+            "maxLength": 3
+          }
+        },
+        "required": ["name", "id"],
+        "additionalProperties": false,
+        "description": "A Constellation is a group of stars forming a recognizable pattern that is traditionally named after its apparent form or identified with a mythological figure."
+      },
+      "ConstellationsResponse": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Constellation"
+            }
+          }
+        },
+        "required": ["value"],
+        "additionalProperties": false,
+        "description": "Response returning a list of constellations"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "title": "Error Response",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorItem"
+          }
+        }
+      },
+      "ErrorItem": {
+        "type": "object",
+        "title": "Error Item",
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Technical code of the error situation to be used for support purposes"
+          },
+          "message": {
+            "type": "string",
+            "title": "User-facing (localizable) message, describing the error"
+          },
+          "target": {
+            "type": "string",
+            "title": "Describes the error related data element (e.g. using a resource path)"
+          },
+          "details": {
+            "type": "array",
+            "title": "Error Details",
+            "items": {
+              "$ref": "#/components/schemas/DetailError"
+            }
+          }
+        },
+        "additionalProperties": true,
+        "required": ["code", "message"]
+      },
+      "DetailError": {
+        "type": "object",
+        "title": "Detail Error",
+        "description": "Error data that can be placed in the ErrorItem.details array",
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Technical code of the error situation to be used for support purposes"
+          },
+          "message": {
+            "type": "string",
+            "title": "User-facing (localizable) message, describing the error"
+          }
+        },
+        "additionalProperties": true,
+        "required": ["code", "message"]
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request - Invalid User Input.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "code": "BAD_REQUEST",
+                    "message": "The request the client made is incorrect or corrupt, likely due to invalid input."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "message": "Requested resource not found.",
+                    "code": "NOT_FOUND",
+                    "target": "<Resource ID>"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "response": {
+                "value": {
+                  "error": {
+                    "message": "Internal server error occurred.",
+                    "code": "INTERNAL_SERVER_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

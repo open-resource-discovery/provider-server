@@ -1,0 +1,278 @@
+{
+  "openResourceDiscovery": "1.6",
+  "description": "This is an example ORD document which is unprotected and openly accessible.",
+  "describedSystemInstance": {
+    "baseUrl": "https://ord-reference-application.cfapps.sap.hana.ondemand.com"
+  },
+  "policyLevel": "sap:core:v1",
+  "apiResources": [
+    {
+      "ordId": "sap.xref:apiResource:astronomy:v1",
+      "title": "Astronomy API",
+      "shortDescription": "The Astronomy API allows you to discover...",
+      "description": "A longer description of this API with **markdown** \n## headers\n etc...",
+      "version": "1.0.3",
+      "lastUpdate": "2023-02-03T06:44:10Z",
+      "visibility": "public",
+      "releaseStatus": "active",
+      "systemInstanceAware": false,
+      "partOfPackage": "sap.xref:package:ord-reference-app-apis:v1",
+      "partOfConsumptionBundles": [
+        {
+          "ordId": "sap.xref:consumptionBundle:noAuth:v1"
+        }
+      ],
+      "apiProtocol": "rest",
+      "apiResourceLinks": [
+        {
+          "type": "api-documentation",
+          "url": "/swagger-ui.html?urls.primaryName=Astronomy%20V1%20API"
+        }
+      ],
+      "resourceDefinitions": [
+        {
+          "type": "openapi-v3",
+          "mediaType": "application/json",
+          "url": "../sap.xref_apiResource_astronomy_v1/openapi-v3.json",
+          "accessStrategies": [
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ],
+      "entryPoints": ["/astronomy/v1"],
+      "extensible": {
+        "supported": "no"
+      },
+      "entityTypeMappings": [
+        {
+          "entityTypeTargets": [
+            {
+              "ordId": "sap.xref:entityType:Constellation:v1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ordId": "sap.xref:apiResource:crm:v1",
+      "title": "CRM API",
+      "shortDescription": "The CRM API allows you to manage customers...",
+      "description": "This API is **protected** via BasicAuth and is tenant aware",
+      "version": "1.0.0",
+      "lastUpdate": "2025-02-04T15:52:50.616Z",
+      "visibility": "internal",
+      "releaseStatus": "beta",
+      "systemInstanceAware": true,
+      "partOfPackage": "sap.xref:package:ord-reference-app-apis:v1",
+      "partOfConsumptionBundles": [
+        {
+          "ordId": "sap.xref:consumptionBundle:basicAuth:v1"
+        }
+      ],
+      "apiProtocol": "rest",
+      "apiResourceLinks": [
+        {
+          "type": "api-documentation",
+          "url": "/swagger-ui.html?urls.primaryName=CRM%20V1%20API"
+        }
+      ],
+      "resourceDefinitions": [
+        {
+          "type": "openapi-v3",
+          "mediaType": "application/json",
+          "url": "../sap.xref_apiResource_crm_v1/openapi-v3.json",
+          "accessStrategies": [
+            {
+              "type": "custom",
+              "customType": "sap.xref:open-global-tenant-id:v1",
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a SAP global tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://github.com/SAP-samples/open-resource-discovery-reference-application#access-strategies)."
+            },
+            {
+              "type": "custom",
+              "customType": "sap.xref:open-local-tenant-id:v1",
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a local tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://github.com/SAP-samples/open-resource-discovery-reference-application#access-strategies)."
+            },
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ],
+      "entryPoints": ["/crm/v1"],
+      "extensible": {
+        "supported": "manual",
+        "description": "This API can be extended with custom fields."
+      },
+      "changelogEntries": [
+        {
+          "version": "0.3.0",
+          "date": "2021-05-25",
+          "releaseStatus": "beta"
+        }
+      ]
+    }
+  ],
+  "consumptionBundles": [
+    {
+      "ordId": "sap.xref:consumptionBundle:noAuth:v1",
+      "version": "1.0.0",
+      "lastUpdate": "2023-02-03T06:44:10Z",
+      "title": "Unprotected resources",
+      "shortDescription": "Bundle of unprotected resources",
+      "description": "This Consumption Bundle contains all resources of the reference app which are unprotected and do not require authentication"
+    },
+    {
+      "ordId": "sap.xref:consumptionBundle:basicAuth:v1",
+      "title": "BasicAuth protected resources",
+      "version": "1.0.0",
+      "lastUpdate": "2023-02-03T06:44:10Z",
+      "shortDescription": "Bundle of protected resources",
+      "description": "This Consumption Bundle contains all resources of the reference app which share the same BasicAuth access and identity realm",
+      "credentialExchangeStrategies": [
+        {
+          "type": "custom",
+          "customType": "sap.xref:basicAuthCredentialExchange:v1",
+          "customDescription": "The BasicAuth credentials must be created and retrieved manually.\n Please refer to the documentation on the [ORD Reference App API access](https://github.com/SAP-samples/open-resource-discovery-reference-application#access-strategies)."
+        }
+      ]
+    }
+  ],
+  "entityTypes": [
+    {
+      "ordId": "sap.xref:entityType:Constellation:v1",
+      "localId": "Constellation",
+      "version": "1.0.0",
+      "title": "Constellation",
+      "level": "aggregate",
+      "description": "Description of the local Constellation Model",
+      "visibility": "public",
+      "releaseStatus": "active",
+      "partOfPackage": "sap.xref:package:ord-reference-app-apis:v1"
+    }
+  ],
+  "eventResources": [
+    {
+      "ordId": "sap.xref:eventResource:odm-finance-costobject:v0",
+      "title": "ODM Finance Cost Center Events",
+      "shortDescription": "Example ODM finance cost center event",
+      "description": "This is an example event catalog that contains only a partial ODM finance cost center V1 event",
+      "version": "0.1.0",
+      "lastUpdate": "2023-02-03T06:44:10Z",
+      "releaseStatus": "beta",
+      "partOfPackage": "sap.xref:package:ord-reference-app:v1",
+      "visibility": "public",
+      "resourceDefinitions": [
+        {
+          "type": "asyncapi-v2",
+          "mediaType": "application/json",
+          "url": "../sap.xref_eventResource_odm-finance-costobject_v0/asyncapi-v2.json",
+          "accessStrategies": [
+            {
+              "type": "custom",
+              "customType": "sap.xref:open-global-tenant-id:v1",
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a SAP global tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://github.com/SAP-samples/open-resource-discovery-reference-application#access-strategies)."
+            },
+            {
+              "type": "custom",
+              "customType": "sap.xref:open-local-tenant-id:v1",
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a local tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://github.com/SAP-samples/open-resource-discovery-reference-application#access-strategies)."
+            },
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ],
+      "extensible": {
+        "supported": "no"
+      },
+      "entityTypeMappings": [
+        {
+          "entityTypeTargets": [
+            {
+              "ordId": "sap.odm.finance:entityType:CostObject:v1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "ordId": "sap.xref:package:ord-reference-app-apis:v1",
+      "title": "ORD Reference Application APIs",
+      "shortDescription": "This is a reference application for the Open Resource Discovery protocol",
+      "description": "This reference application demonstrates how Open Resource Discovery (ORD) can be implemented, demonstrating different resources and discovery aspects",
+      "version": "1.0.0",
+      "policyLevel": "sap:core:v1",
+      "partOfProducts": ["sap.xref:product:ord-reference-app:"],
+      "vendor": "sap:vendor:SAP:",
+      "tags": ["reference application"],
+      "packageLinks": [
+        {
+          "type": "license",
+          "url": "https://github.com/SAP-samples/open-resource-discovery-reference-application/blob/main/LICENSE"
+        }
+      ],
+      "links": [
+        {
+          "title": "ORD Reference app description",
+          "url": "https://github.com/SAP-samples/open-resource-discovery-reference-application/blob/main/README.md"
+        },
+        {
+          "title": "ORD Reference app GitHub repository",
+          "url": "https://github.com/SAP-samples/open-resource-discovery-reference-application/"
+        }
+      ],
+      "labels": {
+        "customLabel": ["labels are more flexible than tags as you can define your own keys"]
+      }
+    },
+    {
+      "ordId": "sap.xref:package:ord-reference-app:v1",
+      "title": "ORD Reference Application Events",
+      "shortDescription": "This is a reference application for the Open Resource Discovery protocol",
+      "description": "This reference application demonstrates how Open Resource Discovery (ORD) can be implemented, demonstrating different resources and discovery aspects",
+      "version": "1.0.0",
+      "policyLevel": "sap:core:v1",
+      "partOfProducts": ["sap.xref:product:ord-reference-app:"],
+      "vendor": "sap:vendor:SAP:",
+      "tags": ["reference application"],
+      "packageLinks": [
+        {
+          "type": "license",
+          "url": "https://github.com/SAP-samples/open-resource-discovery-reference-application/blob/main/LICENSE"
+        }
+      ],
+      "links": [
+        {
+          "title": "ORD Reference app description",
+          "url": "https://github.com/SAP-samples/open-resource-discovery-reference-application/blob/main/README.md"
+        },
+        {
+          "title": "ORD Reference app GitHub repository",
+          "url": "https://github.com/SAP-samples/open-resource-discovery-reference-application/"
+        }
+      ],
+      "labels": {
+        "customLabel": ["labels are more flexible than tags as you can define your own keys"]
+      }
+    }
+  ],
+  "products": [
+    {
+      "ordId": "sap.xref:product:ord-reference-app:",
+      "title": "ORD Reference App",
+      "vendor": "sap:vendor:SAP:",
+      "shortDescription": "Open Resource Discovery Reference Application"
+    }
+  ],
+  "tombstones": [
+    {
+      "ordId": "sap.xref:apiResource:astronomy:v0",
+      "removalDate": "2021-03-12T06:44:10Z"
+    }
+  ]
+}
