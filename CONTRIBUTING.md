@@ -153,6 +153,8 @@ npm run prettier
  BASIC_AUTH='{"admin":"$2y$10$EwsT83iCpr/4r/pJj0G53eNk8fZ/Ldb8TDiuou7ciL8MgsaS4Xd.2"}' npm run dev -- -s local -d ./example --auth basic
 ```
 
+Note: The example BASIC_AUTH hash was generated using `htpasswd -Bnb admin secret`. You can generate your own hashes using the same command. The BASIC_AUTH environment variable expects a JSON object mapping usernames to bcrypt-hashed passwords.
+
 ### Project Structure
 
 ```

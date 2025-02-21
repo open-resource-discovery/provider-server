@@ -153,10 +153,32 @@ When the `open` authentication parameter is used, the server bypasses authentica
 > Cannot be used together with other authentication types.
 
 #### Basic Authentication
-The server supports Basic Authentication through an environment variable that contains a JSON string of username/password pairs:
+The server supports Basic Authentication through an environment variable that contains a JSON string mapping usernames to bcrypt-hashed passwords:
 ```json
 {"admin":"$2a$05$....", "reader":"$2y$a2$"}
 ```
+
+You can generate these bcrypt-hashed passwords using the `htpasswd` utility:
+
+##### Installing htpasswd:
+- **Linux**: Install apache2-utils package
+  ```bash
+  # Debian/Ubuntu
+  sudo apt-get install apache2-utils
+  # RHEL/CentOS
+  sudo yum install httpd-tools
+  ```
+- **macOS**: Install via Homebrew
+  ```bash
+  brew install httpd
+  ```
+- **Windows**: Available through [XAMPP](https://www.apachefriends.org/) or [Apache Haus](https://www.apachehaus.com/cgi-bin/download.plx)
+
+##### Generating a password hash:
+```bash
+htpasswd -Bnb admin secret
+```
+This will output something like `admin:$2y$05$...` - use only the hash part (starting with $2y$) in your BASIC_AUTH JSON.
 
 > **Security Note**: Make sure to use strong passwords and handle the BASIC_AUTH environment variable securely. Never commit real credentials or .env files to version control.
 
@@ -244,4 +266,3 @@ For **Tokens (classic)**:
 
 ## License
 Copyright 2025 SAP SE or an SAP affiliate company and contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](.reuse/dep5).
-
