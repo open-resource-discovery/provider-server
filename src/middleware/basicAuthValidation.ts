@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 import { comparePassword } from "src/util/passwordHash.js";
 import { config } from "dotenv";
+import { log } from "../util/logger.js";
 config();
 
 export function createBasicAuthValidator(validUsers: Record<string, string>) {
@@ -22,8 +23,8 @@ export function createBasicAuthValidator(validUsers: Record<string, string>) {
         throw new UnauthorizedError("Unauthorized");
       }
     } catch (error) {
-      if (error instanceof UnauthorizedError) {
-        throw error;
+      if (!(error instanceof UnauthorizedError)) {
+        log.error(error);
       }
       throw new UnauthorizedError("Unauthorized");
     }
