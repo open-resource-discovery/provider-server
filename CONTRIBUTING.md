@@ -49,7 +49,7 @@ We love your input! We want to make contributing to the ORD Provider Server as e
 
 ## TypeScript Coding Guidelines
 
-We enforce code style rules using [ESLint](https://eslint.org/). Execute npm run lint to check your code for style issues.
+We enforce code style rules using [ESLint](https://eslint.org/) using [@sap/eslint-config](https://www.npmjs.com/package/@sap/eslint-config) as a base. Execute npm run lint to check your code for style issues.
 You may also find an ESLint integration for your favorite IDE [here](https://eslint.org/docs/user-guide/integrations).
 
 ## Development Setup
@@ -103,7 +103,7 @@ GITHUB_REPOSITORY=owner/repo
 GITHUB_BRANCH=main
 
 # Optional: Basic auth users map
-APP_USERS='{"admin":"secret"}'
+BASIC_AUTH='{"admin":"$2y$10$EwsT83iCpr/4r/pJj0G53eNk8fZ/Ldb8TDiuou7ciL8MgsaS4Xd.2"}'
 ```
 
 > **Important**: Never commit the `.env` file to version control. It's already added to `.gitignore`.
@@ -149,8 +149,12 @@ npm run prettier
 2. **Local** (basic auth)
 
 ```bash
- APP_USERS='{"admin":"secret"}' npm run dev -- -s local -d ./example --auth basic
+# User: `admin`, password: `secret`
+ BASIC_AUTH='{"admin":"$2y$10$EwsT83iCpr/4r/pJj0G53eNk8fZ/Ldb8TDiuou7ciL8MgsaS4Xd.2"}' npm run dev -- -s local -d ./example --auth basic
 ```
+
+> [!NOTE]
+> The example `BASIC_AUTH` hash was generated using `htpasswd -Bnb admin secret`. You can generate your own hashes using the same command. The `BASIC_AUTH` environment variable expects a JSON object mapping usernames to bcrypt-hashed passwords. [Learn more](README.md#basic-authentication) how to generate password hashes in your environment.
 
 ### Project Structure
 

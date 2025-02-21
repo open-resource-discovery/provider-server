@@ -32,7 +32,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     githubToken: options.githubToken || process.env.GITHUB_TOKEN,
     authentication: {
       methods: options.auth,
-      basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.APP_USERS!) : undefined,
+      basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
   };
 }

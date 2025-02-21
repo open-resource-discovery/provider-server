@@ -4,31 +4,24 @@ import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
+// Mock bcrypt to avoid native module issues in tests
+jest.mock("bcrypt", () => ({
+  compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
+  hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+}));
 
 describe("Authentication", () => {
   let server: FastifyInstanceType;
-  const mockValidUsers = { admin: "secret" };
-  const mockTrustedSubject = "CN=test.example.com,OU=Test,O=Example";
+  const mockValidUsers = { admin: "$2b$10$hashedPassword" };
   const protectedRoute = "/ord/v1/documents/example";
 
   beforeAll(() => {
     // Mock environment variables
-    process.env.APP_USERS = JSON.stringify(mockValidUsers);
-    process.env.CMP_DEV_INFO_ENDPOINT = "https://test-endpoint.com";
-
-    // Mock fetch for trusted subjects
-    const mockFetch = jest.fn().mockImplementation(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ certSubject: mockTrustedSubject }),
-      }),
-    );
-    global.fetch = mockFetch as jest.MockedFunction<typeof fetch>;
+    process.env.BASIC_AUTH = JSON.stringify(mockValidUsers);
   });
 
   afterAll(() => {
-    delete process.env.APP_USERS;
-    delete process.env.CMP_DEV_INFO_ENDPOINT;
+    delete process.env.BASIC_AUTH;
     jest.restoreAllMocks();
   });
 

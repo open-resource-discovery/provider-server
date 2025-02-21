@@ -4,10 +4,18 @@ import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
 import path from "path";
 
+// Mock bcrypt to avoid native module issues in tests
+jest.mock("bcrypt", () => ({
+  compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
+  hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+}));
+
 describe("End-to-End Testing", () => {
   const TEST_PORT = 8086;
   const TEST_HOST = "127.0.0.1";
   const SERVER_URL = `http://${TEST_HOST}:${TEST_PORT}`;
+  const BASIC_AUTH_PASSWORD = "$2b$10$hashedPassword";
+
   let shutdownServer: () => Promise<void>;
 
   beforeAll(async () => {
@@ -19,7 +27,7 @@ describe("End-to-End Testing", () => {
       port: TEST_PORT,
       authentication: {
         methods: [OptAuthMethod.Basic],
-        basicAuthUsers: { admin: "secret" },
+        basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
       },
     });
   });

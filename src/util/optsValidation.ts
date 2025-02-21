@@ -12,11 +12,12 @@ import { GitHubFileResponse, GitHubInstance } from "../model/github.js";
 import { fetchGitHubFile, listGitHubDirectory } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
+import { isBcryptHash } from "./passwordHash.js";
 
 // @ts-expect-error baseUrl pattern selection
 const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
 
-interface AppUsers {
+interface BasicAuthUsers {
   [key: string]: string;
 }
 export async function validateAndParseOptions(options: CommandLineOptions): Promise<ProviderServerOptions> {
@@ -152,30 +153,34 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
 
   if (isBasicAuth) {
     try {
-      const appUsers = process.env.APP_USERS ? JSON.parse(process.env.APP_USERS) : null;
+      const basicAuthUsers = process.env.BASIC_AUTH ? JSON.parse(process.env.BASIC_AUTH) : null;
 
-      if (!isValidAppUsers(appUsers)) {
-        errors.push('Environment variable "APP_USERS" must be a JSON object with string keys and string values.');
+      if (!isValidBasicAuthUsers(basicAuthUsers)) {
+        errors.push(
+          'Environment variable "BASIC_AUTH" must be a JSON object with string keys and bcrypt hashes as value.',
+        );
         return;
       }
 
-      if (Object.keys(appUsers).length === 0) {
-        errors.push('Environment variable "APP_USERS" cannot be empty when basic auth is enabled.');
+      if (Object.keys(basicAuthUsers).length === 0) {
+        errors.push('Environment variable "BASIC_AUTH" cannot be empty when basic auth is enabled.');
       }
     } catch (error) {
       errors.push(
-        `Invalid JSON in environment variable "APP_USERS": ${error instanceof Error ? error.message : String(error)}`,
+        `Invalid JSON in environment variable "BASIC_AUTH": ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 }
 
-function isValidAppUsers(value: unknown): value is AppUsers {
+function isValidBasicAuthUsers(value: unknown): value is BasicAuthUsers {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
 
-  return Object.entries(value).every(([key, value]) => typeof key === "string" && typeof value === "string");
+  return Object.entries(value).every(
+    ([key, value]) => typeof key === "string" && typeof value === "string" && isBcryptHash(value),
+  );
 }
 
 function validateLocalDirectory(directoryPath: string): void {

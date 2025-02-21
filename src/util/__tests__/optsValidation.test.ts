@@ -4,12 +4,19 @@ import { jest, describe, it, beforeAll, afterAll, beforeEach } from "@jest/globa
 import fs from "fs";
 import { ordConfigurationSchema } from "@sap/open-resource-discovery";
 
+// We need to mock bcrypt since it's used by passwordHash which is imported by optsValidation
+jest.mock("bcrypt", () => ({
+  compare: jest.fn().mockImplementation(() => Promise.resolve(true)),
+  hash: jest.fn().mockImplementation(() => Promise.resolve("hashedPassword")),
+}));
+
 // @ts-expect-error baseUrl pattern selection
 const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
 
 jest.mock("fs", () => ({
   statSync: jest.fn(),
   readdirSync: jest.fn(),
+  existsSync: jest.fn(),
   // needed for @sap/open-resource-discovery
   readFileSync: jest.fn().mockReturnValue('{"properties":{"baseUrl":{"pattern":".*"}}}'),
 }));
@@ -194,7 +201,7 @@ describe("Options Validation", () => {
       await expect(validateAndParseOptions(options)).rejects.toThrow();
     });
 
-    it("should throw error for basic auth without APP_USERS env", async () => {
+    it("should throw error for basic auth without BASIC_AUTH env", async () => {
       const options = {
         sourceType: OptSourceType.Local,
         directory: "./test-dir",
