@@ -19,7 +19,7 @@ This project can be used either as a CLI tool or as a Node.js NPM dependency.
 
 2. **Local** (basic auth)
   ```bash
-   APP_USERS='{"admin":"secret"}' npx @open-resource-discovery/provider-server -d ./example --auth basic --base-url 'http://127.0.0.1:8080'
+   BASIC_AUTH='{"admin":"$2y$05$TjeC./ljKi7VLTBbzjTVyOi6lQBYpzfXiZSfJiGECHVi0eEN6/QG."}' npx @open-resource-discovery/provider-server -d ./example --auth basic --base-url 'http://127.0.0.1:8080'
   ```
 
 3. **GitHub** (open)
@@ -44,7 +44,7 @@ docker run -p 8080:8080 -v "$(pwd)/example:/app/data" \
 2. **Local** (basic auth)
 ```bash
 docker run -p 8080:8080 -v "$(pwd)/example:/app/data" \
-  -e APP_USERS='{"admin":"secret"}' \
+  -e BASIC_AUTH='{"admin":"$2y$05$TjeC./ljKi7VLTBbzjTVyOi6lQBYpzfXiZSfJiGECHVi0eEN6/QG."}' \
   ghcr.io/open-resource-discovery/provider-server:latest \
   -d /app/data --auth basic --base-url 'http://127.0.0.1:8080'
 ```
@@ -155,10 +155,10 @@ When the `open` authentication parameter is used, the server bypasses authentica
 #### Basic Authentication
 The server supports Basic Authentication through an environment variable that contains a JSON string of username/password pairs:
 ```json
-{"admin":"secret123", "reader":"pass456"}
+{"admin":"$2a$05$....", "reader":"$2y$a2$"}
 ```
 
-> **Security Note**: Make sure to use strong passwords and handle the APP_USERS environment variable securely. Never commit real credentials or .env files to version control.
+> **Security Note**: Make sure to use strong passwords and handle the BASIC_AUTH environment variable securely. Never commit real credentials or .env files to version control.
 
 ### Cloud Foundry Deployment
 

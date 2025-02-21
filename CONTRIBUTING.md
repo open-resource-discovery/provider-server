@@ -103,7 +103,7 @@ GITHUB_REPOSITORY=owner/repo
 GITHUB_BRANCH=main
 
 # Optional: Basic auth users map
-APP_USERS='{"admin":"secret"}'
+BASIC_AUTH='{"admin":"$2y$10$EwsT83iCpr/4r/pJj0G53eNk8fZ/Ldb8TDiuou7ciL8MgsaS4Xd.2"}'
 ```
 
 > **Important**: Never commit the `.env` file to version control. It's already added to `.gitignore`.
@@ -149,7 +149,8 @@ npm run prettier
 2. **Local** (basic auth)
 
 ```bash
- APP_USERS='{"admin":"secret"}' npm run dev -- -s local -d ./example --auth basic
+# admin:secret
+ BASIC_AUTH='{"admin":"$2y$10$EwsT83iCpr/4r/pJj0G53eNk8fZ/Ldb8TDiuou7ciL8MgsaS4Xd.2"}' npm run dev -- -s local -d ./example --auth basic
 ```
 
 ### Project Structure

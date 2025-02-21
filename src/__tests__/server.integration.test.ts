@@ -5,6 +5,12 @@ import { WELL_KNOWN_ENDPOINT, ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH } f
 import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@sap/open-resource-discovery";
 import path from "path";
 
+// Mock bcrypt to avoid native module issues in tests
+jest.mock("bcrypt", () => ({
+  compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
+  hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+}));
+
 describe("Server Integration", () => {
   const TEST_PORT = 8081;
   const TEST_HOST = "127.0.0.1";
@@ -12,6 +18,7 @@ describe("Server Integration", () => {
   const MULTI_AUTH_PORT = 8082;
   const SERVER_URL_2 = `http://${TEST_HOST}:${MULTI_AUTH_PORT}`;
   const LOCAL_DIRECTORY = path.join(process.cwd(), "src/__tests__/test-files");
+  const BASIC_AUTH_PASSWORD = "$2b$10$hashedPassword";
 
   let shutdownServer: () => Promise<void>;
   beforeAll(async () => {
@@ -23,7 +30,7 @@ describe("Server Integration", () => {
       baseUrl: SERVER_URL,
       authentication: {
         methods: [OptAuthMethod.Basic],
-        basicAuthUsers: { admin: "secret" },
+        basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
       },
     };
 
@@ -176,7 +183,7 @@ describe("Server Integration", () => {
         baseUrl: SERVER_URL_2,
         authentication: {
           methods: [OptAuthMethod.Basic],
-          basicAuthUsers: { admin: "secret" },
+          basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
         },
       };
 
