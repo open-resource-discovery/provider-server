@@ -158,9 +158,26 @@ The server supports Basic Authentication through an environment variable that co
 {"admin":"$2a$05$....", "reader":"$2y$a2$"}
 ```
 
-You can generate these bcrypt-hashed passwords using the `htpasswd` utility:
+You can generate these bcrypt-hashed passwords using the [htpasswd](https://httpd.apache.org/docs/2.4/programs/htpasswd.html) utility:
+```bash
+htpasswd -Bnb <user> <password>
+```
+
+<details>
+<summary>Using htpasswd in your environment</summary>
 
 ##### Installing htpasswd:
+- **Platform independent**:
+  > Prequisite is to have [NodeJS](https://nodejs.org/en) installed on your machine
+  ```bash
+  npm i -g htpasswd
+  ```
+
+- **Windows**: Available through [XAMPP](https://www.apachefriends.org/) or [Apache Haus](https://www.apachehaus.com/cgi-bin/download.plx)
+- **macOS**: Usually you have it natively installed, otherwise install via Homebrew
+  ```bash
+  brew install httpd
+  ```
 - **Linux**: Install apache2-utils package
   ```bash
   # Debian/Ubuntu
@@ -168,19 +185,15 @@ You can generate these bcrypt-hashed passwords using the `htpasswd` utility:
   # RHEL/CentOS
   sudo yum install httpd-tools
   ```
-- **macOS**: Install via Homebrew
-  ```bash
-  brew install httpd
-  ```
-- **Windows**: Available through [XAMPP](https://www.apachefriends.org/) or [Apache Haus](https://www.apachehaus.com/cgi-bin/download.plx)
 
 ##### Generating a password hash:
 ```bash
 htpasswd -Bnb admin secret
 ```
-This will output something like `admin:$2y$05$...` - use only the hash part (starting with $2y$) in your BASIC_AUTH JSON.
+This will output something like `admin:$2y$05$...` - use only the hash part (starting with `$2y$`) in your `BASIC_AUTH` JSON.
 
 > **Security Note**: Make sure to use strong passwords and handle the BASIC_AUTH environment variable securely. Never commit real credentials or .env files to version control.
+</details>
 
 ### Cloud Foundry Deployment
 
