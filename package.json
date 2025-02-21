@@ -68,6 +68,7 @@
     "jest-junit": "16.0.0",
     "jest-watch-typeahead": "^2.2.2",
     "lint-staged": "15.4.3",
+    "prettier": "^3.5.1",
     "rimraf": "6.0.1",
     "ts-jest": "^29.2.5",
     "tsc-alias": "1.8.10",
