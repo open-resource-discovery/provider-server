@@ -188,17 +188,17 @@ This will output something like `admin:$2y$05$...` - use only the hash part (sta
 > Make sure to use strong passwords and handle the BASIC_AUTH environment variable securely. Never commit real credentials or .env files to version control.
 
 <details>
-<summary>Using `htpasswd` in your environment</summary>
+<summary>Using htpasswd in your environment</summary>
 
 - **Platform independent**:
 
-  > Prequisite is to have [NodeJS](https://nodejs.org/en) installed on your machine.
+  > Prerequisite is to have [NodeJS](https://nodejs.org/en) installed on the machine.
 
   ```bash
   npm install -g htpasswd
   ```
 
-  Installing package globally, after that command `htpasswd` should be available in your Terminal.
+  After installing package globally, command `htpasswd` should be available in the Terminal.
 
 - **macOS**:
 
