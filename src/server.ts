@@ -11,12 +11,8 @@ import { GithubRouter } from "src/routes/githubRouter.js";
 import { LocalRouter } from "src/routes/localRouter.js";
 import { log } from "src/util/logger.js";
 import { createOrdConfigGetter, emptyOrdConfig } from "src/util/ordConfig.js";
-import {
-  deescapeUrlsInOrdDocument,
-  getFlattenedOrdFqnDocumentMap,
-  getFlattenedOrdFqnDocumentMapFromGithub,
-} from "./util/fqnHelpers.js";
 import { OrdDocumentProcessor, ProcessingContext } from "./services/ordProcessorService.js";
+import { getFlattenedOrdFqnDocumentMap } from "./util/fqnHelpers.js";
 
 export { ProviderServerOptions }; // Re-export the type
 
@@ -65,12 +61,8 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       authMethods: opts.authentication.methods,
     };
 
-    let ordDocuments = OrdDocumentProcessor.processLocalDocuments(localContext, ordConfig, opts.ordDirectory);
+    const ordDocuments = OrdDocumentProcessor.processLocalDocuments(localContext, ordConfig, opts.ordDirectory);
     const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(Object.values(ordDocuments));
-
-    ordDocuments = Object.fromEntries(
-      Object.entries(ordDocuments).map(([key, document]) => [key, deescapeUrlsInOrdDocument(document)]),
-    );
 
     const ordConfigGetter = createOrdConfigGetter({
       authMethods: opts.authentication.methods,
@@ -105,8 +97,11 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       baseUrl,
     });
 
-    // Create a fqn map for the documents
-    const fqnDocumentMap = await getFlattenedOrdFqnDocumentMapFromGithub(githubOpts);
+    const { fqnDocumentMap } = await OrdDocumentProcessor.preprocessGithubDocuments(
+      githubOpts,
+      baseUrl,
+      opts.authentication.methods,
+    );
 
     const githubRouter = new GithubRouter({
       ...githubOpts,
