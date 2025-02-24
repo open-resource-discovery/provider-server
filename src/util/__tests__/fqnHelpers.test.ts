@@ -9,7 +9,7 @@ describe("FQN Helpers", () => {
           {
             ordId: "urn:apiResource:example:v1",
             // @ts-expect-error Definition not complete
-            resourceDefinitions: [{ url: "folder/urn_apiResource_example_v1/fileA.txt" }],
+            resourceDefinitions: [{ url: "folder/urn:apiResource:example:v1/fileA.txt" }],
           },
         ],
       };
@@ -19,7 +19,7 @@ describe("FQN Helpers", () => {
           {
             ordId: "urn:apiResource:example:v1",
             // @ts-expect-error Definition not complete
-            resourceDefinitions: [{ url: "folder/urn_apiResource_example_v1/fileB.txt" }],
+            resourceDefinitions: [{ url: "folder/urn:apiResource:example:v1/fileB.txt" }],
           },
         ],
       };
