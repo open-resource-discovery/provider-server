@@ -1,3 +1,5 @@
+[![REUSE status](https://api.reuse.software/badge/github.com/open-resource-discovery/provider-server)](https://api.reuse.software/info/github.com/open-resource-discovery/provider-server)
+
 # Open Resource Discovery Provider Server
 
 This project helps to expose static metadata using [Open Resource Discovery](https://open-resource-discovery.github.io/specification/) (ORD) protocol via HTTP endpoint. Exposed metadata can be consumed by other application/services or [aggregators](https://open-resource-discovery.github.io/specification/spec-v1#ord-aggregator).
