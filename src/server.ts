@@ -81,6 +81,19 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     });
 
     await localRouter.register(server);
+
+    OrdDocumentProcessor.registerLocalUpdateHandler(localContext, ordConfig, opts.ordDirectory, (ordDocuments) => {
+      const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(Object.values(ordDocuments));
+
+      localRouter.updateConfig({
+        authMethods: opts.authentication.methods,
+        baseUrl,
+        ordDirectory: opts.ordDirectory,
+        ordDocuments,
+        ordConfig: ordConfigGetter,
+        fqnDocumentMap,
+      });
+    });
   } else if (opts.sourceType === OptSourceType.Github) {
     const githubOpts: GithubOpts = {
       githubApiUrl: opts.githubApiUrl!,
