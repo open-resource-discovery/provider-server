@@ -1,4 +1,5 @@
 import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import {
@@ -26,6 +27,8 @@ export interface ProcessingContext {
   githubRepo?: string;
   githubToken?: string;
 }
+
+export type LocalProcessResult = { [relativeFilePath: string]: ORDDocument };
 
 export class OrdDocumentProcessor {
   private static documentCache: DocumentCache = {};
@@ -159,14 +162,34 @@ export class OrdDocumentProcessor {
     return processedDocument;
   }
 
+  public static registerLocalUpdateHandler(
+    context: ProcessingContext,
+    ordConfig: ORDConfiguration,
+    ordDirectory: string,
+    callback: (updatedResult: LocalProcessResult) => void,
+  ): void {
+    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
+    fs.watch(ordDocumentDirectoryPath, (event, fileName) => {
+      if (event === "rename") {
+        Object.keys(this.documentCache)
+          .filter((key) => key.startsWith(`${fileName}:`))
+          .forEach((key) => delete this.documentCache[key]);
+      }
+      const updatedResult = OrdDocumentProcessor.processLocalDocuments(context, ordConfig, ordDirectory);
+      callback(updatedResult);
+    });
+  }
+
   public static processLocalDocuments(
     context: ProcessingContext,
     ordConfig: ORDConfiguration,
     ordDirectory: string,
-  ): { [relativeFilePath: string]: ORDDocument } {
-    const ordDocuments: { [relativeFilePath: string]: ORDDocument } = {};
+  ): LocalProcessResult {
+    const ordDocuments: LocalProcessResult = {};
     const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
     const ordFiles = getAllFiles(ordDocumentDirectoryPath);
+
+    ordConfig.openResourceDiscoveryV1.documents = [];
 
     if (ordFiles.length === 0) {
       throw new Error(`No ORD documents found in ${ordDocumentDirectoryPath}.`);
@@ -184,6 +207,16 @@ export class OrdDocumentProcessor {
 
       try {
         const ordDocumentText = fs.readFileSync(file).toString();
+        const shaChecksum = crypto.createHash("sha256").update(ordDocumentText).digest("hex");
+        const cacheKey = `${encodedFileName}:${shaChecksum}`;
+        if (this.documentCache[cacheKey]) {
+          ordDocuments[encodedFileName] = this.documentCache[cacheKey];
+          ordConfig.openResourceDiscoveryV1.documents?.push({
+            url: relativeUrl,
+            accessStrategies: getOrdDocumentAccessStrategies(context.authMethods),
+          });
+          continue;
+        }
         const ordDocumentParsed = JSON.parse(ordDocumentText) as ORDDocument;
 
         if (!ordDocumentParsed.openResourceDiscovery) {
@@ -200,6 +233,7 @@ export class OrdDocumentProcessor {
 
         const processedDocument = this.updateResources(context, ordDocumentParsed);
         ordDocuments[encodedFileName] = processedDocument;
+        this.documentCache[cacheKey] = processedDocument;
       } catch (error) {
         log.error(`Error processing file ${file}: ${error}`);
       }

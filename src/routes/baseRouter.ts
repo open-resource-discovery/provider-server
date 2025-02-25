@@ -1,7 +1,7 @@
-import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
-import { FastifyInstanceType } from "src/model/fastify.js";
-import { OptAuthMethod } from "src/model/cli.js";
 import { ORDConfiguration } from "@sap/open-resource-discovery";
+import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { OptAuthMethod } from "src/model/cli.js";
+import { FastifyInstanceType } from "src/model/fastify.js";
 
 export interface RouterOptions {
   baseUrl: string;
@@ -10,7 +10,7 @@ export interface RouterOptions {
 }
 
 export abstract class BaseRouter {
-  protected getOrdConfig: () => Promise<ORDConfiguration>;
+  private getOrdConfig: () => Promise<ORDConfiguration>;
   protected baseUrl: string;
   protected authMethods: OptAuthMethod[];
 
@@ -21,6 +21,10 @@ export abstract class BaseRouter {
   }
 
   public abstract register(server: FastifyInstanceType): void;
+
+  public updateORDConfig(configGetter: RouterOptions["ordConfig"]): void {
+    this.getOrdConfig = configGetter;
+  }
 
   protected configurationEndpoint(server: FastifyInstanceType): void {
     server.get(WELL_KNOWN_ENDPOINT, async () => {
