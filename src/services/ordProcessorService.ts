@@ -170,9 +170,9 @@ export class OrdDocumentProcessor {
   ): void {
     const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
     fs.watch(ordDocumentDirectoryPath, (event, fileName) => {
-      if (event === "rename") {
+      if (event === "rename" && fileName) {
         Object.keys(this.documentCache)
-          .filter((key) => key.startsWith(`${fileName}:`))
+          .filter((key) => key.startsWith(`${encodeURIComponent(fileName)}:`))
           .forEach((key) => delete this.documentCache[key]);
       }
       const updatedResult = OrdDocumentProcessor.processLocalDocuments(context, ordConfig, ordDirectory);
