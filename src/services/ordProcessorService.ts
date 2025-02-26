@@ -175,8 +175,13 @@ export class OrdDocumentProcessor {
           .filter((key) => key.startsWith(`${encodeURIComponent(fileName)}:`))
           .forEach((key) => delete this.documentCache[key]);
       }
-      const updatedResult = OrdDocumentProcessor.processLocalDocuments(context, ordConfig, ordDirectory);
-      callback(updatedResult);
+      try {
+        const updatedResult = OrdDocumentProcessor.processLocalDocuments(context, ordConfig, ordDirectory);
+        callback(updatedResult);
+      } catch (err) {
+        log.error(err);
+        callback({});
+      }
     });
   }
 
