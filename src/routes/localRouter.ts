@@ -1,12 +1,12 @@
-import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
-import { NotFoundError } from "src/model/error/NotFoundError.js";
 import fastifyStatic from "@fastify/static";
-import { ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
-import path from "path";
 import { ORDDocument } from "@sap/open-resource-discovery";
+import path from "path";
+import { ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { NotFoundError } from "src/model/error/NotFoundError.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
-import { log } from "src/util/logger.js";
+import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
 import { getAllFiles } from "src/util/files.js";
+import { log } from "src/util/logger.js";
 import { FqnDocumentMap } from "../util/fqnHelpers.js";
 
 interface LocalRouterOptions extends RouterOptions {
@@ -16,12 +16,19 @@ interface LocalRouterOptions extends RouterOptions {
 }
 
 export class LocalRouter extends BaseRouter {
-  private readonly ordDirectory: string;
-  private readonly ordDocuments: { [key: string]: ORDDocument };
-  private readonly fqnDocumentMap: FqnDocumentMap;
+  private ordDirectory: string;
+  private ordDocuments: { [key: string]: ORDDocument };
+  private fqnDocumentMap: FqnDocumentMap;
 
   public constructor(options: LocalRouterOptions) {
     super(options);
+    this.ordDirectory = options.ordDirectory;
+    this.ordDocuments = options.ordDocuments;
+    this.fqnDocumentMap = options.fqnDocumentMap;
+  }
+
+  public updateConfig(options: LocalRouterOptions): void {
+    this.updateORDConfig(options.ordConfig);
     this.ordDirectory = options.ordDirectory;
     this.ordDocuments = options.ordDocuments;
     this.fqnDocumentMap = options.fqnDocumentMap;
