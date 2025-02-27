@@ -1,6 +1,6 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
-import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
@@ -53,6 +53,27 @@ async function setupServer(server: FastifyInstanceType): Promise<void> {
 async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOptions): Promise<void> {
   const baseUrl = opts.baseUrl!;
 
+  log.info(`Starting with options`);
+  log.info(`>> Source Type: ${opts.sourceType}`);
+  log.info(`>> Base URL: ${opts.baseUrl || "-"}`);
+  log.info(
+    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? ORD_GITHUB_DEFAULT_ROOT_DIRECTORY : ""}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
+  );
+  log.info(`>> Host: ${opts.host || "-"}`);
+  log.info(`>> Port: ${opts.port || "-"}`);
+  log.info(`>> GitHub API URL: ${opts.githubApiUrl || "-"}`);
+  log.info(`>> GitHub Repository: ${opts.githubRepository || "-"}`);
+  log.info(`>> GitHub Branch: ${opts.githubBranch || "-"}`);
+  log.info(`>> GitHub Token: ${opts.githubToken?.slice(-4).padStart(opts.githubToken.length, "*") || "-"}`);
+  if (opts.authentication?.methods) {
+    log.info(`>> Authentication Methods: ${opts.authentication.methods.join(", ")}`);
+  }
+  if (opts.authentication?.basicAuthUsers) {
+    log.info(
+      `>> Authentication Basic Auth Users: ${Object.entries(opts.authentication.basicAuthUsers).map(([userName, password]) => `${userName}${password ? " ***" : ""}`)}`,
+    );
+  }
+
   if (opts.sourceType === OptSourceType.Local) {
     const ordConfig = emptyOrdConfig(baseUrl);
 
@@ -103,6 +124,8 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       customDirectory: opts.ordDirectory,
     };
 
+    log.info("Loading ORD documents from GitHub");
+
     const ordConfigGetter = createOrdConfigGetter({
       authMethods: opts.authentication.methods,
       sourceType: OptSourceType.Github,
@@ -139,7 +162,10 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     });
 
     server.log.info(`Server started on port ${port}`);
-    server.log.info(`ORD entry-point available: ${serverEndpoint}${WELL_KNOWN_ENDPOINT}`);
+    server.log.info(`(Local Server) ORD entry-point available: ${serverEndpoint}${WELL_KNOWN_ENDPOINT}`);
+    if (opts.baseUrl) {
+      server.log.info(`(Base URL) ORD entry-point available: ${opts.baseUrl}${WELL_KNOWN_ENDPOINT}`);
+    }
 
     // Return the shutdown function
     return async () => {
