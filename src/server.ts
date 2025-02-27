@@ -1,6 +1,6 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
-import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
@@ -97,6 +97,13 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       githubToken: opts.githubToken,
       customDirectory: opts.ordDirectory,
     };
+
+    log.info("Loading ORD documents from GitHub");
+    log.info(`>> Repository: ${opts.githubRepository}`);
+    log.info(`>> Branch: ${opts.githubBranch}`);
+    log.info(
+      `>> ORD Document Directory: ${opts.ordDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
+    );
 
     const ordConfigGetter = createOrdConfigGetter({
       authMethods: opts.authentication.methods,
