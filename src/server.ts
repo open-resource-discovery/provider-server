@@ -11,12 +11,12 @@ import { GithubRouter } from "src/routes/githubRouter.js";
 import { LocalRouter } from "src/routes/localRouter.js";
 import { log } from "src/util/logger.js";
 import { createOrdConfigGetter, emptyOrdConfig } from "src/util/ordConfig.js";
+import { OrdDocumentProcessor, ProcessingContext } from "./services/ordProcessorService.js";
 import {
   deescapeUrlsInOrdDocument,
   getFlattenedOrdFqnDocumentMap,
   getFlattenedOrdFqnDocumentMapFromGithub,
 } from "./util/fqnHelpers.js";
-import { OrdDocumentProcessor, ProcessingContext } from "./services/ordProcessorService.js";
 
 export { ProviderServerOptions }; // Re-export the type
 
@@ -125,10 +125,20 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     const port = opts.port || 8080;
     const host = opts.host || "0.0.0.0";
 
-    const serverEndpoint = await server.listen({
-      port,
-      host,
-    });
+    const serverEndpoint = await server.listen(
+      {
+        port,
+        host,
+      },
+      async (err) => {
+        if (err) {
+          server.log.error(err);
+          await server.close();
+          server.log.info("Server shutdown complete");
+          process.exit(1);
+        }
+      },
+    );
 
     server.log.info(`Server started on port ${port}`);
     server.log.info(`ORD entry-point available: ${serverEndpoint}${WELL_KNOWN_ENDPOINT}`);
