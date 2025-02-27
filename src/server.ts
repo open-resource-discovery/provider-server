@@ -1,6 +1,6 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
-import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
@@ -11,12 +11,12 @@ import { GithubRouter } from "src/routes/githubRouter.js";
 import { LocalRouter } from "src/routes/localRouter.js";
 import { log } from "src/util/logger.js";
 import { createOrdConfigGetter, emptyOrdConfig } from "src/util/ordConfig.js";
+import { OrdDocumentProcessor, ProcessingContext } from "./services/ordProcessorService.js";
 import {
   deescapeUrlsInOrdDocument,
   getFlattenedOrdFqnDocumentMap,
   getFlattenedOrdFqnDocumentMapFromGithub,
 } from "./util/fqnHelpers.js";
-import { OrdDocumentProcessor, ProcessingContext } from "./services/ordProcessorService.js";
 
 export { ProviderServerOptions }; // Re-export the type
 
@@ -98,6 +98,13 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       customDirectory: opts.ordDirectory,
     };
 
+    log.info("Loading ORD documents from GitHub");
+    log.info(`>> Repository: ${opts.githubRepository}`);
+    log.info(`>> Branch: ${opts.githubBranch}`);
+    log.info(
+      `>> ORD Document Directory: ${opts.ordDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
+    );
+
     const ordConfigGetter = createOrdConfigGetter({
       authMethods: opts.authentication.methods,
       sourceType: OptSourceType.Github,
@@ -125,10 +132,20 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     const port = opts.port || 8080;
     const host = opts.host || "0.0.0.0";
 
-    const serverEndpoint = await server.listen({
-      port,
-      host,
-    });
+    const serverEndpoint = await server.listen(
+      {
+        port,
+        host,
+      },
+      async (err) => {
+        if (err) {
+          server.log.error(err);
+          await server.close();
+          server.log.info("Server shutdown complete");
+          process.exit(1);
+        }
+      },
+    );
 
     server.log.info(`Server started on port ${port}`);
     server.log.info(`ORD entry-point available: ${serverEndpoint}${WELL_KNOWN_ENDPOINT}`);

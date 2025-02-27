@@ -1,12 +1,12 @@
-import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
-import { NotFoundError } from "src/model/error/NotFoundError.js";
-import fastifyStatic from "@fastify/static";
-import { ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
-import path from "path";
+import { default as fastifyStatic } from "@fastify/static";
 import { ORDDocument } from "@sap/open-resource-discovery";
+import path from "path";
+import { ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { NotFoundError } from "src/model/error/NotFoundError.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
-import { log } from "src/util/logger.js";
+import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
 import { getAllFiles } from "src/util/files.js";
+import { log } from "src/util/logger.js";
 import { FqnDocumentMap } from "../util/fqnHelpers.js";
 
 interface LocalRouterOptions extends RouterOptions {
@@ -38,7 +38,7 @@ export class LocalRouter extends BaseRouter {
 
     // Document endpoint
     server.get(`${ORD_DOCUMENTS_URL_PATH}/:documentName`, (request) => {
-      const documentName = request.url.replace(`${ORD_DOCUMENTS_URL_PATH}/`, "");
+      const documentName = path.parse(request.url.replace(`${ORD_DOCUMENTS_URL_PATH}/`, "")).name;
       if (this.ordDocuments[documentName]) {
         return this.ordDocuments[documentName];
       }
@@ -50,14 +50,24 @@ export class LocalRouter extends BaseRouter {
       const { ordId, fileName } = request.params as { ordId: string; fileName: string };
       const resourceMap = this.fqnDocumentMap[ordId]?.find((resource) => resource.fileName === fileName);
 
-      if (!resourceMap) throw new NotFoundError(`Could not find resource ${ordId}/${fileName}`);
+      if (resourceMap) {
+        return reply.sendFile(resourceMap.filePath, this.ordDirectory);
+      }
 
-      reply.sendFile(resourceMap.filePath, this.ordDirectory);
+      // Check if file exists in static directory as fallback
+      const requestedPath = path.join(ordId, fileName);
+
+      try {
+        return reply.sendFile(requestedPath, this.ordDirectory);
+      } catch (err) {
+        log.error(err);
+        throw new NotFoundError(`Could not find resource ${ordId}/${fileName}`);
+      }
     });
 
-    // Static files
+    // Register static files after API routes
     await server.register(fastifyStatic, {
-      prefix: `${ORD_SERVER_PREFIX_PATH}`,
+      prefix: ORD_SERVER_PREFIX_PATH,
       root: path.resolve(process.cwd(), this.ordDirectory),
       etag: true,
     });
@@ -69,8 +79,8 @@ export class LocalRouter extends BaseRouter {
     const staticFiles = getAllFiles(this.ordDirectory);
 
     for (const file of staticFiles) {
-      const relativeUrl = `/${path.relative(this.ordDirectory, file).split("\\").join("/")}`;
-      log.info(`>> Served: ${this.baseUrl}${relativeUrl}`);
+      const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${path.relative(this.ordDirectory, file).split("\\").join("/")}`;
+      log.info(`>> Served static file: ${this.baseUrl}${relativeUrl}`);
     }
   }
 }

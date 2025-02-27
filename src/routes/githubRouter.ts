@@ -13,8 +13,8 @@ import {
 } from "../model/error/GithubErrors.js";
 import { NotFoundError } from "../model/error/NotFoundError.js";
 import { OrdDocumentProcessor } from "../services/ordProcessorService.js";
-import { log } from "../util/logger.js";
 import { deescapeUrlsInOrdDocument, FqnDocumentMap } from "../util/fqnHelpers.js";
+import { log } from "../util/logger.js";
 import { validateOrdDocument } from "../util/validateOrdDocument.js";
 
 interface GithubRouterOptions extends Omit<RouterOptions, "sourceType" | "githubOpts">, GithubOpts {
