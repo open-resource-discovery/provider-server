@@ -103,7 +103,7 @@ export class OrdDocumentProcessor {
         .map(async (fileName) => {
           const file = await fetchGitHubFile<GitHubFileResponse>(
             githubInstance,
-            `${pathSegments}/documents/${fileName}`,
+            `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}/${fileName}`,
             githubOpts.githubToken,
           );
 
