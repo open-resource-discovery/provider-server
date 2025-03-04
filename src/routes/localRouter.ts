@@ -81,13 +81,11 @@ export class LocalRouter extends BaseRouter {
   }
 
   private checkStaticFiles(): void {
-    log.info("------------------------------------------------------------");
-    log.info(`Looking for static files in: ${this.ordDirectory}`);
     const staticFiles = getAllFiles(this.ordDirectory);
 
     for (const file of staticFiles) {
       const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${path.relative(this.ordDirectory, file).split("\\").join("/")}`;
-      log.info(`>> Served static file: ${this.baseUrl}${relativeUrl}`);
+      log.info(`Served static file: ${this.baseUrl}${relativeUrl}`);
     }
   }
 }

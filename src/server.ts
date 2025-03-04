@@ -125,14 +125,6 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     };
 
     log.info("Loading ORD documents from GitHub");
-    log.info(`>> Repository: ${opts.githubRepository}`);
-    log.info(`>> Branch: ${opts.githubBranch}`);
-    if (opts.githubToken) {
-      log.info(`>> Token: ${opts.githubToken.slice(-4).padStart(opts.githubToken.length, "*")}`);
-    }
-    log.info(
-      `>> ORD Document Directory: ${opts.ordDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
-    );
 
     const ordConfigGetter = createOrdConfigGetter({
       authMethods: opts.authentication.methods,

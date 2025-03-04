@@ -229,7 +229,7 @@ export class OrdDocumentProcessor {
           continue;
         }
 
-        log.info(`>> Served: ${context.baseUrl}${relativeUrl}`);
+        log.info(`Served: ${context.baseUrl}${relativeUrl}`);
 
         ordConfig.openResourceDiscoveryV1.documents?.push({
           url: relativeUrl,
