@@ -1,8 +1,4 @@
-import { APIResource, EventResource, type ORDDocument } from "@sap/open-resource-discovery";
-import path from "path";
-import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY } from "src/constant.js";
-import { type GitHubFileResponse, type GithubOpts } from "../model/github.js";
-import { fetchGitHubFile, listGitHubDirectory } from "./github.js";
+import { type ORDDocument } from "@sap/open-resource-discovery";
 
 // These types map fully qualified names (FQN) to their real path in the filesystem.
 // The goal is to make the files accessible via the ORD ID in the URL while maintaning compatibility
@@ -12,75 +8,11 @@ export type FqnDocumentMap = { [ordId: string]: FqnResourceMap[] };
 
 function getRelativePathForResource(ordId: string, path: string): FqnResourceMap {
   const pathParts = path.split("/");
-  const rootIndex = pathParts.findIndex((part) => part === ordId.replace(/:/gi, "_"));
+  const rootIndex = pathParts.findIndex((part) => part === ordId);
   return {
     fileName: pathParts.slice(rootIndex + 1).join("/"),
-    filePath: pathParts.slice(rootIndex).join("/"),
+    filePath: pathParts.slice(rootIndex).join("/").replace(/:/gi, "_"),
   };
-}
-
-export function deescapeUrlsInOrdDocument(ordDocument: ORDDocument): ORDDocument {
-  const processResources = <T extends APIResource[] | EventResource[]>(resources: T): T =>
-    resources?.map((resource) => {
-      const { ordId } = resource;
-      const escapedOrdId = ordId.replace(/:/gi, "_");
-
-      return {
-        ...resource,
-        resourceDefinitions: resource.resourceDefinitions?.map((resourceDefinition) => {
-          const pathParts = resourceDefinition.url.split("/");
-          const ordIdIdx = pathParts.findIndex((part) => escapedOrdId === part);
-
-          if (ordIdIdx > -1) {
-            // If the path segment is an escaped ord id for filesystem compatiblity issues
-            // replace it with the real ord id
-            pathParts[ordIdIdx] = ordId;
-          }
-
-          return {
-            ...resourceDefinition,
-            url: pathParts.join("/"),
-          };
-        }),
-      };
-    }) as T;
-
-  return {
-    ...ordDocument,
-    apiResources: ordDocument.apiResources ? processResources<APIResource[]>(ordDocument.apiResources) : undefined,
-    eventResources: ordDocument.eventResources
-      ? processResources<EventResource[]>(ordDocument.eventResources)
-      : undefined,
-  };
-}
-
-export async function getFlattenedOrdFqnDocumentMapFromGithub(githubOpts: GithubOpts): Promise<FqnDocumentMap> {
-  const githubInstance = {
-    host: githubOpts.githubApiUrl,
-    repo: githubOpts.githubRepository,
-    branch: githubOpts.githubBranch,
-  };
-
-  const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-  const files = await listGitHubDirectory(githubInstance, `${pathSegments}/documents`, githubOpts.githubToken);
-
-  const parsedOrdDocuments = await Promise.all(
-    files
-      .filter((file) => file.endsWith(".json"))
-      .map(async (document) => {
-        const file = await fetchGitHubFile<GitHubFileResponse>(
-          githubInstance,
-          `${pathSegments}/documents/${document}`,
-          githubOpts.githubToken,
-        );
-
-        const ordDocument = JSON.parse(Buffer.from(file.content, "base64").toString("utf-8")) as ORDDocument;
-        return ordDocument;
-      }),
-  );
-
-  const fqnDocumentMap = parsedOrdDocuments.length ? getFlattenedOrdFqnDocumentMap(parsedOrdDocuments) : {};
-  return fqnDocumentMap;
 }
 
 function getOrdFqnDocumentMap(document: ORDDocument): FqnDocumentMap {

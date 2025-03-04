@@ -13,8 +13,8 @@ import {
 } from "../model/error/GithubErrors.js";
 import { NotFoundError } from "../model/error/NotFoundError.js";
 import { OrdDocumentProcessor } from "../services/ordProcessorService.js";
+import { FqnDocumentMap } from "../util/fqnHelpers.js";
 import { log } from "../util/logger.js";
-import { deescapeUrlsInOrdDocument, FqnDocumentMap } from "../util/fqnHelpers.js";
 import { validateOrdDocument } from "../util/validateOrdDocument.js";
 
 interface GithubRouterOptions extends Omit<RouterOptions, "sourceType" | "githubOpts">, GithubOpts {
@@ -67,7 +67,12 @@ export class GithubRouter extends BaseRouter {
       }
 
       const ordDocument = Buffer.from(response.content, "base64").toString("utf-8");
-      let jsonData = JSON.parse(ordDocument);
+      const jsonData = JSON.parse(ordDocument);
+      const cacheKey = `${documentName}:${response.sha}`;
+
+      // Try to pull doc from cache before validation
+      const cachedDoc = OrdDocumentProcessor.getFromCache(cacheKey);
+      if (cachedDoc) return cachedDoc;
 
       try {
         validateOrdDocument(jsonData as ORDDocument);
@@ -75,9 +80,6 @@ export class GithubRouter extends BaseRouter {
         throw new NotFoundError(`Could not find a valid ORD document: ${documentName}`);
       }
 
-      jsonData = deescapeUrlsInOrdDocument(jsonData as ORDDocument);
-
-      const cacheKey = `${documentName}:${response.sha}`;
       return OrdDocumentProcessor.processGithubDocument(
         {
           baseUrl: this.baseUrl,
@@ -116,8 +118,21 @@ export class GithubRouter extends BaseRouter {
           githubPath,
           this.githubToken,
         );
-        const content = Buffer.from(response.content, "base64").toString("utf-8");
-        return documentName.endsWith(".json") ? deescapeUrlsInOrdDocument(JSON.parse(content)) : content;
+        const jsonData = JSON.parse(Buffer.from(response.content, "base64").toString("utf-8"));
+        const cacheKey = `${documentName}:${response.sha}`;
+
+        return OrdDocumentProcessor.processGithubDocument(
+          {
+            baseUrl: this.baseUrl,
+            authMethods: this.authMethods,
+            githubBranch: this.githubBranch,
+            githubApiUrl: this.githubApiUrl,
+            githubRepo: this.githubRepository,
+            githubToken: this.githubToken || "",
+          },
+          cacheKey,
+          jsonData,
+        );
       } catch (error: unknown) {
         logError(error);
         throw error;

@@ -1,11 +1,19 @@
-import { APIResource, EventResource, ORDDocument, ORDConfiguration } from "@sap/open-resource-discovery";
-import path from "path";
+import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
+import crypto from "crypto";
 import fs from "fs";
+import path from "path";
+import {
+  ORD_DOCUMENTS_SUB_DIRECTORY,
+  ORD_GITHUB_DEFAULT_ROOT_DIRECTORY,
+  ORD_SERVER_PREFIX_PATH,
+} from "src/constant.js";
 import { OptAuthMethod } from "src/model/cli.js";
-import { getOrdDocumentAccessStrategies } from "src/util/ordConfig.js";
-import { log } from "src/util/logger.js";
 import { getAllFiles } from "src/util/files.js";
-import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { log } from "src/util/logger.js";
+import { getOrdDocumentAccessStrategies } from "src/util/ordConfig.js";
+import { GitHubFileResponse, GithubOpts } from "../model/github.js";
+import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
+import { fetchGitHubFile, listGitHubDirectory } from "../util/github.js";
 
 interface DocumentCache {
   [key: string]: ORDDocument;
@@ -20,6 +28,8 @@ export interface ProcessingContext {
   githubToken?: string;
 }
 
+export type LocalProcessResult = { [relativeFilePath: string]: ORDDocument };
+
 export class OrdDocumentProcessor {
   private static documentCache: DocumentCache = {};
 
@@ -30,23 +40,96 @@ export class OrdDocumentProcessor {
   ): T[] {
     return resources.map((resource) => ({
       ...resource,
-      resourceDefinitions: (resource.resourceDefinitions || []).map((definition) => ({
-        ...definition,
-        ...(definition.url && { url: this.fixUrl(definition.url) }),
-        accessStrategies: getOrdDocumentAccessStrategies(authMethods),
-      })),
+      resourceDefinitions: (resource.resourceDefinitions || []).map((definition) => {
+        return {
+          ...definition,
+          ...(definition.url && { url: this.fixUrl(definition.url, resource.ordId) }),
+          accessStrategies: getOrdDocumentAccessStrategies(authMethods),
+        };
+      }),
     }));
   }
 
-  private static fixUrl(url: string): string {
-    if (this.isRemoteUrl(url)) {
-      return url;
+  private static fixUrl(url: string, ordId: string): string {
+    const escapedOrdId = ordId.replace(/:/gi, "_");
+    const pathParts = url.split("/");
+    const ordIdIdx = pathParts.findIndex((part) => escapedOrdId === part);
+
+    if (ordIdIdx > -1) {
+      // If the path segment is an escaped ORD ID for filesystem compatiblity issues
+      // replace it with the real ORD ID
+      pathParts[ordIdIdx] = ordId;
     }
-    return path.posix.join(ORD_SERVER_PREFIX_PATH, path.posix.resolve("/", url));
+
+    const urlWithFixedOrdId = pathParts.join("/");
+
+    if (this.isRemoteUrl(url)) {
+      return urlWithFixedOrdId;
+    }
+    return path.posix.join(ORD_SERVER_PREFIX_PATH, path.posix.resolve("/", urlWithFixedOrdId));
   }
 
   private static isRemoteUrl(url: string): boolean {
     return url.startsWith("http://") || url.startsWith("https://");
+  }
+
+  public static getFromCache(cacheKey: string): ORDDocument | undefined {
+    if (this.documentCache[cacheKey]) {
+      return this.documentCache[cacheKey];
+    }
+  }
+
+  public static async preprocessGithubDocuments(
+    githubOpts: GithubOpts,
+    baseUrl: string,
+    authenticationMethods: OptAuthMethod[],
+  ): Promise<{ documents: ORDDocument[]; fqnDocumentMap: FqnDocumentMap }> {
+    const githubInstance = {
+      host: githubOpts.githubApiUrl,
+      repo: githubOpts.githubRepository,
+      branch: githubOpts.githubBranch,
+    };
+
+    const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+    const files = await listGitHubDirectory(
+      githubInstance,
+      `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
+      githubOpts.githubToken,
+    );
+
+    const documents = await Promise.all(
+      files
+        .filter((file) => file.endsWith(".json"))
+        .map(async (fileName) => {
+          const file = await fetchGitHubFile<GitHubFileResponse>(
+            githubInstance,
+            `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}/${fileName}`,
+            githubOpts.githubToken,
+          );
+
+          const ordDocument = JSON.parse(Buffer.from(file.content, "base64").toString("utf-8")) as ORDDocument;
+          return { ordDocument, fileName, sha: file.sha };
+        }),
+    );
+
+    const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(
+      documents.map(({ ordDocument, fileName, sha }) =>
+        OrdDocumentProcessor.processGithubDocument(
+          {
+            baseUrl,
+            authMethods: authenticationMethods,
+            githubBranch: githubOpts.githubBranch,
+            githubApiUrl: githubOpts.githubApiUrl,
+            githubRepo: githubOpts.githubRepository,
+            githubToken: githubOpts.githubToken,
+          },
+          `${fileName}:${sha}`,
+          ordDocument,
+        ),
+      ),
+    );
+
+    return { documents: documents.map(({ ordDocument }) => ordDocument), fqnDocumentMap };
   }
 
   private static updateResources(context: ProcessingContext, document: ORDDocument): ORDDocument {
@@ -69,8 +152,9 @@ export class OrdDocumentProcessor {
     cacheKey: string,
     document: ORDDocument,
   ): ORDDocument {
-    if (this.documentCache[cacheKey]) {
-      return this.documentCache[cacheKey];
+    const cachedDoc = this.getFromCache(cacheKey);
+    if (cachedDoc) {
+      return cachedDoc;
     }
 
     const processedDocument = this.updateResources(context, document);
@@ -78,14 +162,39 @@ export class OrdDocumentProcessor {
     return processedDocument;
   }
 
+  public static registerLocalUpdateHandler(
+    context: ProcessingContext,
+    ordConfig: ORDConfiguration,
+    ordDirectory: string,
+    callback: (updatedResult: LocalProcessResult) => void,
+  ): void {
+    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
+    fs.watch(ordDocumentDirectoryPath, (event, fileName) => {
+      if (event === "rename" && fileName) {
+        Object.keys(this.documentCache)
+          .filter((key) => key.startsWith(`${encodeURIComponent(fileName)}:`))
+          .forEach((key) => delete this.documentCache[key]);
+      }
+      try {
+        const updatedResult = OrdDocumentProcessor.processLocalDocuments(context, ordConfig, ordDirectory);
+        callback(updatedResult);
+      } catch (err) {
+        log.error(err);
+        callback({});
+      }
+    });
+  }
+
   public static processLocalDocuments(
     context: ProcessingContext,
     ordConfig: ORDConfiguration,
     ordDirectory: string,
-  ): { [relativeFilePath: string]: ORDDocument } {
-    const ordDocuments: { [relativeFilePath: string]: ORDDocument } = {};
+  ): LocalProcessResult {
+    const ordDocuments: LocalProcessResult = {};
     const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
     const ordFiles = getAllFiles(ordDocumentDirectoryPath);
+
+    ordConfig.openResourceDiscoveryV1.documents = [];
 
     if (ordFiles.length === 0) {
       throw new Error(`No ORD documents found in ${ordDocumentDirectoryPath}.`);
@@ -103,6 +212,16 @@ export class OrdDocumentProcessor {
 
       try {
         const ordDocumentText = fs.readFileSync(file).toString();
+        const shaChecksum = crypto.createHash("sha256").update(ordDocumentText).digest("hex");
+        const cacheKey = `${encodedFileName}:${shaChecksum}`;
+        if (this.documentCache[cacheKey]) {
+          ordDocuments[encodedFileName] = this.documentCache[cacheKey];
+          ordConfig.openResourceDiscoveryV1.documents?.push({
+            url: relativeUrl,
+            accessStrategies: getOrdDocumentAccessStrategies(context.authMethods),
+          });
+          continue;
+        }
         const ordDocumentParsed = JSON.parse(ordDocumentText) as ORDDocument;
 
         if (!ordDocumentParsed.openResourceDiscovery) {
@@ -119,6 +238,7 @@ export class OrdDocumentProcessor {
 
         const processedDocument = this.updateResources(context, ordDocumentParsed);
         ordDocuments[encodedFileName] = processedDocument;
+        this.documentCache[cacheKey] = processedDocument;
       } catch (error) {
         log.error(`Error processing file ${file}: ${error}`);
       }
