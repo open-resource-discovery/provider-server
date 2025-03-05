@@ -1,0 +1,79 @@
+version: 2
+updates:
+  # NPM Dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 20
+    labels:
+      - "dependencies"
+      - "dependabot"
+    groups:
+      fastify-core:
+        patterns:
+          - "fastify"
+          - "fastify-plugin"
+          - "@fastify/*"
+      logging:
+        patterns:
+          - "pino"
+          - "pino-pretty"
+      cli-and-utils:
+        patterns:
+          - "commander"
+          - "dotenv"
+      security:
+        patterns:
+          - "bcrypt"
+          - "@types/bcrypt"
+      linting-tools:
+        patterns:
+          - "eslint"
+          - "@eslint/js"
+          - "@sap/eslint-config"
+          - "prettier"
+      typescript-build-tools:
+        patterns:
+          - "typescript"
+          - "ts-jest"
+          - "tsx"
+          - "tsc-alias"
+          - "@tsconfig/node22"
+      testing-frameworks:
+        patterns:
+          - "jest"
+          - "jest-cli"
+          - "jest-junit"
+          - "jest-fetch-mock"
+          - "jest-watch-typeahead"
+          - "@types/jest"
+          - "@types/js-yaml"
+      misc-tools:
+        patterns:
+          - "rimraf"
+          - "husky"
+          - "is-ci"
+          - "lint-staged"
+    reviewers:
+      - "dependabot[bot]"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    labels:
+      - "dependencies"
+      - "dependabot"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+    reviewers:
+      - "dependabot[bot]"
