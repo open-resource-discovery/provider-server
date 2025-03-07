@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import { Command, Option } from "commander";
-import { log } from "src/util/logger.js";
-import { startProviderServer } from "src/server.js";
-import packageJson from "package.json" with { type: "json" };
-import { OptAuthMethod, OptSourceType, parseSourceType, parseAuthMethods, CommandLineOptions } from "src/model/cli.js";
 import { config } from "dotenv";
-import { validateAndParseOptions } from "src/util/optsValidation.js";
+import packageJson from "package.json" with { type: "json" };
+import { CommandLineOptions, OptAuthMethod, OptSourceType, parseAuthMethods, parseSourceType } from "src/model/cli.js";
+import { startProviderServer } from "src/server.js";
 import { getBaseUrlFromVcapEnv } from "src/util/env.js";
+import { log } from "src/util/logger.js";
+import { validateAndParseOptions } from "src/util/optsValidation.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
 
