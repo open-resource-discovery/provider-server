@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
-import { startProviderServer, ProviderServerOptions } from "src/server.js";
-import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
-import { WELL_KNOWN_ENDPOINT, ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@sap/open-resource-discovery";
 import path from "path";
+import { ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH, WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
+import { ProviderServerOptions, startProviderServer } from "src/server.js";
 
 // Mock bcrypt to avoid native module issues in tests
-jest.mock("bcrypt", () => ({
+jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
   hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
 }));

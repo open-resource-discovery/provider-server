@@ -1,11 +1,11 @@
-import { validateAndParseOptions as originalValidateAndParseOptions } from "src/util/optsValidation.js";
-import { OptSourceType, OptAuthMethod } from "src/model/cli.js";
-import { jest, describe, it, beforeAll, afterAll, beforeEach } from "@jest/globals";
-import fs from "fs";
+import { afterAll, beforeAll, beforeEach, describe, it, jest } from "@jest/globals";
 import { ordConfigurationSchema } from "@sap/open-resource-discovery";
+import fs from "fs";
+import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
+import { validateAndParseOptions as originalValidateAndParseOptions } from "src/util/optsValidation.js";
 
 // We need to mock bcrypt since it's used by passwordHash which is imported by optsValidation
-jest.mock("bcrypt", () => ({
+jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation(() => Promise.resolve(true)),
   hash: jest.fn().mockImplementation(() => Promise.resolve("hashedPassword")),
 }));
