@@ -1,11 +1,11 @@
-import { describe, it, expect } from "@jest/globals";
-import { startProviderServer } from "src/server.js";
-import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
+import { describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
 import path from "path";
+import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
+import { startProviderServer } from "src/server.js";
 
 // Mock bcrypt to avoid native module issues in tests
-jest.mock("bcrypt", () => ({
+jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
   hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
 }));

@@ -1,11 +1,11 @@
-import { describe, it, expect, jest, beforeAll, afterAll, beforeEach, afterEach } from "@jest/globals";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import fastify from "fastify";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
-import { OptAuthMethod } from "src/model/cli.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
+import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 // Mock bcrypt to avoid native module issues in tests
-jest.mock("bcrypt", () => ({
+jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
   hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
 }));
