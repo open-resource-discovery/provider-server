@@ -6,7 +6,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: tokens:@open-resource-discovery/provider-server
     permissions:
+      contents: read
       id-token: write
     steps:
       # NPM Publishing
