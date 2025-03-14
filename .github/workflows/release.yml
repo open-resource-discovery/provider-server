@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: tokens:@open-resource-discovery/provider-server
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # NPM Publishing
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to NPM
+        # --access public is only hard required for the initial release, but it doesn't hurt having it setup
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Docker Image
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set Docker Tags
+        id: docker_tags
+        run: |
+          LAST_COMMIT_HASH=$(git rev-parse --short HEAD)
+          VERSION=$(node -p -e "require('./package.json').version")
+
+          TAGS=""
+          TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
+          TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$VERSION"
+          TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$LAST_COMMIT_HASH"
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          tags: ${{ steps.docker_tags.outputs.tags }}
+          push: true
+          platforms: |
+            linux/amd64,
+            linux/arm64
+
+      # GitHub Release
+      - name: Create GitHub Release
+        uses: open-resource-discovery/github-release@main
