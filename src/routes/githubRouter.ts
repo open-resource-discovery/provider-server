@@ -1,4 +1,4 @@
-import { ORDDocument } from "@sap/open-resource-discovery";
+import { ORDDocument } from "@open-resource-discovery/specification";
 import path from "path";
 import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
 import { FastifyInstanceType } from "src/model/fastify.js";

@@ -1,5 +1,5 @@
-import { ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
-import { AccessStrategy } from "@sap/open-resource-discovery/dist/types/v1/Configuration.js";
+import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
+import { AccessStrategy } from "@open-resource-discovery/specification/dist/types/v1/Configuration.js";
 import path from "path";
 import {
   ORD_DOCUMENTS_SUB_DIRECTORY,

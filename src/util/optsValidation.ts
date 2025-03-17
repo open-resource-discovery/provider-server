@@ -1,4 +1,4 @@
-import { ordConfigurationSchema, type ORDDocument } from "@sap/open-resource-discovery";
+import { ordConfigurationSchema, type ORDDocument } from "@open-resource-discovery/specification";
 import fs from "fs";
 import path from "path";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";

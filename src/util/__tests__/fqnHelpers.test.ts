@@ -1,4 +1,4 @@
-import { type ORDDocument } from "@sap/open-resource-discovery";
+import { type ORDDocument } from "@open-resource-discovery/specification";
 import { type FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../fqnHelpers.js";
 
 describe("FQN Helpers", () => {
@@ -27,8 +27,8 @@ describe("FQN Helpers", () => {
       const result = getFlattenedOrdFqnDocumentMap([doc1, doc2]);
       const expected: FqnDocumentMap = {
         "urn:apiResource:example:v1": [
-          { fileName: "fileA.txt", filePath: "urn_apiResource_example_v1/fileA.txt" },
-          { fileName: "fileB.txt", filePath: "urn_apiResource_example_v1/fileB.txt" },
+          { fileName: "fileA.txt", filePath: "folder/urn_apiResource_example_v1/fileA.txt" },
+          { fileName: "fileB.txt", filePath: "folder/urn_apiResource_example_v1/fileB.txt" },
         ],
       };
       expect(result).toEqual(expected);

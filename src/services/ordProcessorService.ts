@@ -1,4 +1,4 @@
-import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
+import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";

@@ -1,5 +1,5 @@
 import fastifyStatic from "@fastify/static";
-import { ORDDocument } from "@sap/open-resource-discovery";
+import { ORDDocument } from "@open-resource-discovery/specification";
 import fs from "fs";
 import path from "path";
 import { ORD_SERVER_PREFIX_PATH } from "src/constant.js";
