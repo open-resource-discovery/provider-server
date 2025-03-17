@@ -82,7 +82,7 @@ export class LocalRouter extends BaseRouter {
 
       // Try to serve the file directly from the root of the ordDirectory
       try {
-        const absolutePath = path.join(this.ordDirectory, fileName);
+        const absolutePath = path.posix.join(this.ordDirectory, fileName);
 
         if (fs.existsSync(absolutePath)) {
           return reply.sendFile(fileName, this.ordDirectory);
@@ -161,8 +161,8 @@ export class LocalRouter extends BaseRouter {
       // Try as a static file (last resort)
       try {
         // First check if the file exists
-        const fullPath = path.join(ordId, unknownPath);
-        const absolutePath = path.join(this.ordDirectory, fullPath);
+        const fullPath = path.posix.join(ordId, unknownPath);
+        const absolutePath = path.posix.join(this.ordDirectory, fullPath);
 
         if (fs.existsSync(absolutePath)) {
           return reply.sendFile(fullPath, this.ordDirectory);
