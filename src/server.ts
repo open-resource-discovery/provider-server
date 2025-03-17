@@ -132,6 +132,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     const ordConfigGetter = createOrdConfigGetter({
       authMethods: opts.authentication.methods,
       sourceType: OptSourceType.Github,
+      ordSubDirectory: opts.documentsSubDirectory,
       githubOpts,
       baseUrl,
     });

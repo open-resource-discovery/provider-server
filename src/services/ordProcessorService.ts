@@ -97,25 +97,22 @@ export class OrdDocumentProcessor {
       githubInstance,
       `${pathSegments}/${documentsSubDirectory}`,
       githubOpts.githubToken,
+      true, // Enable recursive directory listing
     );
 
     const documents = await Promise.all(
       files
-        .filter((file) => file.endsWith(".json"))
-        .map(async (fileName) => {
-          const file = await fetchGitHubFile<GitHubFileResponse>(
-            githubInstance,
-            `${pathSegments}/${documentsSubDirectory}/${fileName}`,
-            githubOpts.githubToken,
-          );
+        .filter((filePath) => filePath.endsWith(".json"))
+        .map(async (filePath) => {
+          const file = await fetchGitHubFile<GitHubFileResponse>(githubInstance, filePath, githubOpts.githubToken);
 
           const ordDocument = JSON.parse(Buffer.from(file.content, "base64").toString("utf-8")) as ORDDocument;
-          return { ordDocument, fileName, sha: file.sha };
+          return { ordDocument, filePath, sha: file.sha };
         }),
     );
 
     const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(
-      documents.map(({ ordDocument, fileName, sha }) =>
+      documents.map(({ ordDocument, filePath, sha }) =>
         OrdDocumentProcessor.processGithubDocument(
           {
             baseUrl,
@@ -125,7 +122,7 @@ export class OrdDocumentProcessor {
             githubRepo: githubOpts.githubRepository,
             githubToken: githubOpts.githubToken,
           },
-          `${fileName}:${sha}`,
+          `${filePath}:${sha}`,
           ordDocument,
         ),
       ),

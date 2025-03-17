@@ -47,10 +47,15 @@ export class GithubRouter extends BaseRouter {
     this.configurationEndpoint(server);
 
     // Document endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/${this.documentsSubDirectory}/:documentName`, async (request) => {
-      const { documentName } = request.params as { documentName: string };
+    server.get(`${ORD_SERVER_PREFIX_PATH}/${this.documentsSubDirectory}/*`, async (request) => {
+      const { "*": documentPath } = request.params as { "*": string };
 
-      const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+      // Extract the document name from the path (last segment without extension)
+      const pathSegments = documentPath.split("/");
+      const documentName = path.basename(pathSegments[pathSegments.length - 1], ".json");
+
+      const rootPath = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+      const githubPath = `${rootPath}/${this.documentsSubDirectory}/${documentPath}`;
 
       let response: GitHubFileResponse;
 
@@ -61,7 +66,7 @@ export class GithubRouter extends BaseRouter {
             repo: this.githubRepository,
             branch: this.githubBranch,
           },
-          `${pathSegments}/${this.documentsSubDirectory}/${documentName}.json`,
+          githubPath,
           this.githubToken,
         );
       } catch (error: unknown) {
@@ -80,7 +85,7 @@ export class GithubRouter extends BaseRouter {
       try {
         validateOrdDocument(jsonData as ORDDocument);
       } catch {
-        throw new NotFoundError(`Could not find a valid ORD document: ${documentName}`);
+        throw new NotFoundError(`Could not find a valid ORD document: ${documentPath}`);
       }
 
       return OrdDocumentProcessor.processGithubDocument(
@@ -98,18 +103,17 @@ export class GithubRouter extends BaseRouter {
       );
     });
 
-    // Resource files endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/:ordId/:documentName`, async (request) => {
-      const { ordId, documentName } = request.params as {
-        ordId: string;
-        documentName: string;
-      };
+    // Root-level files endpoint
+    server.get(`${ORD_SERVER_PREFIX_PATH}/:fileName`, async (request, reply) => {
+      const { fileName } = request.params as { fileName: string };
 
-      const resourceMap = this.fqnDocumentMap[ordId]?.find((resource) => resource.fileName === documentName);
+      // Skip if this is a documents route or another known route
+      if (fileName === this.documentsSubDirectory) {
+        return reply.callNotFound();
+      }
+
       const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-      const githubPath = resourceMap
-        ? `${pathSegments}/${resourceMap.filePath}`
-        : `${pathSegments}/${ordId}/${documentName}`;
+      const githubPath = `${pathSegments}/${fileName}`;
 
       let response: GitHubFileResponse;
       try {
@@ -122,22 +126,81 @@ export class GithubRouter extends BaseRouter {
           githubPath,
           this.githubToken,
         );
-        const jsonData = JSON.parse(Buffer.from(response.content, "base64").toString("utf-8"));
-        const cacheKey = `${documentName}:${response.sha}`;
 
-        return OrdDocumentProcessor.processGithubDocument(
+        // Return the file content directly
+        return JSON.parse(Buffer.from(response.content, "base64").toString("utf-8"));
+      } catch (error: unknown) {
+        logError(error);
+        throw error;
+      }
+    });
+
+    // Resource files endpoint with wildcard support
+    server.get(`${ORD_SERVER_PREFIX_PATH}/:ordId/*`, async (request, reply) => {
+      const { ordId } = request.params as { ordId: string };
+      const { "*": unknownPath } = request.params as { "*": string };
+
+      // Skip if this is a documents route
+      if (ordId === this.documentsSubDirectory) {
+        return reply.callNotFound();
+      }
+
+      // First try to find the resource in the FQN document map
+      const resourceMap = this.fqnDocumentMap[ordId]?.find((resource) => resource.fileName === unknownPath);
+
+      const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+      let githubPath: string;
+
+      // If found in the map, use the mapped path
+      if (resourceMap) {
+        githubPath = path.posix.join(pathSegments, resourceMap.filePath);
+      } else {
+        // If not found in the map, try to fetch it directly
+        githubPath = path.posix.join(pathSegments, ordId, unknownPath);
+      }
+
+      try {
+        const response = await fetchGitHubFile<GitHubFileResponse>(
           {
-            baseUrl: this.baseUrl,
-            authMethods: this.authMethods,
-            documentsSubDirectory: this.documentsSubDirectory,
-            githubBranch: this.githubBranch,
-            githubApiUrl: this.githubApiUrl,
-            githubRepo: this.githubRepository,
-            githubToken: this.githubToken || "",
+            host: this.githubApiUrl,
+            repo: this.githubRepository,
+            branch: this.githubBranch,
           },
-          cacheKey,
-          jsonData,
+          githubPath,
+          this.githubToken,
         );
+
+        // Get the content
+        const content = Buffer.from(response.content, "base64").toString("utf-8");
+
+        try {
+          const jsonData = JSON.parse(content);
+
+          // If it's an ORD document, process it
+          if (jsonData.openResourceDiscovery) {
+            const documentName = path.basename(unknownPath);
+            const cacheKey = `${documentName}:${response.sha}`;
+
+            return OrdDocumentProcessor.processGithubDocument(
+              {
+                baseUrl: this.baseUrl,
+                authMethods: this.authMethods,
+                documentsSubDirectory: this.documentsSubDirectory,
+                githubBranch: this.githubBranch,
+                githubApiUrl: this.githubApiUrl,
+                githubRepo: this.githubRepository,
+                githubToken: this.githubToken || "",
+              },
+              cacheKey,
+              jsonData,
+            );
+          }
+
+          // Otherwise, return the JSON data directly
+          return jsonData;
+        } catch (_parseError) {
+          return content;
+        }
       } catch (error: unknown) {
         logError(error);
         throw error;

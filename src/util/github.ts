@@ -18,7 +18,7 @@ interface GitHubContentItem {
  * @param host GitHub API endpoint.
  * @param repo GitHub repository. E.g., OWNER/REPO
  * @param branch GitHub branch.
- * @param filePath File- or directory path. E.g, path/to/file.txt
+ * @param path File- or directory path. E.g, path/to/file.txt
  */
 function getGitHubUrl({ host, repo, branch }: GitHubInstance, path: string): string {
   return `${host}/repos/${repo}/contents/${path}?ref=${branch}`;
@@ -49,25 +49,45 @@ export async function listGitHubDirectory(
   instance: GitHubInstance,
   directoryPath: string,
   token?: string,
+  recursive: boolean = true,
 ): Promise<string[]> {
   const githubToken = token || process.env.GITHUB_TOKEN;
-  const url = getGitHubUrl(instance, directoryPath);
 
-  try {
-    const response = await fetch(
-      url,
-      githubToken
-        ? {
-            headers: { Authorization: `Token ${githubToken}` },
-          }
-        : {},
-    );
+  async function fetchDirectoryContents(path: string): Promise<string[]> {
+    const url = getGitHubUrl(instance, path);
 
-    const contents = (await validateGitHubResponse(response, directoryPath, true)) as GitHubContentItem[];
-    return contents.filter((item) => item.type === "file").map((item) => item.name);
-  } catch (error) {
-    handleGitHubError(error, directoryPath, "list GitHub directory");
+    try {
+      const response = await fetch(
+        url,
+        githubToken
+          ? {
+              headers: { Authorization: `Token ${githubToken}` },
+            }
+          : {},
+      );
+
+      const contents = (await validateGitHubResponse(response, path, true)) as GitHubContentItem[];
+
+      // Get files in current directory
+      const files = contents.filter((item) => item.type === "file").map((item) => item.path);
+
+      // If not recursive, return just the files
+      if (!recursive) {
+        // For backward compatibility, return just the file names for non-recursive calls
+        return contents.filter((item) => item.type === "file").map((item) => item.name);
+      }
+
+      const directories = contents.filter((item) => item.type === "dir");
+      const subDirectoryFiles = await Promise.all(directories.map((dir) => fetchDirectoryContents(dir.path)));
+
+      // Combine all files
+      return [...files, ...subDirectoryFiles.flat()];
+    } catch (error) {
+      handleGitHubError(error, path, "list GitHub directory");
+    }
   }
+
+  return await fetchDirectoryContents(directoryPath);
 }
 
 /**

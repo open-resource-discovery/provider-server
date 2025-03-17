@@ -61,7 +61,7 @@ async function validateGithubDirectoryContents(
   let hasValidOrdDocument = false;
 
   for (const file of files.filter((file) => file.endsWith(".json"))) {
-    const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, `${path}/${file}`, githubToken);
+    const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, file, githubToken);
 
     try {
       const fileContents = Buffer.from(response.content, "base64").toString("utf-8");
@@ -69,7 +69,7 @@ async function validateGithubDirectoryContents(
       validateOrdDocument(parsedFile as ORDDocument);
       hasValidOrdDocument = true;
     } catch {
-      log.warn(`Invalid ORD document found in ${path}/${file}`);
+      log.warn(`Invalid ORD document found in ${file}`);
     }
   }
 
