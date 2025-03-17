@@ -71,7 +71,7 @@ export async function getGithubOrdConfig(
   };
 
   // Root path for GitHub files
-  const rootPath: string = path.normalize(
+  const rootPath: string = path.posix.normalize(
     githubOpts.customDirectory ? githubOpts.customDirectory : ORD_GITHUB_DEFAULT_ROOT_DIRECTORY,
   );
 
@@ -94,7 +94,7 @@ export async function getGithubOrdConfig(
         validateOrdDocument(jsonData as ORDDocument);
 
         // If validation passes, add to the documents list
-        const documentPath = `${ORD_SERVER_PREFIX_PATH}${file.replace(rootPath, "")}`;
+        const documentPath = path.posix.join(ORD_SERVER_PREFIX_PATH, file.replace(rootPath, "").replace(".json", ""));
 
         ordConfig.openResourceDiscoveryV1.documents?.push({
           url: documentPath,

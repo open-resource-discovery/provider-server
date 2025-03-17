@@ -53,9 +53,9 @@ export class GithubRouter extends BaseRouter {
       // Extract the document name from the path (last segment without extension)
       const pathSegments = documentPath.split("/");
       const documentName = path.basename(pathSegments[pathSegments.length - 1], ".json");
-
+      const documentPathWithExtension = documentPath.endsWith(".json") ? documentPath : `${documentPath}.json`;
       const rootPath = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-      const githubPath = `${rootPath}/${this.documentsSubDirectory}/${documentPath}`;
+      const githubPath = `${rootPath}/${this.documentsSubDirectory}/${documentPathWithExtension}`;
 
       let response: GitHubFileResponse;
 
