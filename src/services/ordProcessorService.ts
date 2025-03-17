@@ -22,6 +22,7 @@ interface DocumentCache {
 export interface ProcessingContext {
   baseUrl: string;
   authMethods: OptAuthMethod[];
+  documentsSubDirectory?: string;
   githubBranch?: string;
   githubApiUrl?: string;
   githubRepo?: string;
@@ -83,6 +84,7 @@ export class OrdDocumentProcessor {
     githubOpts: GithubOpts,
     baseUrl: string,
     authenticationMethods: OptAuthMethod[],
+    documentsSubDirectory: string = ORD_DOCUMENTS_SUB_DIRECTORY,
   ): Promise<{ documents: ORDDocument[]; fqnDocumentMap: FqnDocumentMap }> {
     const githubInstance = {
       host: githubOpts.githubApiUrl,
@@ -93,7 +95,7 @@ export class OrdDocumentProcessor {
     const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
     const files = await listGitHubDirectory(
       githubInstance,
-      `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
+      `${pathSegments}/${documentsSubDirectory}`,
       githubOpts.githubToken,
     );
 
@@ -103,7 +105,7 @@ export class OrdDocumentProcessor {
         .map(async (fileName) => {
           const file = await fetchGitHubFile<GitHubFileResponse>(
             githubInstance,
-            `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}/${fileName}`,
+            `${pathSegments}/${documentsSubDirectory}/${fileName}`,
             githubOpts.githubToken,
           );
 
@@ -168,7 +170,8 @@ export class OrdDocumentProcessor {
     ordDirectory: string,
     callback: (updatedResult: LocalProcessResult) => void,
   ): void {
-    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
+    const documentsSubDirectory = context.documentsSubDirectory || ORD_DOCUMENTS_SUB_DIRECTORY;
+    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${documentsSubDirectory}`;
     fs.watch(ordDocumentDirectoryPath, (event, fileName) => {
       if (event === "rename" && fileName) {
         Object.keys(this.documentCache)
@@ -191,7 +194,8 @@ export class OrdDocumentProcessor {
     ordDirectory: string,
   ): LocalProcessResult {
     const ordDocuments: LocalProcessResult = {};
-    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
+    const documentsSubDirectory = context.documentsSubDirectory || ORD_DOCUMENTS_SUB_DIRECTORY;
+    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${documentsSubDirectory}`;
     const ordFiles = getAllFiles(ordDocumentDirectoryPath);
 
     ordConfig.openResourceDiscoveryV1.documents = [];
@@ -206,16 +210,17 @@ export class OrdDocumentProcessor {
         continue;
       }
       const relativeFilePath = path.posix.relative(ordDirectory, file);
-      const filePathParsed = path.posix.parse(relativeFilePath);
-      const encodedFileName = encodeURIComponent(filePathParsed.name);
-      const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${ORD_DOCUMENTS_SUB_DIRECTORY}/${encodedFileName}`;
+      const { dir, name } = path.posix.parse(relativeFilePath);
+      const encodedFileName = encodeURIComponent(name);
+      const encodedFilePath = `${dir}/${encodedFileName}`;
+      const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${encodedFilePath}`;
 
       try {
         const ordDocumentText = fs.readFileSync(file).toString();
         const shaChecksum = crypto.createHash("sha256").update(ordDocumentText).digest("hex");
-        const cacheKey = `${encodedFileName}:${shaChecksum}`;
+        const cacheKey = `${encodedFilePath}:${shaChecksum}`;
         if (this.documentCache[cacheKey]) {
-          ordDocuments[encodedFileName] = this.documentCache[cacheKey];
+          ordDocuments[encodedFilePath] = this.documentCache[cacheKey];
           ordConfig.openResourceDiscoveryV1.documents?.push({
             url: relativeUrl,
             accessStrategies: getOrdDocumentAccessStrategies(context.authMethods),
@@ -237,7 +242,7 @@ export class OrdDocumentProcessor {
         });
 
         const processedDocument = this.updateResources(context, ordDocumentParsed);
-        ordDocuments[encodedFileName] = processedDocument;
+        ordDocuments[encodedFilePath] = processedDocument;
         this.documentCache[cacheKey] = processedDocument;
       } catch (error) {
         log.error(`Error processing file ${file}: ${error}`);

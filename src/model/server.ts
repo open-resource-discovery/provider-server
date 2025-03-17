@@ -4,6 +4,7 @@ import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 
 export interface ProviderServerOptions {
   ordDirectory: string;
+  documentsSubDirectory: string;
   baseUrl?: string;
   host?: string;
   port?: number;
@@ -22,6 +23,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
   log.info("Building server configuration...");
   return {
     ordDirectory: options.directory!,
+    documentsSubDirectory: options.documentsSubdirectory || "documents",
     baseUrl: updateBaseUrl(options.baseUrl),
     host: options.host,
     port: options.port ? parseInt(options.port) : undefined,

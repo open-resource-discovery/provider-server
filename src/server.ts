@@ -1,6 +1,6 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
-import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
@@ -57,7 +57,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   log.info(`>> Source Type: ${opts.sourceType}`);
   log.info(`>> Base URL: ${opts.baseUrl || "-"}`);
   log.info(
-    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? ORD_GITHUB_DEFAULT_ROOT_DIRECTORY : ""}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
+    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? ORD_GITHUB_DEFAULT_ROOT_DIRECTORY : ""}/${opts.documentsSubDirectory}`,
   );
   log.info(`>> Host: ${opts.host || "-"}`);
   log.info(`>> Port: ${opts.port || "-"}`);
@@ -80,6 +80,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     const localContext: ProcessingContext = {
       baseUrl: baseUrl,
       authMethods: opts.authentication.methods,
+      documentsSubDirectory: opts.documentsSubDirectory,
     };
 
     const ordDocuments = OrdDocumentProcessor.processLocalDocuments(localContext, ordConfig, opts.ordDirectory);
@@ -99,6 +100,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       ordDocuments,
       ordConfig: ordConfigGetter,
       fqnDocumentMap,
+      documentsSubDirectory: opts.documentsSubDirectory,
     });
 
     await localRouter.register(server);
@@ -113,6 +115,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
         ordDocuments,
         ordConfig: ordConfigGetter,
         fqnDocumentMap,
+        documentsSubDirectory: opts.documentsSubDirectory,
       });
     });
   } else if (opts.sourceType === OptSourceType.Github) {
@@ -137,6 +140,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       githubOpts,
       baseUrl,
       opts.authentication.methods,
+      opts.documentsSubDirectory,
     );
 
     const githubRouter = new GithubRouter({
@@ -145,6 +149,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
       baseUrl,
       fqnDocumentMap,
       ordConfig: ordConfigGetter,
+      documentsSubDirectory: opts.documentsSubDirectory,
     });
 
     await githubRouter.register(server);

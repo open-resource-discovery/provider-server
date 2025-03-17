@@ -1,6 +1,6 @@
 import { ORDDocument } from "@sap/open-resource-discovery";
 import path from "path";
-import { ORD_DOCUMENTS_URL_PATH, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 import { GitHubFileResponse, GithubOpts } from "src/model/github.js";
 import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
@@ -19,6 +19,7 @@ import { validateOrdDocument } from "../util/validateOrdDocument.js";
 
 interface GithubRouterOptions extends Omit<RouterOptions, "sourceType" | "githubOpts">, GithubOpts {
   fqnDocumentMap: FqnDocumentMap;
+  documentsSubDirectory?: string;
 }
 
 export class GithubRouter extends BaseRouter {
@@ -28,6 +29,7 @@ export class GithubRouter extends BaseRouter {
   private readonly githubToken?: string;
   private readonly customDirectory?: string;
   private readonly fqnDocumentMap: FqnDocumentMap;
+  private readonly documentsSubDirectory: string;
 
   public constructor(options: GithubRouterOptions) {
     super(options);
@@ -37,6 +39,7 @@ export class GithubRouter extends BaseRouter {
     this.githubToken = options.githubToken;
     this.customDirectory = options.customDirectory;
     this.fqnDocumentMap = options.fqnDocumentMap;
+    this.documentsSubDirectory = options.documentsSubDirectory || "documents";
   }
 
   public register(server: FastifyInstanceType): void {
@@ -44,7 +47,7 @@ export class GithubRouter extends BaseRouter {
     this.configurationEndpoint(server);
 
     // Document endpoint
-    server.get(`${ORD_DOCUMENTS_URL_PATH}/:documentName`, async (request) => {
+    server.get(`${ORD_SERVER_PREFIX_PATH}/${this.documentsSubDirectory}/:documentName`, async (request) => {
       const { documentName } = request.params as { documentName: string };
 
       const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
@@ -58,7 +61,7 @@ export class GithubRouter extends BaseRouter {
             repo: this.githubRepository,
             branch: this.githubBranch,
           },
-          `${pathSegments}/documents/${documentName}.json`,
+          `${pathSegments}/${this.documentsSubDirectory}/${documentName}.json`,
           this.githubToken,
         );
       } catch (error: unknown) {
@@ -84,6 +87,7 @@ export class GithubRouter extends BaseRouter {
         {
           baseUrl: this.baseUrl,
           authMethods: this.authMethods,
+          documentsSubDirectory: this.documentsSubDirectory,
           githubBranch: this.githubBranch,
           githubApiUrl: this.githubApiUrl,
           githubRepo: this.githubRepository,
@@ -125,6 +129,7 @@ export class GithubRouter extends BaseRouter {
           {
             baseUrl: this.baseUrl,
             authMethods: this.authMethods,
+            documentsSubDirectory: this.documentsSubDirectory,
             githubBranch: this.githubBranch,
             githubApiUrl: this.githubApiUrl,
             githubRepo: this.githubRepository,
