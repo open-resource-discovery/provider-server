@@ -2,16 +2,29 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      npm:
+        description: "NPM Package"
+        required: false
+        type: boolean
+        default: true
+      docker:
+        description: "Docker Image"
+        required: false
+        type: boolean
+        default: true
+      githubRelease:
+        description: "GitHub Release"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
-  release:
+  npm:
+    if: ${{ inputs.npm == 'true' }}
     runs-on: ubuntu-latest
     environment: tokens:@open-resource-discovery/provider-server
-    permissions:
-      contents: read
-      id-token: write
     steps:
-      # NPM Publishing
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -35,7 +48,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Docker Image
+  docker:
+    if: ${{ inputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    environment: tokens:@open-resource-discovery/provider-server
+    steps:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -59,6 +76,8 @@ jobs:
 
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
+          # docker tag provider-server ghcr.io/open-resource-discovery/provider-server:latest
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -70,6 +89,10 @@ jobs:
             linux/amd64,
             linux/arm64
 
-      # GitHub Release
+  githubRelease:
+    if: ${{ inputs.githubRelease == 'true' }}
+    runs-on: ubuntu-latest
+    needs: [npm, docker]
+    steps:
       - name: Create GitHub Release
         uses: open-resource-discovery/github-release@main
