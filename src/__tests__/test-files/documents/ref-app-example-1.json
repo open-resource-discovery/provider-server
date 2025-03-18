@@ -27,13 +27,13 @@
       "packageLinks": [
         {
           "type": "license",
-          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/master/LICENSE.txt"
+          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/LICENSE.txt"
         }
       ],
       "links": [
         {
           "title": "ORD Reference app description",
-          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md"
+          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md"
         },
         {
           "title": "ORD Reference app GitHub repository",
@@ -57,13 +57,13 @@
       "packageLinks": [
         {
           "type": "license",
-          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/master/LICENSE.txt"
+          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/LICENSE.txt"
         }
       ],
       "links": [
         {
           "title": "ORD Reference app description",
-          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md"
+          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md"
         },
         {
           "title": "ORD Reference app GitHub repository",
@@ -167,12 +167,12 @@
             {
               "type": "custom",
               "customType": "sap.xref:open-global-tenant-id:v1",
-              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a SAP global tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md#access-strategies)."
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a SAP global tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md#access-strategies)."
             },
             {
               "type": "custom",
               "customType": "sap.xref:open-local-tenant-id:v1",
-              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a local tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md#access-strategies)."
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a local tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md#access-strategies)."
             },
             {
               "type": "open"
@@ -183,14 +183,14 @@
       "entryPoints": ["/crm/v1"],
       "extensible": {
         "supported": "manual",
-        "description": "This API can be extended with custom fields. See [extensibility information](https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md#extensibility)"
+        "description": "This API can be extended with custom fields. See [extensibility information](https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md#extensibility)"
       },
       "changelogEntries": [
         {
           "version": "0.3.0",
           "date": "2021-05-25",
           "releaseStatus": "beta",
-          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/master/CHANGELOG.md#030-2021-05-25"
+          "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/CHANGELOG.md#030-2021-05-25"
         }
       ]
     },
@@ -347,12 +347,12 @@
             {
               "type": "custom",
               "customType": "sap.xref:open-global-tenant-id:v1",
-              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a SAP global tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md#access-strategies)."
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a SAP global tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md#access-strategies)."
             },
             {
               "type": "custom",
               "customType": "sap.xref:open-local-tenant-id:v1",
-              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a local tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/master/docs/README.md#access-strategies)."
+              "customDescription": "The metadata information is openly accessible but system instance aware.\nThe tenant is selected by providing a local tenant ID header.\nTo understand how to use this access strategy, please read the documentation on the [ORD Reference App Access Strategies](https://ord.example.com/open-resource-discovery-reference-application/blob/main/docs/README.md#access-strategies)."
             },
             {
               "type": "open"
