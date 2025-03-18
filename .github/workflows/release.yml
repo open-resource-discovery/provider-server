@@ -23,7 +23,7 @@ jobs:
   npm:
     if: inputs.npm
     runs-on: ubuntu-latest
-    environment: tokens:@open-resource-discovery/provider-server
+    environment: prod-registries
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+          registry-url: ${{ vars.NPM_REGISTRY }}
 
       - name: Install dependencies
         run: npm ci
@@ -51,7 +51,7 @@ jobs:
   docker:
     if: inputs.docker
     runs-on: ubuntu-latest
-    environment: tokens:@open-resource-discovery/provider-server
+    environment: prod-registries
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,7 +104,7 @@ jobs:
       !contains(needs.*.result, 'failure') &&
       inputs.githubRelease
     runs-on: ubuntu-latest
-    environment: tokens:@open-resource-discovery/provider-server
+    environment: prod-registries
     steps:
       - name: Checkout
         uses: actions/checkout@v4
