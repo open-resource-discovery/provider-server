@@ -81,9 +81,14 @@ jobs:
 
           VERSION=$(node -p -e "require('./package.json').version")
 
-          TAGS=""
-          TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
-          TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$VERSION"
+          if [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            # Standard version - include latest tag
+            TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
+            TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$VERSION"
+          else
+            # Version with postfix - don't include latest tag
+            TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$VERSION"
+          fi
 
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
           echo $TAGS
