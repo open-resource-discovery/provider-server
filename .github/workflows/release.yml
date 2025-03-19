@@ -82,7 +82,11 @@ jobs:
           VERSION=$(node -p -e "require('./package.json').version")
 
           TAGS=""
-          TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
+          if [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            # Standard version - include latest tag
+            TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
+          fi
+
           TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$VERSION"
 
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
