@@ -2,16 +2,32 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      npm:
+        description: "NPM Package"
+        required: false
+        type: boolean
+        default: true
+      docker:
+        description: "Docker Image"
+        required: false
+        type: boolean
+        default: true
+      githubRelease:
+        description: "GitHub Release"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
-  release:
+  npm:
+    if: inputs.npm
     runs-on: ubuntu-latest
-    environment: tokens:@open-resource-discovery/provider-server
+    environment: npmjs-registry
     permissions:
       contents: read
       id-token: write
     steps:
-      # NPM Publishing
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -21,7 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+          registry-url: ${{ vars.NPM_REGISTRY }}
 
       - name: Install dependencies
         run: npm ci
@@ -35,7 +51,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Docker Image
+  docker:
+    if: inputs.docker
+    runs-on: ubuntu-latest
+    environment: docker-registry
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -50,14 +75,18 @@ jobs:
         id: docker_tags
         run: |
           LAST_COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          echo "LAST_COMMIT_HASH=$LAST_COMMIT_HASH" >> $GITHUB_ENV
+          echo "LAST_COMMIT_HASH=${LAST_COMMIT_HASH}"
+
           VERSION=$(node -p -e "require('./package.json').version")
 
           TAGS=""
           TAGS="${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
           TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$VERSION"
-          TAGS="$TAGS,${{ vars.DOCKER_REGISTRY }}/${{ github.repository }}:$LAST_COMMIT_HASH"
 
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo $TAGS
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
@@ -66,10 +95,23 @@ jobs:
           file: Dockerfile
           tags: ${{ steps.docker_tags.outputs.tags }}
           push: true
-          platforms: |
-            linux/amd64,
-            linux/arm64
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            GIT_COMMIT_HASH=${{ steps.docker_tags.outputs.LAST_COMMIT_HASH }}
 
-      # GitHub Release
+  githubRelease:
+    needs: [npm, docker]
+    if: |
+      always() &&
+      !contains(needs.*.result, 'cancelled') &&
+      !contains(needs.*.result, 'failure') &&
+      inputs.githubRelease
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Create GitHub Release
         uses: open-resource-discovery/github-release@main
