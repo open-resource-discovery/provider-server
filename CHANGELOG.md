@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.7.3] - 2025-03-19
+
+- Dependency updates
+
 ## [0.7.2] - 2025-03-18
 
 - Dependency updates
