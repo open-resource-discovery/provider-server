@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.7.4] - 2025-03-19
+
+- Workflow file changes
+
 ## [0.7.3] - 2025-03-19
 
 - Dependency updates
