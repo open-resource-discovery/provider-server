@@ -62,8 +62,9 @@ export class LocalRouter extends BaseRouter {
 
     // 1. Document endpoint
     server.get(`${ORD_SERVER_PREFIX_PATH}/${this.documentsSubDirectory}/*`, (request) => {
-      const { "*": documentPath } = request.params as { "*": string };
+      let { "*": documentPath } = request.params as { "*": string };
 
+      documentPath = documentPath.replace(/\.json/, "");
       const documentPathWithSubfolder = `${this.documentsSubDirectory}/${documentPath}`;
       if (this.ordDocuments[documentPathWithSubfolder]) {
         return this.ordDocuments[documentPathWithSubfolder];
@@ -161,6 +162,7 @@ export class LocalRouter extends BaseRouter {
       // Try as a static file (last resort)
       try {
         // First check if the file exists
+        // If not found in the map, try to fetch it directly
         const fullPath = path.posix.join(ordId, unknownPath);
         const absolutePath = path.posix.join(this.ordDirectory, fullPath);
 

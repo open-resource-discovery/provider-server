@@ -118,6 +118,34 @@ describe("Server Integration", () => {
 
       expect(response.status).toBe(200);
     });
+
+    it("should correctly extract document name when URL contains .json extension", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1.json`, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const document = (await response.json()) as ORDDocument;
+      expect(document).toHaveProperty("openResourceDiscovery");
+      expect(document.openResourceDiscovery).toBe("1.6");
+    });
+
+    it("should correctly extract document name when URL contains dots and a .json extension", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/sap.ref-app-example.json`, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const document = (await response.json()) as ORDDocument;
+      expect(document).toHaveProperty("openResourceDiscovery");
+      expect(document.openResourceDiscovery).toBe("1.6");
+    });
   });
 
   describe("Static Resources", () => {
