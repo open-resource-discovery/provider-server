@@ -45,7 +45,7 @@ export class LocalRouter extends BaseRouter {
 
     // Document endpoint
     server.get(`${ORD_DOCUMENTS_URL_PATH}/:documentName`, (request) => {
-      const documentName = path.parse(request.url.replace(`${ORD_DOCUMENTS_URL_PATH}/`, "")).name;
+      const documentName = path.parse(request.url.replace(`${ORD_DOCUMENTS_URL_PATH}/`, "")).base.replace(/\.json/, "");
       if (this.ordDocuments[documentName]) {
         return this.ordDocuments[documentName];
       }
