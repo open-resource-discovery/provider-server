@@ -18,7 +18,31 @@ jest.mock("fs", () => ({
   readdirSync: jest.fn(),
   existsSync: jest.fn(),
   // needed for @open-resource-discovery/specification
-  readFileSync: jest.fn().mockReturnValue('{"properties":{"baseUrl":{"pattern":".*"}}}'),
+  readFileSync: jest.fn().mockReturnValue(
+    JSON.stringify({
+      properties: {
+        baseUrl: {
+          pattern: ".*",
+        },
+      },
+      definitions: {
+        ApiResource: {
+          properties: {
+            ordId: {
+              pattern: ".*",
+            },
+          },
+        },
+        EventResource: {
+          properties: {
+            ordId: {
+              pattern: ".*",
+            },
+          },
+        },
+      },
+    }),
+  ),
 }));
 
 jest.spyOn(global, "RegExp").mockImplementation(() => ordBaseUrlPattern);
