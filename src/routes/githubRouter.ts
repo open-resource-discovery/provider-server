@@ -13,7 +13,7 @@ import {
 } from "../model/error/GithubErrors.js";
 import { NotFoundError } from "../model/error/NotFoundError.js";
 import { OrdDocumentProcessor } from "../services/ordProcessorService.js";
-import { FqnDocumentMap } from "../util/fqnHelpers.js";
+import { FqnDocumentMap, isOrdId } from "../util/fqnHelpers.js";
 import { log } from "../util/logger.js";
 import { validateOrdDocument } from "../util/validateOrdDocument.js";
 
@@ -137,7 +137,7 @@ export class GithubRouter extends BaseRouter {
 
     // Resource files endpoint with wildcard support
     server.get(`${ORD_SERVER_PREFIX_PATH}/:ordId/*`, async (request, reply) => {
-      const { ordId } = request.params as { ordId: string };
+      let { ordId } = request.params as { ordId: string };
       const { "*": unknownPath } = request.params as { "*": string };
 
       // Skip if this is a documents route
@@ -145,10 +145,26 @@ export class GithubRouter extends BaseRouter {
         return reply.callNotFound();
       }
 
+      // We assume that the :ordId is correct given and the next part * is the file name.
+      // In case it's a false assumption, we try to parse the ordId and the file name.
+      let fileName = unknownPath;
+
+      if (!isOrdId(ordId)) {
+        const foundOrdId = unknownPath.split("/").find(isOrdId);
+        if (foundOrdId) {
+          ordId = foundOrdId;
+        }
+
+        fileName = unknownPath.split("/").pop()!;
+      }
+
       // First try to find the resource in the FQN document map
-      const resourceMap = this.fqnDocumentMap[ordId]?.find((resource) => resource.fileName === unknownPath);
+      const resourceMap = this.fqnDocumentMap[ordId]?.find(
+        (resource) => resource.fileName === fileName || `/${resource.fileName}` === fileName,
+      );
 
       const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+
       let githubPath: string;
 
       // If found in the map, use the mapped path

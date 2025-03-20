@@ -1,16 +1,13 @@
 import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import { AccessStrategy } from "@open-resource-discovery/specification/dist/types/v1/Configuration.js";
 import path from "path";
-import {
-  ORD_DOCUMENTS_SUB_DIRECTORY,
-  ORD_GITHUB_DEFAULT_ROOT_DIRECTORY,
-  ORD_SERVER_PREFIX_PATH,
-} from "src/constant.js";
+import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY } from "src/constant.js";
 import { mapOptAuthToOrdAccessStrategy, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { GitHubFileResponse, GithubOpts } from "src/model/github.js";
 import { fetchGitHubFile, listGitHubDirectory } from "src/util/github.js";
 import { log } from "src/util/logger.js";
 import { validateOrdDocument } from "src/util/validateOrdDocument.js";
+import { getOrdDocumentPath } from "./documentUrl.js";
 
 interface BaseConfig {
   sourceType: OptSourceType;
@@ -93,8 +90,8 @@ export async function getGithubOrdConfig(
         // Validate the document
         validateOrdDocument(jsonData as ORDDocument);
 
-        // If validation passes, add to the documents list
-        const documentPath = path.posix.join(ORD_SERVER_PREFIX_PATH, file.replace(rootPath, "").replace(".json", ""));
+        // Using the same logic as in local path generation
+        const documentPath = getOrdDocumentPath(rootPath, file);
 
         ordConfig.openResourceDiscoveryV1.documents?.push({
           url: documentPath,

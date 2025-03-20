@@ -14,6 +14,7 @@ import { getOrdDocumentAccessStrategies } from "src/util/ordConfig.js";
 import { GitHubFileResponse, GithubOpts } from "../model/github.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
 import { fetchGitHubFile, listGitHubDirectory } from "../util/github.js";
+import { getEncodedFilePath, getOrdDocumentPath } from "../util/documentUrl.js";
 
 interface DocumentCache {
   [key: string]: ORDDocument;
@@ -206,13 +207,11 @@ export class OrdDocumentProcessor {
         log.warn(`Only .json file extensions are supported. Skipping ${file}`);
         continue;
       }
-      const relativeFilePath = path.posix.relative(ordDirectory, file);
-      const { dir, name } = path.posix.parse(relativeFilePath);
-      const encodedFileName = encodeURIComponent(name);
-      const encodedFilePath = `${dir}/${encodedFileName}`;
-      const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${encodedFilePath}`;
+
+      const relativeUrl = getOrdDocumentPath(ordDirectory, file);
 
       try {
+        const encodedFilePath = getEncodedFilePath(ordDirectory, file);
         const ordDocumentText = fs.readFileSync(file).toString();
         const shaChecksum = crypto.createHash("sha256").update(ordDocumentText).digest("hex");
         const cacheKey = `${encodedFilePath}:${shaChecksum}`;
