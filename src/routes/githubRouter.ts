@@ -79,7 +79,7 @@ export class GithubRouter extends BaseRouter {
       const cacheKey = `${documentName}:${response.sha}`;
 
       // Try to pull doc from cache before validation
-      const cachedDoc = OrdDocumentProcessor.getFromCache(cacheKey);
+      const cachedDoc = OrdDocumentProcessor.getProcessedDocumentFromCache(cacheKey);
       if (cachedDoc) return cachedDoc;
 
       try {
@@ -138,7 +138,7 @@ export class GithubRouter extends BaseRouter {
     // Resource files endpoint with wildcard support
     server.get(`${ORD_SERVER_PREFIX_PATH}/:ordId/*`, async (request, reply) => {
       let { ordId } = request.params as { ordId: string };
-      const { "*": unknownPath } = request.params as { "*": string };
+      let { "*": unknownPath } = request.params as { "*": string };
 
       // Skip if this is a documents route
       if (ordId === this.documentsSubDirectory) {
@@ -172,6 +172,9 @@ export class GithubRouter extends BaseRouter {
         githubPath = path.posix.join(pathSegments, resourceMap.filePath);
       } else {
         // If not found in the map, try to fetch it directly
+        if (!unknownPath.endsWith(".json")) {
+          unknownPath += ".json";
+        }
         githubPath = path.posix.join(pathSegments, ordId, unknownPath);
       }
 

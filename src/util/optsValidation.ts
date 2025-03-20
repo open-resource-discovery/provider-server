@@ -9,7 +9,7 @@ import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
 import { GitHubFileResponse, GitHubInstance } from "../model/github.js";
-import { fetchGitHubFile, listGitHubDirectory } from "./github.js";
+import { fetchGitHubFile, getGithubDirectoryContents } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
 import { isBcryptHash } from "./passwordHash.js";
@@ -55,7 +55,9 @@ async function validateGithubDirectoryContents(
   githubInstance: GitHubInstance,
   githubToken: string,
 ): Promise<void> {
-  const files = await listGitHubDirectory(githubInstance, path, githubToken);
+  const files = (await getGithubDirectoryContents(githubInstance, path, githubToken))
+    .filter((item) => item.type === "file")
+    .map((item) => item.path);
 
   // Check if there is at least one valid document
   let hasValidOrdDocument = false;

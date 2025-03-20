@@ -6,11 +6,14 @@ import {
   GitHubNetworkError,
 } from "../model/error/GithubErrors.js";
 import { BackendError } from "../model/error/BackendError.js";
+import path from "path";
 
-interface GitHubContentItem {
+export interface GitHubContentItem {
   name: string;
   path: string;
   type: "file" | "dir";
+  sha: string;
+  size: number;
 }
 
 /**
@@ -20,8 +23,18 @@ interface GitHubContentItem {
  * @param branch GitHub branch.
  * @param path File- or directory path. E.g, path/to/file.txt
  */
-function getGitHubUrl({ host, repo, branch }: GitHubInstance, path: string): string {
-  return `${host}/repos/${repo}/contents/${path}?ref=${branch}`;
+function getGitHubUrl({ host, repo, branch }: GitHubInstance, githubPath: string): string {
+  return `${host}/repos/${repo}/contents${path.posix.join("/", githubPath.replace(/\/$/, ""))}?ref=${branch}`;
+}
+
+/**
+ * Constructs the GitHub API URL for the branch itself
+ * @param host GitHub API endpoint.
+ * @param repo GitHub repository. E.g., OWNER/REPO
+ * @param branch GitHub branch.
+ */
+function getGithubBranchUrl({ host, repo, branch }: GitHubInstance): string {
+  return `${host}/repos/${repo}/contents?ref=${branch}`;
 }
 
 export async function fetchGitHubFile<T>(instance: GitHubInstance, filePath: string, token?: string): Promise<T> {
@@ -45,49 +58,92 @@ export async function fetchGitHubFile<T>(instance: GitHubInstance, filePath: str
   }
 }
 
-export async function listGitHubDirectory(
+async function fetchDirectoryContents(
   instance: GitHubInstance,
   directoryPath: string,
   token?: string,
-  recursive: boolean = true,
-): Promise<string[]> {
-  const githubToken = token || process.env.GITHUB_TOKEN;
-
-  async function fetchDirectoryContents(path: string): Promise<string[]> {
-    const url = getGitHubUrl(instance, path);
+  recursive = true,
+): Promise<GitHubContentItem[]> {
+  async function fetchDirectoryContents(dirPath: string): Promise<GitHubContentItem[]> {
+    const url = getGitHubUrl(instance, dirPath);
 
     try {
       const response = await fetch(
         url,
-        githubToken
+        token
           ? {
-              headers: { Authorization: `Token ${githubToken}` },
+              headers: { Authorization: `Token ${token}` },
             }
           : {},
       );
 
-      const contents = (await validateGitHubResponse(response, path, true)) as GitHubContentItem[];
-
-      // Get files in current directory
-      const files = contents.filter((item) => item.type === "file").map((item) => item.path);
+      const contents = (await validateGitHubResponse(response, dirPath, true)) as GitHubContentItem[];
 
       // If not recursive, return just the files
       if (!recursive) {
         // For backward compatibility, return just the file names for non-recursive calls
-        return contents.filter((item) => item.type === "file").map((item) => item.name);
+        return contents.filter((item) => item.type === "file");
       }
 
       const directories = contents.filter((item) => item.type === "dir");
       const subDirectoryFiles = await Promise.all(directories.map((dir) => fetchDirectoryContents(dir.path)));
 
       // Combine all files
-      return [...files, ...subDirectoryFiles.flat()];
+      return [...contents, ...subDirectoryFiles.flat()];
     } catch (error) {
-      handleGitHubError(error, path, "list GitHub directory");
+      handleGitHubError(error, dirPath, "list GitHub directory");
     }
   }
 
   return await fetchDirectoryContents(directoryPath);
+}
+
+export async function getGithubDirectoryContents(
+  instance: GitHubInstance,
+  directoryPath: string,
+  token?: string,
+  recursive: boolean = true,
+): Promise<GitHubContentItem[]> {
+  return await fetchDirectoryContents(instance, directoryPath, token, recursive);
+}
+
+export async function getDirectoryHash(
+  instance: GitHubInstance,
+  directoryPath: string,
+  token?: string,
+): Promise<string | undefined> {
+  // Parse directoryPath first
+  const dirPath =
+    directoryPath === "/" || directoryPath === "" || directoryPath === "./"
+      ? "/"
+      : path.posix.join(directoryPath, "..");
+
+  const lastDirectory = path.posix.parse(directoryPath).base;
+
+  let githubUrl: string;
+  if (dirPath === "/" && lastDirectory === "/") {
+    // Fetch current branch SHA
+    githubUrl = getGithubBranchUrl(instance);
+  } else {
+    githubUrl = getGitHubUrl(instance, dirPath);
+  }
+
+  const response = await fetch(
+    githubUrl,
+    token
+      ? {
+          headers: { Authorization: `Token ${token}` },
+        }
+      : {},
+  );
+
+  const items = (await response.json()) as GitHubContentItem[];
+
+  for (const item of items) {
+    if (item.name === lastDirectory) {
+      return item.sha;
+    }
+  }
 }
 
 /**

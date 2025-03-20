@@ -13,11 +13,15 @@ import { log } from "src/util/logger.js";
 import { getOrdDocumentAccessStrategies } from "src/util/ordConfig.js";
 import { GitHubFileResponse, GithubOpts } from "../model/github.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
-import { fetchGitHubFile, listGitHubDirectory } from "../util/github.js";
+import { fetchGitHubFile, getGithubDirectoryContents } from "../util/github.js";
 import { getEncodedFilePath, getOrdDocumentPath } from "../util/documentUrl.js";
 
 interface DocumentCache {
   [key: string]: ORDDocument;
+}
+
+interface OrdConfigurationCache {
+  [key: string]: ORDConfiguration;
 }
 
 export interface ProcessingContext {
@@ -34,6 +38,7 @@ export type LocalProcessResult = { [relativeFilePath: string]: ORDDocument };
 
 export class OrdDocumentProcessor {
   private static documentCache: DocumentCache = {};
+  private static ordConfigCache: OrdConfigurationCache = {};
 
   // processResourceDefinition will parse URLs of resource definitions and apply given access strategy
   private static processResourceDefinition<T extends EventResource | APIResource>(
@@ -75,10 +80,18 @@ export class OrdDocumentProcessor {
     return url.startsWith("http://") || url.startsWith("https://");
   }
 
-  public static getFromCache(cacheKey: string): ORDDocument | undefined {
+  public static getProcessedDocumentFromCache(cacheKey: string): ORDDocument | undefined {
     if (this.documentCache[cacheKey]) {
       return this.documentCache[cacheKey];
     }
+  }
+
+  public static setCachedOrdConfig(cacheKey: string, ordConfig: ORDConfiguration): void {
+    this.ordConfigCache[cacheKey] = ordConfig;
+  }
+
+  public static getCachedOrdConfig(cacheKey: string): ORDConfiguration | undefined {
+    return this.ordConfigCache[cacheKey];
   }
 
   public static async preprocessGithubDocuments(
@@ -94,12 +107,17 @@ export class OrdDocumentProcessor {
     };
 
     const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-    const files = await listGitHubDirectory(
-      githubInstance,
-      `${pathSegments}/${documentsSubDirectory}`,
-      githubOpts.githubToken,
-      true, // Enable recursive directory listing
-    );
+
+    const files = (
+      await getGithubDirectoryContents(
+        githubInstance,
+        path.posix.join(pathSegments, documentsSubDirectory),
+        githubOpts.githubToken,
+        true,
+      )
+    )
+      .filter((item) => item.type === "file")
+      .map((item) => item.path);
 
     const documents = await Promise.all(
       files
@@ -152,7 +170,7 @@ export class OrdDocumentProcessor {
     cacheKey: string,
     document: ORDDocument,
   ): ORDDocument {
-    const cachedDoc = this.getFromCache(cacheKey);
+    const cachedDoc = this.getProcessedDocumentFromCache(cacheKey);
     if (cachedDoc) {
       return cachedDoc;
     }
