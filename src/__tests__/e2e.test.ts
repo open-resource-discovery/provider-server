@@ -1,8 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
+import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import path from "path";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
+import { ORD_DOCUMENTS_SUB_DIRECTORY } from "../constant.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
@@ -21,6 +22,7 @@ describe("End-to-End Testing", () => {
   beforeAll(async () => {
     shutdownServer = await startProviderServer({
       ordDirectory: path.join(process.cwd(), "src/__tests__/test-files"),
+      ordDocumentsSubDirectory: ORD_DOCUMENTS_SUB_DIRECTORY,
       sourceType: OptSourceType.Local,
       baseUrl: SERVER_URL,
       host: "0.0.0.0",

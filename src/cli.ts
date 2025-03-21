@@ -33,6 +33,11 @@ program
     process.env.ORD_DIRECTORY,
   )
   .option(
+    "--documents-subdirectory <subdirectory>",
+    "Subdirectory name for ORD documents within the main directory (default: 'documents')",
+    process.env.ORD_DOCUMENTS_SUBDIRECTORY || "documents",
+  )
+  .option(
     "-a, --auth <authTypes>",
     `Authentication methods to use. (choices: "${Object.values(OptAuthMethod).join('", "')}")`,
     parseAuthMethods,

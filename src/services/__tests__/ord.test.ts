@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
-import { APIResource, APIResourceDefinition, ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
+import {
+  APIResource,
+  APIResourceDefinition,
+  ORDConfiguration,
+  ORDDocument,
+} from "@open-resource-discovery/specification";
 import { GitHubFileResponse } from "src/model/github.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { ProcessingContext, OrdDocumentProcessor } from "src/services/ordProcessorService.js";

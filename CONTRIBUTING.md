@@ -94,6 +94,7 @@ SERVER_PORT=8080
 ORD_BASE_URL=http://127.0.0.1:8080
 ORD_SOURCE_TYPE=local
 ORD_DIRECTORY=./example
+ORD_DOCUMENTS_SUBDIRECTORY=my-documents
 ORD_AUTH_TYPE=open
 
 # Optional: Github configuration

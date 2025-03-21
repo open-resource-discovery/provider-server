@@ -1,4 +1,4 @@
-import { ordConfigurationSchema, type ORDDocument } from "@sap/open-resource-discovery";
+import { ordConfigurationSchema, type ORDDocument } from "@open-resource-discovery/specification";
 import fs from "fs";
 import path from "path";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
@@ -9,13 +9,13 @@ import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
 import { GitHubFileResponse, GitHubInstance } from "../model/github.js";
-import { fetchGitHubFile, listGitHubDirectory } from "./github.js";
+import { fetchGitHubFile, getGithubDirectoryContents } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
 import { isBcryptHash } from "./passwordHash.js";
 
 // @ts-expect-error baseUrl pattern selection
-const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
+export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
 
 interface BasicAuthUsers {
   [key: string]: string;
@@ -55,13 +55,15 @@ async function validateGithubDirectoryContents(
   githubInstance: GitHubInstance,
   githubToken: string,
 ): Promise<void> {
-  const files = await listGitHubDirectory(githubInstance, path, githubToken);
+  const files = (await getGithubDirectoryContents(githubInstance, path, githubToken))
+    .filter((item) => item.type === "file")
+    .map((item) => item.path);
 
   // Check if there is at least one valid document
   let hasValidOrdDocument = false;
 
   for (const file of files.filter((file) => file.endsWith(".json"))) {
-    const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, `${path}/${file}`, githubToken);
+    const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, file, githubToken);
 
     try {
       const fileContents = Buffer.from(response.content, "base64").toString("utf-8");
@@ -69,7 +71,7 @@ async function validateGithubDirectoryContents(
       validateOrdDocument(parsedFile as ORDDocument);
       hasValidOrdDocument = true;
     } catch {
-      log.warn(`Invalid ORD document found in ${path}/${file}`);
+      log.warn(`Invalid ORD document found in ${file}`);
     }
   }
 
@@ -93,7 +95,7 @@ async function validateSourceTypeOptions(options: CommandLineOptions, errors: st
       } else {
         // Check the provided local directory structure
         try {
-          validateLocalDirectory(options.directory);
+          validateLocalDirectory(options.directory, options.documentsSubdirectory);
         } catch (error: unknown) {
           errors.push(error instanceof LocalDirectoryError ? error.message : String(error));
         }
@@ -110,9 +112,10 @@ async function validateSourceTypeOptions(options: CommandLineOptions, errors: st
       } else {
         // Perform GitHub access and directory structure check
         const pathSegments = path.posix.normalize(options.directory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+        const documentsSubDirectory = options.documentsSubdirectory || "documents";
         try {
           await validateGithubDirectoryContents(
-            `${pathSegments}/documents`,
+            `${pathSegments}/${documentsSubDirectory}`,
             {
               host: githubApiUrl!,
               repo: githubRepository!,
@@ -183,10 +186,9 @@ function isValidBasicAuthUsers(value: unknown): value is BasicAuthUsers {
   );
 }
 
-function validateLocalDirectory(directoryPath: string): void {
+function validateLocalDirectory(directoryPath: string, documentsSubDirectory: string = "documents"): void {
   // Resolve the path to get absolute path, handling both relative and absolute paths
   const absolutePath = path.resolve(directoryPath);
-
   try {
     // Check if the main directory exists
     try {
@@ -202,21 +204,27 @@ function validateLocalDirectory(directoryPath: string): void {
     }
 
     // Check for documents subdirectory
-    const documentsPath = path.join(absolutePath, "documents");
+    const documentsPath = path.join(absolutePath, documentsSubDirectory);
     try {
       const docStat = fs.statSync(documentsPath);
       if (!docStat.isDirectory()) {
-        throw LocalDirectoryError.forPath(directoryPath, `'documents' folder is not a directory: ${documentsPath}`);
+        throw LocalDirectoryError.forPath(
+          directoryPath,
+          `'${documentsSubDirectory}' folder is not a directory: ${documentsPath}`,
+        );
       }
     } catch (error) {
       if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-        throw LocalDirectoryError.forPath(directoryPath, `'documents' folder not found in directory: ${absolutePath}`);
+        throw LocalDirectoryError.forPath(
+          directoryPath,
+          `'${documentsSubDirectory}' folder not found in directory: ${absolutePath}`,
+        );
       }
       throw error;
     }
 
     // Check for at least one file in the documents directory
-    const files = fs.readdirSync(documentsPath);
+    const files = fs.readdirSync(documentsPath, { recursive: true }) as string[];
     const hasFiles = files.some((file) => {
       const filePath = path.join(documentsPath, file);
       return fs.statSync(filePath).isFile();
@@ -225,7 +233,7 @@ function validateLocalDirectory(directoryPath: string): void {
     if (!hasFiles) {
       throw LocalDirectoryError.forPath(
         directoryPath,
-        `'documents' folder is empty - at least one file is required: ${documentsPath}`,
+        `'${documentsSubDirectory}' folder is empty - at least one file is required: ${documentsPath}`,
       );
     }
 

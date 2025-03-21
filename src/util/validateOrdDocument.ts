@@ -1,4 +1,4 @@
-import { ORDDocument } from "@sap/open-resource-discovery";
+import { ORDDocument } from "@open-resource-discovery/specification";
 
 export const validateOrdDocument = (doc: ORDDocument): void => {
   // TODO: This is very primitive - enhance validation in the future
