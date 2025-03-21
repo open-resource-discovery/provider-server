@@ -1,6 +1,8 @@
 import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
+import { config } from "dotenv";
+config();
 
 export interface ProviderServerOptions {
   ordDirectory: string;
@@ -19,10 +21,19 @@ export interface ProviderServerOptions {
   };
 }
 
+function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
+  ordDirectory = ordDirectory !== undefined ? ordDirectory : process.env.ORD_DIRECTORY || "";
+  if (ordDirectory?.startsWith("/") && sourceType === OptSourceType.Github) {
+    ordDirectory = ordDirectory.replace("/", "");
+  }
+
+  return ordDirectory;
+}
+
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
   return {
-    ordDirectory: options.directory!,
+    ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
     ordDocumentsSubDirectory: options.documentsSubdirectory || "documents",
     baseUrl: updateBaseUrl(options.baseUrl),
     host: options.host,
