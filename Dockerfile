@@ -1,4 +1,4 @@
-FROM node:22.8.0-alpine as builder
+FROM node:22.8.0-alpine AS builder
 
 ARG GIT_COMMIT_HASH=unknown
 ENV ORD_PROVIDER_SERVER_VERSION_HASH=${GIT_COMMIT_HASH}
