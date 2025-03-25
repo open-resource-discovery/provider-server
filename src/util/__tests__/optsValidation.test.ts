@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, it, jest } from "@jest/globals";
-import { ordConfigurationSchema } from "@sap/open-resource-discovery";
+import { ordConfigurationSchema } from "@open-resource-discovery/specification";
 import fs from "fs";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { validateAndParseOptions as originalValidateAndParseOptions } from "src/util/optsValidation.js";
@@ -17,8 +17,32 @@ jest.mock("fs", () => ({
   statSync: jest.fn(),
   readdirSync: jest.fn(),
   existsSync: jest.fn(),
-  // needed for @sap/open-resource-discovery
-  readFileSync: jest.fn().mockReturnValue('{"properties":{"baseUrl":{"pattern":".*"}}}'),
+  // needed for @open-resource-discovery/specification
+  readFileSync: jest.fn().mockReturnValue(
+    JSON.stringify({
+      properties: {
+        baseUrl: {
+          pattern: ".*",
+        },
+      },
+      definitions: {
+        ApiResource: {
+          properties: {
+            ordId: {
+              pattern: ".*",
+            },
+          },
+        },
+        EventResource: {
+          properties: {
+            ordId: {
+              pattern: ".*",
+            },
+          },
+        },
+      },
+    }),
+  ),
 }));
 
 jest.spyOn(global, "RegExp").mockImplementation(() => ordBaseUrlPattern);

@@ -3,13 +3,17 @@ import path from "path";
 
 // getAllFiles will list all files recursively from the given directory
 export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
-  const files = fs.readdirSync(dirPath);
+  const normalizedDirPath = dirPath.replace(/\\/g, "/");
+
+  const files = fs.readdirSync(normalizedDirPath);
 
   files.forEach((file) => {
-    const filePath = path.posix.join(dirPath, file);
+    const filePath = path.join(normalizedDirPath, file).replace(/\\/g, "/");
+
     if (fs.statSync(filePath).isDirectory()) {
-      arrayOfFiles = getAllFiles(filePath, arrayOfFiles);
+      getAllFiles(filePath, arrayOfFiles);
     } else {
+      // Add file to our array
       arrayOfFiles.push(filePath);
     }
   });

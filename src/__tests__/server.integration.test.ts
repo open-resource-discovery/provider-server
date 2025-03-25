@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
-import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@sap/open-resource-discovery";
+import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@open-resource-discovery/specification";
 import path from "path";
-import { ORD_DOCUMENTS_URL_PATH, ORD_SERVER_PREFIX_PATH, WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import {
+  ORD_DOCUMENTS_SUB_DIRECTORY,
+  ORD_DOCUMENTS_URL_PATH,
+  ORD_SERVER_PREFIX_PATH,
+  WELL_KNOWN_ENDPOINT,
+} from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
 
@@ -24,6 +29,7 @@ describe("Server Integration", () => {
   beforeAll(async () => {
     const options: ProviderServerOptions = {
       ordDirectory: LOCAL_DIRECTORY,
+      ordDocumentsSubDirectory: ORD_DOCUMENTS_SUB_DIRECTORY,
       sourceType: OptSourceType.Local,
       host: TEST_HOST,
       port: TEST_PORT,
@@ -205,6 +211,7 @@ describe("Server Integration", () => {
     beforeAll(async () => {
       const options: ProviderServerOptions = {
         ordDirectory: LOCAL_DIRECTORY,
+        ordDocumentsSubDirectory: ORD_DOCUMENTS_SUB_DIRECTORY,
         sourceType: OptSourceType.Local,
         host: TEST_HOST,
         port: MULTI_AUTH_PORT,

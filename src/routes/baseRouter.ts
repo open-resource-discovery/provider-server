@@ -1,4 +1,4 @@
-import { ORDConfiguration } from "@sap/open-resource-discovery";
+import { ORDConfiguration } from "@open-resource-discovery/specification";
 import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
