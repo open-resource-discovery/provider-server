@@ -1,6 +1,77 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": [":pinAllExceptPeerDependencies"],
+  "semanticCommits": "enabled",
+  "enabledManagers": ["npm", "dockerfile"],
+  "branchPrefix": "deps/",
+  "timezone": "Europe/Berlin",
+  "schedule": ["on saturday at 06:00"],
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 0,
+  "automerge": true,
+  "platformAutomerge": true,
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "addLabels": ["dependencies", "renovate"],
+  "reviewersSampleSize": 2,
+  "additionalReviewers": ["jurijat"],
+
+  "packageRules": [
+    {
+      "semanticCommitType": "chore",
+      "matchPackageNames": ["*"]
+    },
+    {
+      "matchPackagePatterns": ["fastify", "fastify-plugin", "@fastify/*"],
+      "groupName": "Fastify Core"
+    },
+    {
+      "matchPackageNames": ["pino", "pino-pretty"],
+      "groupName": "Logging"
+    },
+    {
+      "matchPackageNames": ["commander", "dotenv"],
+      "groupName": "CLI and Utils"
+    },
+    {
+      "matchPackageNames": ["bcrypt", "@types/bcrypt"],
+      "groupName": "Security"
+    },
+    {
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"],
+      "groupName": "Linting Tools"
+    },
+    {
+      "matchPackageNames": [
+        "typescript",
+        "ts-jest",
+        "tsx",
+        "tsc-alias",
+        "@tsconfig/node22"
+      ],
+      "groupName": "TypeScript Build Tools"
+    },
+    {
+      "matchPackageNames": [
+        "jest",
+        "jest-cli",
+        "jest-junit",
+        "jest-fetch-mock",
+        "jest-watch-typeahead",
+        "@types/jest",
+        "@types/js-yaml"
+      ],
+      "groupName": "Testing Frameworks"
+    },
+    {
+      "matchPackageNames": ["rimraf", "husky", "is-ci", "lint-staged"],
+      "groupName": "Misc Tools"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "Docker Dependencies",
+      "enabled": true
+    }
   ]
 }
