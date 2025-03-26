@@ -43,13 +43,7 @@
       "groupName": "Linting Tools"
     },
     {
-      "matchPackageNames": [
-        "typescript",
-        "ts-jest",
-        "tsx",
-        "tsc-alias",
-        "@tsconfig/node22"
-      ],
+      "matchPackageNames": ["typescript", "ts-jest", "tsx", "tsc-alias", "@tsconfig/node22"],
       "groupName": "TypeScript Build Tools"
     },
     {
