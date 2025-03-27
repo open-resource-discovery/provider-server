@@ -76,22 +76,23 @@ docker run -p 8080:8080 \
 npx @open-resource-discovery/provider-server --help
 ```
 
-| Option                       | Default                  | Required         | Env Var             | Description                                                                                                                 |
-| ---------------------------- | ------------------------ | ---------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `-b, --base-url <type>`      | `local`                  | Yes              | `ORD_BASE_URL`      | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                    |
-| `-s, --source-type <type>`   | `local`                  | No               | `ORD_SOURCE_TYPE`   | Source type for ORD Documents (`local` or `github`)                                                                         |
-| `-a, --auth <types>`         | `open`                   | No               | `ORD_AUTH_TYPE`     | Server authentication method(s) (`open`, `basic`)                                                                           |
-| `-d, --directory <path>`     | -                        | Yes (for local)  | `ORD_DIRECTORY`     | Directory containing the `/documents` directory with at least one ORD document. Can also be applied to a GitHub Repository. |
-| `--host <host>`              | `0.0.0.0`                | No               | `SERVER_HOST`       | Host for server, without port                                                                                               |
-| `--port <number>`            | `8080`                   | No               | `SERVER_PORT`       | Server port                                                                                                                 |
-| `--github-api-url <apiUrl>`  | `https://api.github.com` | Yes (for github) | `GITHUB_API_URL`    | GitHub API endpoint for API calls                                                                                           |
-| `--github-branch <branch>`   | `main`                   | Yes (for github) | `GITHUB_BRANCH`     | GitHub branch to use                                                                                                        |
-| `--github-repository <repo>` | -                        | Yes (for github) | `GITHUB_REPOSITORY` | GitHub repository in format `<OWNER>/<REPO>`                                                                                |
-| `--github-token <token>`     | -                        | Yes (for github) | `GITHUB_TOKEN`      | GitHub token for authentication                                                                                             |
+| Option                                 | Default                  | Required         | Env Var                      | Description                                                                                                                                           |
+| -------------------------------------- | ------------------------ | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-b, --base-url <type>`                | `local`                  | Yes              | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
+| `-s, --source-type <type>`             | `local`                  | No               | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
+| `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`)                                                                                                     |
+| `-d, --directory <path>`               | -                        | Yes (for local)  | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
+| `-ds, --documents-subdirectory <path>` | `documents`              | No               | `ORD_DOCUMENTS_SUBDIRECTORY` | Directory containing the ORD Documents with at least one ORD document. Supports nested folder structures. Can also be applied to a GitHub Repository. |
+| `--host <host>`                        | `0.0.0.0`                | No               | `SERVER_HOST`                | Host for server, without port                                                                                                                         |
+| `--port <number>`                      | `8080`                   | No               | `SERVER_PORT`                | Server port                                                                                                                                           |
+| `--github-api-url <apiUrl>`            | `https://api.github.com` | Yes (for github) | `GITHUB_API_URL`             | GitHub API endpoint for API calls                                                                                                                     |
+| `--github-branch <branch>`             | `main`                   | Yes (for github) | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
+| `--github-repository <repo>`           | -                        | Yes (for github) | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
+| `--github-token <token>`               | -                        | Yes (for github) | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
 
 ### Required Structure
 
-The specified directory path (`-d`) should contain a `documents` directory with at least one valid ORD Document. Other resources referenced by ORD Documents can be placed anywhere in the specified directory.
+The specified directory path (`-d`) should contain a documents directory (configurable via `--documents-subdirectory`, default is `documents`) with at least one valid ORD Document. Other resources referenced by ORD Documents can be placed anywhere in the specified directory.
 
 This structure applies to both source types:
 
@@ -100,7 +101,7 @@ This structure applies to both source types:
 
 ```
 ./<directory>/                            # Directory specified with -d
-├── documents/                            # Required folder containing ORD Document(s)
+├── documents/                            # Default folder containing ORD Document(s) (configurable via --documents-subdirectory)
 │   └── ord-document.json                 # ORD Document
 └── <ord-id-1>                            # Optional resources
     └── <resource-definition-file-1>
@@ -109,11 +110,11 @@ This structure applies to both source types:
     └── <resource-definition-file-3>
 ```
 
-#### Example:
+#### Example with Default Structure:
 
 ```
 ./my-ord-provider/                                        # Directory specified with -d
-├── documents/                                            # Required folder containing ORD Document(s)
+├── documents/                                            # Default folder containing ORD Document(s)
 │   ├── ord-document.json                                 # ORD Document
 │   └── ord-document2.json                                # Additional ORD Document
 └── sap.xref:apiResource:astronomy:v1/                    # Optional resources
@@ -129,7 +130,8 @@ This structure applies to both source types:
 
 1. **ORD Documents Location**
 
-   - All ORD Documents must be placed in the `documents/` folder
+   - All ORD Documents must be placed in the documents directory (configurable via `--documents-subdirectory`, default is `documents/`)
+   - ORD Documents can be placed in nested folders within the documents directory
    - Supported format: `.json`
 
 2. **Resource References**

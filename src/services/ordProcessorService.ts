@@ -1,4 +1,4 @@
-import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@sap/open-resource-discovery";
+import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -13,15 +13,21 @@ import { log } from "src/util/logger.js";
 import { getOrdDocumentAccessStrategies } from "src/util/ordConfig.js";
 import { GitHubFileResponse, GithubOpts } from "../model/github.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
-import { fetchGitHubFile, listGitHubDirectory } from "../util/github.js";
+import { fetchGitHubFile, getGithubDirectoryContents } from "../util/github.js";
+import { getEncodedFilePath, getOrdDocumentPath } from "../util/documentUrl.js";
 
 interface DocumentCache {
   [key: string]: ORDDocument;
 }
 
+interface OrdConfigurationCache {
+  [key: string]: ORDConfiguration;
+}
+
 export interface ProcessingContext {
   baseUrl: string;
   authMethods: OptAuthMethod[];
+  documentsSubDirectory?: string;
   githubBranch?: string;
   githubApiUrl?: string;
   githubRepo?: string;
@@ -32,6 +38,7 @@ export type LocalProcessResult = { [relativeFilePath: string]: ORDDocument };
 
 export class OrdDocumentProcessor {
   private static documentCache: DocumentCache = {};
+  private static ordConfigCache: OrdConfigurationCache = {};
 
   // processResourceDefinition will parse URLs of resource definitions and apply given access strategy
   private static processResourceDefinition<T extends EventResource | APIResource>(
@@ -73,16 +80,25 @@ export class OrdDocumentProcessor {
     return url.startsWith("http://") || url.startsWith("https://");
   }
 
-  public static getFromCache(cacheKey: string): ORDDocument | undefined {
+  public static getProcessedDocumentFromCache(cacheKey: string): ORDDocument | undefined {
     if (this.documentCache[cacheKey]) {
       return this.documentCache[cacheKey];
     }
+  }
+
+  public static setCachedOrdConfig(cacheKey: string, ordConfig: ORDConfiguration): void {
+    this.ordConfigCache[cacheKey] = ordConfig;
+  }
+
+  public static getCachedOrdConfig(cacheKey: string): ORDConfiguration | undefined {
+    return this.ordConfigCache[cacheKey];
   }
 
   public static async preprocessGithubDocuments(
     githubOpts: GithubOpts,
     baseUrl: string,
     authenticationMethods: OptAuthMethod[],
+    documentsSubDirectory: string = ORD_DOCUMENTS_SUB_DIRECTORY,
   ): Promise<{ documents: ORDDocument[]; fqnDocumentMap: FqnDocumentMap }> {
     const githubInstance = {
       host: githubOpts.githubApiUrl,
@@ -91,29 +107,31 @@ export class OrdDocumentProcessor {
     };
 
     const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-    const files = await listGitHubDirectory(
-      githubInstance,
-      `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}`,
-      githubOpts.githubToken,
-    );
+
+    const files = (
+      await getGithubDirectoryContents(
+        githubInstance,
+        path.posix.join(pathSegments, documentsSubDirectory),
+        githubOpts.githubToken,
+        true,
+      )
+    )
+      .filter((item) => item.type === "file")
+      .map((item) => item.path);
 
     const documents = await Promise.all(
       files
-        .filter((file) => file.endsWith(".json"))
-        .map(async (fileName) => {
-          const file = await fetchGitHubFile<GitHubFileResponse>(
-            githubInstance,
-            `${pathSegments}/${ORD_DOCUMENTS_SUB_DIRECTORY}/${fileName}`,
-            githubOpts.githubToken,
-          );
+        .filter((filePath) => filePath.endsWith(".json"))
+        .map(async (filePath) => {
+          const file = await fetchGitHubFile<GitHubFileResponse>(githubInstance, filePath, githubOpts.githubToken);
 
           const ordDocument = JSON.parse(Buffer.from(file.content, "base64").toString("utf-8")) as ORDDocument;
-          return { ordDocument, fileName, sha: file.sha };
+          return { ordDocument, filePath, sha: file.sha };
         }),
     );
 
     const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(
-      documents.map(({ ordDocument, fileName, sha }) =>
+      documents.map(({ ordDocument, filePath, sha }) =>
         OrdDocumentProcessor.processGithubDocument(
           {
             baseUrl,
@@ -123,7 +141,7 @@ export class OrdDocumentProcessor {
             githubRepo: githubOpts.githubRepository,
             githubToken: githubOpts.githubToken,
           },
-          `${fileName}:${sha}`,
+          `${filePath}:${sha}`,
           ordDocument,
         ),
       ),
@@ -152,7 +170,7 @@ export class OrdDocumentProcessor {
     cacheKey: string,
     document: ORDDocument,
   ): ORDDocument {
-    const cachedDoc = this.getFromCache(cacheKey);
+    const cachedDoc = this.getProcessedDocumentFromCache(cacheKey);
     if (cachedDoc) {
       return cachedDoc;
     }
@@ -168,7 +186,8 @@ export class OrdDocumentProcessor {
     ordDirectory: string,
     callback: (updatedResult: LocalProcessResult) => void,
   ): void {
-    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
+    const documentsSubDirectory = context.documentsSubDirectory || ORD_DOCUMENTS_SUB_DIRECTORY;
+    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${documentsSubDirectory}`;
     fs.watch(ordDocumentDirectoryPath, (event, fileName) => {
       if (event === "rename" && fileName) {
         Object.keys(this.documentCache)
@@ -191,7 +210,8 @@ export class OrdDocumentProcessor {
     ordDirectory: string,
   ): LocalProcessResult {
     const ordDocuments: LocalProcessResult = {};
-    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${ORD_DOCUMENTS_SUB_DIRECTORY}`;
+    const documentsSubDirectory = context.documentsSubDirectory || ORD_DOCUMENTS_SUB_DIRECTORY;
+    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${documentsSubDirectory}`;
     const ordFiles = getAllFiles(ordDocumentDirectoryPath);
 
     ordConfig.openResourceDiscoveryV1.documents = [];
@@ -205,17 +225,16 @@ export class OrdDocumentProcessor {
         log.warn(`Only .json file extensions are supported. Skipping ${file}`);
         continue;
       }
-      const relativeFilePath = path.posix.relative(ordDirectory, file);
-      const filePathParsed = path.posix.parse(relativeFilePath);
-      const encodedFileName = encodeURIComponent(filePathParsed.name);
-      const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${ORD_DOCUMENTS_SUB_DIRECTORY}/${encodedFileName}`;
+
+      const relativeUrl = getOrdDocumentPath(ordDirectory, file);
 
       try {
+        const encodedFilePath = getEncodedFilePath(ordDirectory, file);
         const ordDocumentText = fs.readFileSync(file).toString();
         const shaChecksum = crypto.createHash("sha256").update(ordDocumentText).digest("hex");
-        const cacheKey = `${encodedFileName}:${shaChecksum}`;
+        const cacheKey = `${encodedFilePath}:${shaChecksum}`;
         if (this.documentCache[cacheKey]) {
-          ordDocuments[encodedFileName] = this.documentCache[cacheKey];
+          ordDocuments[encodedFilePath] = this.documentCache[cacheKey];
           ordConfig.openResourceDiscoveryV1.documents?.push({
             url: relativeUrl,
             accessStrategies: getOrdDocumentAccessStrategies(context.authMethods),
@@ -237,7 +256,7 @@ export class OrdDocumentProcessor {
         });
 
         const processedDocument = this.updateResources(context, ordDocumentParsed);
-        ordDocuments[encodedFileName] = processedDocument;
+        ordDocuments[encodedFilePath] = processedDocument;
         this.documentCache[cacheKey] = processedDocument;
       } catch (error) {
         log.error(`Error processing file ${file}: ${error}`);
