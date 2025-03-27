@@ -1,23 +1,23 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [":pinAllExceptPeerDependencies"],
+  "extends": ["config:recommended"],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
-  "schedule": ["on saturday at 06:00"],
-  "prConcurrentLimit": 20,
+  "schedule": ["at any time"],
   "prHourlyLimit": 0,
-  "automerge": true,
-  "platformAutomerge": true,
+  "prConcurrentLimit": 0,
   "lockFileMaintenance": {
-    "enabled": true
+    "enabled": true,
+    "schedule": ["at any time"]
   },
-  "addLabels": ["dependencies", "renovate"],
-  "reviewersSampleSize": 2,
-  "additionalReviewers": ["jurijat"],
 
   "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
     {
       "semanticCommitType": "chore",
       "matchPackageNames": ["*"]
@@ -63,8 +63,8 @@
       "groupName": "Misc Tools"
     },
     {
-      "matchManagers": ["dockerfile"],
       "groupName": "Docker Dependencies",
+      "matchCategories": ["dockerfile"],
       "enabled": true
     }
   ]
