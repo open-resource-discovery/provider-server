@@ -3,7 +3,8 @@ import fs from "fs";
 import path from "path";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { buildProviderServerOptions, ProviderServerOptions } from "src/model/server.js";
-import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY } from "../constant.js";
+import { PATH_CONSTANTS } from "../constant.js";
+import { joinFilePaths, normalizePath } from "../util/pathUtils.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
@@ -111,11 +112,11 @@ async function validateSourceTypeOptions(options: CommandLineOptions, errors: st
         errors.push(`Detected missing parameters for github source type: ${missingParams.join(", ")}`);
       } else {
         // Perform GitHub access and directory structure check
-        const pathSegments = path.posix.normalize(options.directory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+        const pathSegments = normalizePath(options.directory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
         const documentsSubDirectory = options.documentsSubdirectory || "documents";
         try {
           await validateGithubDirectoryContents(
-            `${pathSegments}/${documentsSubDirectory}`,
+            joinFilePaths(pathSegments, documentsSubDirectory),
             {
               host: githubApiUrl!,
               repo: githubRepository!,
@@ -204,7 +205,7 @@ function validateLocalDirectory(directoryPath: string, documentsSubDirectory: st
     }
 
     // Check for documents subdirectory
-    const documentsPath = path.join(absolutePath, documentsSubDirectory);
+    const documentsPath = joinFilePaths(absolutePath, documentsSubDirectory);
     try {
       const docStat = fs.statSync(documentsPath);
       if (!docStat.isDirectory()) {
@@ -226,7 +227,7 @@ function validateLocalDirectory(directoryPath: string, documentsSubDirectory: st
     // Check for at least one file in the documents directory
     const files = fs.readdirSync(documentsPath, { recursive: true }) as string[];
     const hasFiles = files.some((file) => {
-      const filePath = path.join(documentsPath, file);
+      const filePath = joinFilePaths(documentsPath, file);
       return fs.statSync(filePath).isFile();
     });
 
@@ -242,7 +243,7 @@ function validateLocalDirectory(directoryPath: string, documentsSubDirectory: st
     // Check if the openResourceDiscovery property is present in all files
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const filePath = path.join(documentsPath, file);
+      const filePath = joinFilePaths(documentsPath, file);
       const contents = fs.readFileSync(filePath).toString();
 
       const document = JSON.parse(contents) as ORDDocument;

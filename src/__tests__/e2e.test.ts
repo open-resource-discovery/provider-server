@@ -3,7 +3,7 @@ import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specific
 import path from "path";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
-import { ORD_DOCUMENTS_SUB_DIRECTORY } from "../constant.js";
+import { PATH_CONSTANTS } from "../constant.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
@@ -22,7 +22,7 @@ describe("End-to-End Testing", () => {
   beforeAll(async () => {
     shutdownServer = await startProviderServer({
       ordDirectory: path.join(process.cwd(), "src/__tests__/test-files"),
-      ordDocumentsSubDirectory: ORD_DOCUMENTS_SUB_DIRECTORY,
+      ordDocumentsSubDirectory: PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
       sourceType: OptSourceType.Local,
       baseUrl: SERVER_URL,
       host: "0.0.0.0",
@@ -40,7 +40,7 @@ describe("End-to-End Testing", () => {
 
   it("should complete full user journey", async () => {
     // 1. Discover API
-    const configResponse = await fetch(`${SERVER_URL}/.well-known/open-resource-discovery`);
+    const configResponse = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
     expect(configResponse.status).toBe(200);
     const config = (await configResponse.json()) as ORDConfiguration;
 

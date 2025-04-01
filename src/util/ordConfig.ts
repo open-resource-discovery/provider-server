@@ -1,7 +1,7 @@
 import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import { AccessStrategy } from "@open-resource-discovery/specification/dist/types/v1/Configuration.js";
-import path from "path";
-import { ORD_DOCUMENTS_SUB_DIRECTORY, ORD_GITHUB_DEFAULT_ROOT_DIRECTORY } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
+import { joinFilePaths, normalizePath } from "src/util/pathUtils.js";
 import { mapOptAuthToOrdAccessStrategy, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { GitHubFileResponse, GithubOpts } from "src/model/github.js";
 import { fetchGitHubFile, getDirectoryHash, getGithubDirectoryContents } from "src/util/github.js";
@@ -40,7 +40,7 @@ export function createOrdConfigGetter(params: CreateOrdConfigGetterParams): () =
 }
 
 export async function listGithubOrdDirectory(githubOpts: GithubOpts, ordSubDirectory: string): Promise<string[]> {
-  const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+  const pathSegments = normalizePath(githubOpts.customDirectory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
 
   const githubInstance = {
     host: githubOpts.githubApiUrl,
@@ -49,7 +49,11 @@ export async function listGithubOrdDirectory(githubOpts: GithubOpts, ordSubDirec
   };
 
   return (
-    await getGithubDirectoryContents(githubInstance, `${pathSegments}/${ordSubDirectory}`, githubOpts.githubToken)
+    await getGithubDirectoryContents(
+      githubInstance,
+      joinFilePaths(pathSegments, ordSubDirectory),
+      githubOpts.githubToken,
+    )
   )
     .filter((item) => item.type === "file")
     .map((item) => item.path);
@@ -65,15 +69,15 @@ export async function getGithubOrdConfig(
   const accessStrategies = getOrdDocumentAccessStrategies(authOpts);
 
   // Root path for GitHub files
-  const rootPath: string = path.posix.normalize(
-    githubOpts.customDirectory ? githubOpts.customDirectory : ORD_GITHUB_DEFAULT_ROOT_DIRECTORY,
+  const rootPath: string = normalizePath(
+    githubOpts.customDirectory ? githubOpts.customDirectory : PATH_CONSTANTS.GITHUB_DEFAULT_ROOT,
   );
-  const subDirectory = ordSubDirectory ?? ORD_DOCUMENTS_SUB_DIRECTORY;
+  const subDirectory = ordSubDirectory ?? PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY;
 
   // Cache ordConfig
   const currentDirHash = await getDirectoryHash(
     { branch: githubOpts.githubBranch, host: githubOpts.githubApiUrl, repo: githubOpts.githubRepository },
-    path.posix.join(rootPath, subDirectory),
+    joinFilePaths(rootPath, subDirectory),
     githubOpts.githubToken,
   );
 
@@ -164,5 +168,6 @@ export function emptyOrdConfig(baseUrl?: string): ORDConfiguration {
 
 export function getBaseUrl(baseUrl?: string): string {
   if (!baseUrl) return "";
-  return `${baseUrl.replace(/\/$/, "")}`;
+  // Remove trailing slash for consistency
+  return normalizePath(baseUrl).replace(/\/$/, "");
 }

@@ -2,11 +2,8 @@ import { APIResource, EventResource, ORDConfiguration, ORDDocument } from "@open
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import {
-  ORD_DOCUMENTS_SUB_DIRECTORY,
-  ORD_GITHUB_DEFAULT_ROOT_DIRECTORY,
-  ORD_SERVER_PREFIX_PATH,
-} from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
+import { joinFilePaths, joinUrlPaths, normalizePath, ordIdToPathSegment } from "src/util/pathUtils.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { getAllFiles } from "src/util/files.js";
 import { log } from "src/util/logger.js";
@@ -58,7 +55,7 @@ export class OrdDocumentProcessor {
   }
 
   private static fixUrl(url: string, ordId: string): string {
-    const escapedOrdId = ordId.replace(/:/gi, "_");
+    const escapedOrdId = ordIdToPathSegment(ordId);
     const pathParts = url.split("/");
     const ordIdIdx = pathParts.findIndex((part) => escapedOrdId === part);
 
@@ -73,7 +70,7 @@ export class OrdDocumentProcessor {
     if (this.isRemoteUrl(url)) {
       return urlWithFixedOrdId;
     }
-    return path.posix.join(ORD_SERVER_PREFIX_PATH, path.posix.resolve("/", urlWithFixedOrdId));
+    return joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, path.posix.resolve("/", urlWithFixedOrdId));
   }
 
   private static isRemoteUrl(url: string): boolean {
@@ -98,7 +95,7 @@ export class OrdDocumentProcessor {
     githubOpts: GithubOpts,
     baseUrl: string,
     authenticationMethods: OptAuthMethod[],
-    documentsSubDirectory: string = ORD_DOCUMENTS_SUB_DIRECTORY,
+    documentsSubDirectory: string = PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
   ): Promise<{ documents: ORDDocument[]; fqnDocumentMap: FqnDocumentMap }> {
     const githubInstance = {
       host: githubOpts.githubApiUrl,
@@ -106,7 +103,7 @@ export class OrdDocumentProcessor {
       branch: githubOpts.githubBranch,
     };
 
-    const pathSegments = path.normalize(githubOpts.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+    const pathSegments = normalizePath(githubOpts.customDirectory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
 
     const files = (
       await getGithubDirectoryContents(
@@ -186,8 +183,8 @@ export class OrdDocumentProcessor {
     ordDirectory: string,
     callback: (updatedResult: LocalProcessResult) => void,
   ): void {
-    const documentsSubDirectory = context.documentsSubDirectory || ORD_DOCUMENTS_SUB_DIRECTORY;
-    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${documentsSubDirectory}`;
+    const documentsSubDirectory = context.documentsSubDirectory || PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY;
+    const ordDocumentDirectoryPath = joinFilePaths(normalizePath(ordDirectory), documentsSubDirectory);
     fs.watch(ordDocumentDirectoryPath, (event, fileName) => {
       if (event === "rename" && fileName) {
         Object.keys(this.documentCache)
@@ -210,8 +207,8 @@ export class OrdDocumentProcessor {
     ordDirectory: string,
   ): LocalProcessResult {
     const ordDocuments: LocalProcessResult = {};
-    const documentsSubDirectory = context.documentsSubDirectory || ORD_DOCUMENTS_SUB_DIRECTORY;
-    const ordDocumentDirectoryPath = `${ordDirectory.replace(/\/$/, "")}/${documentsSubDirectory}`;
+    const documentsSubDirectory = context.documentsSubDirectory || PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY;
+    const ordDocumentDirectoryPath = joinFilePaths(normalizePath(ordDirectory), documentsSubDirectory);
     const ordFiles = getAllFiles(ordDocumentDirectoryPath);
 
     ordConfig.openResourceDiscoveryV1.documents = [];

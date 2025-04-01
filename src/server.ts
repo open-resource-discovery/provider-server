@@ -1,6 +1,6 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
-import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
@@ -57,7 +57,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   log.info(`>> Source Type: ${opts.sourceType}`);
   log.info(`>> Base URL: ${opts.baseUrl || "-"}`);
   log.info(
-    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? ORD_GITHUB_DEFAULT_ROOT_DIRECTORY : ""}/${opts.ordDocumentsSubDirectory}`,
+    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? PATH_CONSTANTS.GITHUB_DEFAULT_ROOT : ""}/${opts.ordDocumentsSubDirectory}`,
   );
   log.info(`>> Host: ${opts.host || "-"}`);
   log.info(`>> Port: ${opts.port || "-"}`);
@@ -168,9 +168,9 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     });
 
     server.log.info(`Server started on port ${port}`);
-    server.log.info(`(Local Server) ORD entry-point available: ${serverEndpoint}${WELL_KNOWN_ENDPOINT}`);
+    server.log.info(`(Local Server) ORD entry-point available: ${serverEndpoint}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
     if (opts.baseUrl) {
-      server.log.info(`(Base URL) ORD entry-point available: ${opts.baseUrl}${WELL_KNOWN_ENDPOINT}`);
+      server.log.info(`(Base URL) ORD entry-point available: ${opts.baseUrl}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
     }
 
     // Return the shutdown function

@@ -9,7 +9,7 @@ import { GitHubFileResponse } from "src/model/github.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { ProcessingContext, OrdDocumentProcessor } from "src/services/ordProcessorService.js";
 import path from "path";
-import { ORD_SERVER_PREFIX_PATH } from "../../constant.js";
+import { PATH_CONSTANTS } from "../../constant.js";
 
 describe("ORD Documents", () => {
   beforeAll(() => {
@@ -89,7 +89,9 @@ describe("ORD Documents", () => {
       const secondResult = OrdDocumentProcessor.processGithubDocument(mockContext, "sha1", mockDocument);
 
       expect(firstResult).toEqual(secondResult);
-      expect(firstResult.apiResources?.[0].resourceDefinitions?.[0].url).toBe(`${ORD_SERVER_PREFIX_PATH}/test.json`);
+      expect(firstResult.apiResources?.[0].resourceDefinitions?.[0].url).toBe(
+        `${PATH_CONSTANTS.SERVER_PREFIX}/test.json`,
+      );
     });
 
     it("should invalidate cache when SHA changes", () => {
@@ -168,7 +170,7 @@ describe("ORD Documents", () => {
       apiResource.resourceDefinitions = [rd];
       testDocument.apiResources = [apiResource];
 
-      const rewrittenUrl = `${ORD_SERVER_PREFIX_PATH}${defaultUrl}`;
+      const rewrittenUrl = `${PATH_CONSTANTS.SERVER_PREFIX}${defaultUrl}`;
       const result = OrdDocumentProcessor.processGithubDocument(mockContext, "local-sha", testDocument);
       expect(result.apiResources?.[0].resourceDefinitions?.[0].url).toEqual(rewrittenUrl);
     });

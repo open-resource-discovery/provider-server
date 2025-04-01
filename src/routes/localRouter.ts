@@ -2,13 +2,15 @@ import fastifyStatic from "@fastify/static";
 import { ORDDocument } from "@open-resource-discovery/specification";
 import fs from "fs";
 import path from "path";
-import { ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
+import { joinFilePaths, joinUrlPaths } from "src/util/pathUtils.js";
 import { NotFoundError } from "src/model/error/NotFoundError.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
 import { getAllFiles } from "src/util/files.js";
 import { log } from "src/util/logger.js";
 import { FqnDocumentMap, isOrdId } from "../util/fqnHelpers.js";
+import { ordIdToPathSegment } from "../util/pathUtils.js";
 
 interface LocalRouterOptions extends RouterOptions {
   ordDirectory: string;
@@ -52,7 +54,7 @@ export class LocalRouter extends BaseRouter {
 
     // First, register static files but don't let it create routes
     await server.register(fastifyStatic, {
-      prefix: ORD_SERVER_PREFIX_PATH,
+      prefix: PATH_CONSTANTS.SERVER_PREFIX,
       root: path.resolve(process.cwd(), this.ordDirectory),
       etag: true,
       decorateReply: true,
@@ -61,11 +63,11 @@ export class LocalRouter extends BaseRouter {
     });
 
     // 1. Document endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/${this.documentsSubDirectory}/*`, (request) => {
+    server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/${this.documentsSubDirectory}/*`, (request) => {
       let { "*": documentPath } = request.params as { "*": string };
 
       documentPath = documentPath.replace(/\.json/, "");
-      const documentPathWithSubfolder = `${this.documentsSubDirectory}/${documentPath}`;
+      const documentPathWithSubfolder = joinFilePaths(this.documentsSubDirectory, documentPath);
       if (this.ordDocuments[documentPathWithSubfolder]) {
         return this.ordDocuments[documentPathWithSubfolder];
       }
@@ -73,7 +75,7 @@ export class LocalRouter extends BaseRouter {
     });
 
     // 2. Root-level files endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/:fileName`, (request, reply) => {
+    server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/:fileName`, (request, reply) => {
       const { fileName } = request.params as { fileName: string };
 
       // Skip if this is a documents route or another known route
@@ -83,7 +85,7 @@ export class LocalRouter extends BaseRouter {
 
       // Try to serve the file directly from the root of the ordDirectory
       try {
-        const absolutePath = path.posix.join(this.ordDirectory, fileName);
+        const absolutePath = joinFilePaths(this.ordDirectory, fileName);
 
         if (fs.existsSync(absolutePath)) {
           return reply.sendFile(fileName, this.ordDirectory);
@@ -98,7 +100,7 @@ export class LocalRouter extends BaseRouter {
     });
 
     // 3. FQN Document endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/:ordId/*`, (request, reply) => {
+    server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/:ordId/*`, (request, reply) => {
       const { ordId } = request.params as { ordId: string };
       const { "*": unknownPath } = request.params as { "*": string };
 
@@ -118,7 +120,7 @@ export class LocalRouter extends BaseRouter {
         }
 
         // Also try with the underscore version of the ordId (for filesystem compatibility)
-        const underscoreOrdId = ordId.replace(/:/g, "_");
+        const underscoreOrdId = ordIdToPathSegment(ordId);
         resourceMap = this.fqnDocumentMap[underscoreOrdId]?.find((resource) => resource.fileName === unknownPath);
         if (resourceMap) {
           return reply.sendFile(resourceMap.filePath, this.ordDirectory);
@@ -147,7 +149,7 @@ export class LocalRouter extends BaseRouter {
             }
 
             // Also try with the underscore version
-            const underscoreOrdId = potentialOrdId.replace(/:/g, "_");
+            const underscoreOrdId = ordIdToPathSegment(potentialOrdId);
             const underscoreResourceMap = this.fqnDocumentMap[underscoreOrdId]?.find(
               (resource) => resource.fileName === remainingPath,
             );
@@ -163,8 +165,8 @@ export class LocalRouter extends BaseRouter {
       try {
         // First check if the file exists
         // If not found in the map, try to fetch it directly
-        const fullPath = path.posix.join(ordId, unknownPath);
-        const absolutePath = path.posix.join(this.ordDirectory, fullPath);
+        const fullPath = joinFilePaths(ordId, unknownPath);
+        const absolutePath = joinFilePaths(this.ordDirectory, fullPath);
 
         if (fs.existsSync(absolutePath)) {
           return reply.sendFile(fullPath, this.ordDirectory);
@@ -183,7 +185,8 @@ export class LocalRouter extends BaseRouter {
     const staticFiles = getAllFiles(this.ordDirectory);
 
     for (const file of staticFiles) {
-      const relativeUrl = `${ORD_SERVER_PREFIX_PATH}/${path.relative(this.ordDirectory, file).split("\\").join("/")}`;
+      const relativePath = path.relative(this.ordDirectory, file).split("\\").join("/");
+      const relativeUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath);
       log.info(`Served static file: ${this.baseUrl}${relativeUrl}`);
     }
   }

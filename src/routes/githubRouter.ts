@@ -1,6 +1,6 @@
 import { ORDDocument } from "@open-resource-discovery/specification";
-import path from "path";
-import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, ORD_SERVER_PREFIX_PATH } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
+import { joinFilePaths, normalizePath, getFileName } from "src/util/pathUtils.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 import { GitHubFileResponse, GithubOpts } from "src/model/github.js";
 import { BaseRouter, RouterOptions } from "src/routes/baseRouter.js";
@@ -47,15 +47,15 @@ export class GithubRouter extends BaseRouter {
     this.configurationEndpoint(server);
 
     // Document endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/${this.documentsSubDirectory}/*`, async (request) => {
+    server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/${this.documentsSubDirectory}/*`, async (request) => {
       const { "*": documentPath } = request.params as { "*": string };
 
       // Extract the document name from the path (last segment without extension)
       const pathSegments = documentPath.split("/");
-      const documentName = path.basename(pathSegments[pathSegments.length - 1], ".json");
+      const documentName = getFileName(pathSegments[pathSegments.length - 1]);
       const documentPathWithExtension = documentPath.endsWith(".json") ? documentPath : `${documentPath}.json`;
-      const rootPath = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-      const githubPath = `${rootPath}/${this.documentsSubDirectory}/${documentPathWithExtension}`;
+      const rootPath = normalizePath(this.customDirectory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
+      const githubPath = joinFilePaths(rootPath, this.documentsSubDirectory, documentPathWithExtension);
 
       let response: GitHubFileResponse;
 
@@ -104,7 +104,7 @@ export class GithubRouter extends BaseRouter {
     });
 
     // Root-level files endpoint
-    server.get(`${ORD_SERVER_PREFIX_PATH}/:fileName`, async (request, reply) => {
+    server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/:fileName`, async (request, reply) => {
       const { fileName } = request.params as { fileName: string };
 
       // Skip if this is a documents route or another known route
@@ -112,8 +112,8 @@ export class GithubRouter extends BaseRouter {
         return reply.callNotFound();
       }
 
-      const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
-      const githubPath = `${pathSegments}/${fileName}`;
+      const rootPath = normalizePath(this.customDirectory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
+      const githubPath = joinFilePaths(rootPath, fileName);
 
       let response: GitHubFileResponse;
       try {
@@ -136,7 +136,7 @@ export class GithubRouter extends BaseRouter {
     });
 
     // Resource files endpoint with wildcard support
-    server.get(`${ORD_SERVER_PREFIX_PATH}/:ordId/*`, async (request, reply) => {
+    server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/:ordId/*`, async (request, reply) => {
       let { ordId } = request.params as { ordId: string };
       let { "*": unknownPath } = request.params as { "*": string };
 
@@ -163,19 +163,19 @@ export class GithubRouter extends BaseRouter {
         (resource) => resource.fileName === fileName || `/${resource.fileName}` === fileName,
       );
 
-      const pathSegments = path.posix.normalize(this.customDirectory || ORD_GITHUB_DEFAULT_ROOT_DIRECTORY);
+      const rootPath = normalizePath(this.customDirectory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
 
       let githubPath: string;
 
       // If found in the map, use the mapped path
       if (resourceMap) {
-        githubPath = path.posix.join(pathSegments, resourceMap.filePath);
+        githubPath = joinFilePaths(rootPath, resourceMap.filePath);
       } else {
         // If not found in the map, try to fetch it directly
         if (!unknownPath.endsWith(".json")) {
           unknownPath += ".json";
         }
-        githubPath = path.posix.join(pathSegments, ordId, unknownPath);
+        githubPath = joinFilePaths(rootPath, ordId, unknownPath);
       }
 
       try {
@@ -197,7 +197,7 @@ export class GithubRouter extends BaseRouter {
 
           // If it's an ORD document, process it
           if (jsonData.openResourceDiscovery) {
-            const documentName = path.basename(unknownPath);
+            const documentName = getFileName(unknownPath);
             const cacheKey = `${documentName}:${response.sha}`;
 
             return OrdDocumentProcessor.processGithubDocument(

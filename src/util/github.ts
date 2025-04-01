@@ -7,6 +7,7 @@ import {
 } from "../model/error/GithubErrors.js";
 import { BackendError } from "../model/error/BackendError.js";
 import path from "path";
+import { joinFilePaths, normalizePath } from "./pathUtils.js";
 
 export interface GitHubContentItem {
   name: string;
@@ -24,7 +25,8 @@ export interface GitHubContentItem {
  * @param path File- or directory path. E.g, path/to/file.txt
  */
 function getGitHubUrl({ host, repo, branch }: GitHubInstance, githubPath: string): string {
-  return `${host}/repos/${repo}/contents${path.posix.join("/", githubPath.replace(/\/$/, ""))}?ref=${branch}`;
+  const normalizedPath = normalizePath(githubPath).replace(/\/$/, "");
+  return `${host}/repos/${repo}/contents${normalizedPath.startsWith("/") ? normalizedPath : "/" + normalizedPath}?ref=${branch}`;
 }
 
 /**
@@ -114,9 +116,7 @@ export async function getDirectoryHash(
 ): Promise<string | undefined> {
   // Parse directoryPath first
   const dirPath =
-    directoryPath === "/" || directoryPath === "" || directoryPath === "./"
-      ? "/"
-      : path.posix.join(directoryPath, "..");
+    directoryPath === "/" || directoryPath === "" || directoryPath === "./" ? "/" : joinFilePaths(directoryPath, "..");
 
   const lastDirectory = path.posix.parse(directoryPath).base;
 
