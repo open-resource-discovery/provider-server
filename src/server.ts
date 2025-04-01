@@ -5,7 +5,6 @@ import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
 import { type FastifyInstanceType } from "src/model/fastify.js";
-// Removed unused GithubOpts import
 import { type ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
 import { RouterFactory } from "./factories/routerFactory.js";
