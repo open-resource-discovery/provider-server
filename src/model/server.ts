@@ -1,6 +1,7 @@
 import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
+import { normalizePath } from "src/util/pathUtils.js";
 import { config } from "dotenv";
 config();
 
@@ -23,8 +24,17 @@ export interface ProviderServerOptions {
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
   ordDirectory = ordDirectory !== undefined ? ordDirectory : process.env.ORD_DIRECTORY || "";
-  if (ordDirectory?.startsWith("/") && sourceType === OptSourceType.Github) {
-    ordDirectory = ordDirectory.replace("/", "");
+
+  // For GitHub, we need to ensure the path doesn't start with a slash
+  if (sourceType === OptSourceType.Github) {
+    // Normalize the path and remove leading slash if present
+    ordDirectory = normalizePath(ordDirectory).replace(/^\//, "");
+    if (ordDirectory.trim() === "") {
+      ordDirectory = "./";
+    }
+  } else {
+    // For local paths, just normalize
+    ordDirectory = normalizePath(ordDirectory);
   }
 
   return ordDirectory;

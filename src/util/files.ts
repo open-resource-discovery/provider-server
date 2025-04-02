@@ -1,14 +1,18 @@
 import fs from "fs";
-import path from "path";
+import { normalizePath, joinFilePaths } from "./pathUtils.js";
 
-// getAllFiles will list all files recursively from the given directory
+/**
+ * Lists all files recursively from the given directory
+ * @param dirPath The directory path to scan
+ * @param arrayOfFiles Optional array to accumulate files (used for recursion)
+ * @returns Array of file paths
+ */
 export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
-  const normalizedDirPath = dirPath.replace(/\\/g, "/");
-
+  const normalizedDirPath = normalizePath(dirPath);
   const files = fs.readdirSync(normalizedDirPath);
 
   files.forEach((file) => {
-    const filePath = path.join(normalizedDirPath, file).replace(/\\/g, "/");
+    const filePath = normalizePath(joinFilePaths(normalizedDirPath, file));
 
     if (fs.statSync(filePath).isDirectory()) {
       getAllFiles(filePath, arrayOfFiles);

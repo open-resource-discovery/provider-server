@@ -1,5 +1,6 @@
 import { ordDocumentSchema, type ORDDocument } from "@open-resource-discovery/specification";
-import { ORD_SERVER_PREFIX_PATH } from "../constant.js";
+import { PATH_CONSTANTS } from "../constant.js";
+import { ordIdToPathSegment } from "./pathUtils.js";
 
 export const apiResourceOrdIdPattern = new RegExp(
   /* @ts-expect-error ordId pattern selection */
@@ -21,11 +22,20 @@ export function isOrdId(possibleOrdId: string): boolean {
 }
 
 function getRelativePathForResource(ordId: string, path: string): FqnResourceMap {
-  const pathParts = path.replace(ORD_SERVER_PREFIX_PATH, "").split("/");
+  const pathParts = path.replace(PATH_CONSTANTS.SERVER_PREFIX, "").split("/");
   const rootIndex = pathParts.findIndex((part) => part === ordId);
+  const fileNameParts = pathParts.slice(rootIndex + 1);
+
+  // Convert any ORD IDs in the path to filesystem-safe format
+  const safePathParts = pathParts.map((part) => (isOrdId(part) ? ordIdToPathSegment(part) : part));
+
+  // Filter out empty segments and join without adding leading slashes
+  const fileName = fileNameParts.filter(Boolean).join("/");
+  const filePath = safePathParts.filter(Boolean).join("/");
+
   return {
-    fileName: pathParts.slice(rootIndex + 1).join("/"),
-    filePath: pathParts.join("/").replace(/:/gi, "_"),
+    fileName,
+    filePath,
   };
 }
 

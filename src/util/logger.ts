@@ -32,5 +32,6 @@ if (process.env.NODE_ENV !== "production") {
       },
     },
     base: null, // avoid adding pid, hostname and name properties to each log.
+    level: "debug",
   });
 }
