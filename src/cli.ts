@@ -9,6 +9,7 @@ import { log } from "src/util/logger.js";
 import { validateAndParseOptions } from "src/util/optsValidation.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
+import { PATH_CONSTANTS } from "./constant.js";
 
 config();
 
@@ -30,12 +31,12 @@ program
   .option(
     "-d, --directory <directory>",
     'Directory containing ORD documents. Required when source-type is "local".',
-    process.env.ORD_DIRECTORY,
+    process.env.ORD_DIRECTORY || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT,
   )
   .option(
     "--documents-subdirectory <subdirectory>",
     "Subdirectory name for ORD documents within the main directory (default: 'documents')",
-    process.env.ORD_DOCUMENTS_SUBDIRECTORY || "documents",
+    PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
   )
   .option(
     "-a, --auth <authTypes>",
