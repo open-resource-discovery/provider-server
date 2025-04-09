@@ -1,5 +1,5 @@
 import { ORDConfiguration } from "@open-resource-discovery/specification";
-import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 
@@ -27,7 +27,7 @@ export abstract class BaseRouter {
   }
 
   protected configurationEndpoint(server: FastifyInstanceType): void {
-    server.get(WELL_KNOWN_ENDPOINT, async () => {
+    server.get(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT, async () => {
       return await this.getOrdConfig();
     });
   }

@@ -6,13 +6,15 @@ This project helps to expose static metadata using [Open Resource Discovery](htt
 
 ## Usage
 
+Replace "/path-to-your-metadata" with the directory, that has your ORD Documents.
+
 ### Via **Docker**
 
 1. **Local** (default: open)
 
 ```bash
 docker run -p 8080:8080 \
-           -v "$(pwd)/example:/app/data" \
+           -v "$(pwd)/path-to-your-metadata:/app/data" \
            ghcr.io/open-resource-discovery/provider-server:latest \
            -d /app/data \
            --base-url 'http://127.0.0.1:8080'
@@ -21,7 +23,7 @@ docker run -p 8080:8080 \
 2. **Local** (basic auth)
 
 ```bash
-docker run -p 8080:8080 -v "$(pwd)/example:/app/data" \
+docker run -p 8080:8080 -v "$(pwd)/path-to-your-metadata:/app/data" \
   -e BASIC_AUTH='{"admin":"$2y$05$TjeC./ljKi7VLTBbzjTVyOi6lQBYpzfXiZSfJiGECHVi0eEN6/QG."}' \
   ghcr.io/open-resource-discovery/provider-server:latest \
   -d /app/data --auth basic --base-url 'http://127.0.0.1:8080'
@@ -50,13 +52,13 @@ docker run -p 8080:8080 \
 1. **Local** (default: open)
 
 ```bash
- npx @open-resource-discovery/provider-server -d ./example --base-url 'http://127.0.0.1:8080'
+ npx @open-resource-discovery/provider-server -d /path-to-your-metadata --base-url 'http://127.0.0.1:8080'
 ```
 
 2. **Local** (basic auth)
 
 ```bash
- BASIC_AUTH='{"admin":"$2y$05$TjeC./ljKi7VLTBbzjTVyOi6lQBYpzfXiZSfJiGECHVi0eEN6/QG."}' npx @open-resource-discovery/provider-server -d ./example --auth basic --base-url 'http://127.0.0.1:8080'
+ BASIC_AUTH='{"admin":"$2y$05$TjeC./ljKi7VLTBbzjTVyOi6lQBYpzfXiZSfJiGECHVi0eEN6/QG."}' npx @open-resource-discovery/provider-server -d /path-to-your-metadata --auth basic --base-url 'http://127.0.0.1:8080'
 ```
 
 3. **GitHub** (open)

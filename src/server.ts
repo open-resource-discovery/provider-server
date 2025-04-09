@@ -1,18 +1,14 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
-import { ORD_GITHUB_DEFAULT_ROOT_DIRECTORY, WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
 import { type FastifyInstanceType } from "src/model/fastify.js";
-import { GithubOpts } from "src/model/github.js";
 import { type ProviderServerOptions } from "src/model/server.js";
-import { GithubRouter } from "src/routes/githubRouter.js";
-import { LocalRouter } from "src/routes/localRouter.js";
 import { log } from "src/util/logger.js";
-import { createOrdConfigGetter, emptyOrdConfig } from "src/util/ordConfig.js";
-import { OrdDocumentProcessor, ProcessingContext } from "./services/ordProcessorService.js";
-import { getFlattenedOrdFqnDocumentMap } from "./util/fqnHelpers.js";
+import { RouterFactory } from "./factories/routerFactory.js";
+import { FqnDocumentMap } from "./util/fqnHelpers.js";
 
 export { ProviderServerOptions }; // Re-export the type
 
@@ -41,7 +37,6 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   // Configure routing based on source type
   await setupRouting(server, opts);
 
-  // Start server
   return await startServer(server, opts);
 }
 
@@ -57,7 +52,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   log.info(`>> Source Type: ${opts.sourceType}`);
   log.info(`>> Base URL: ${opts.baseUrl || "-"}`);
   log.info(
-    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? ORD_GITHUB_DEFAULT_ROOT_DIRECTORY : ""}/${opts.ordDocumentsSubDirectory}`,
+    `>> ORD Document Directory: ${opts.ordDirectory || opts.sourceType === "github" ? PATH_CONSTANTS.GITHUB_DEFAULT_ROOT : ""}/${opts.ordDocumentsSubDirectory}`,
   );
   log.info(`>> Host: ${opts.host || "-"}`);
   log.info(`>> Port: ${opts.port || "-"}`);
@@ -74,87 +69,33 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     );
   }
 
-  if (opts.sourceType === OptSourceType.Local) {
-    const ordConfig = emptyOrdConfig(baseUrl);
+  // FQN map generation is now handled within the DocumentService,
+  // triggered by the RouterFactory when creating the service instance.
+  // We still need to pass an initial (empty) map to the factory options,
+  // as the factory passes it down, but the *real* map used by the router
+  // will be the one generated and retrieved by the factory from the service.
+  const initialFqnDocumentMap: FqnDocumentMap = {};
 
-    const localContext: ProcessingContext = {
-      baseUrl: baseUrl,
-      authMethods: opts.authentication.methods,
-      documentsSubDirectory: opts.ordDocumentsSubDirectory,
-    };
+  const router = await RouterFactory.createRouter({
+    sourceType: opts.sourceType,
+    baseUrl: baseUrl,
+    authMethods: opts.authentication.methods,
+    fqnDocumentMap: initialFqnDocumentMap,
+    documentsSubDirectory: opts.ordDocumentsSubDirectory,
+    githubOpts:
+      opts.sourceType === OptSourceType.Github
+        ? {
+            githubApiUrl: opts.githubApiUrl!,
+            githubRepository: opts.githubRepository!,
+            githubBranch: opts.githubBranch!,
+            githubToken: opts.githubToken,
+            customDirectory: opts.ordDirectory,
+          }
+        : undefined,
+    ordDirectory: opts.sourceType === OptSourceType.Local ? opts.ordDirectory : undefined,
+  });
 
-    const ordDocuments = OrdDocumentProcessor.processLocalDocuments(localContext, ordConfig, opts.ordDirectory);
-    const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(Object.values(ordDocuments));
-
-    const ordConfigGetter = createOrdConfigGetter({
-      authMethods: opts.authentication.methods,
-      sourceType: OptSourceType.Local,
-      ordConfig,
-      baseUrl,
-    });
-
-    const localRouter = new LocalRouter({
-      authMethods: opts.authentication.methods,
-      baseUrl,
-      ordDirectory: opts.ordDirectory,
-      ordDocuments,
-      ordConfig: ordConfigGetter,
-      fqnDocumentMap,
-      documentsSubDirectory: opts.ordDocumentsSubDirectory,
-    });
-
-    await localRouter.register(server);
-
-    OrdDocumentProcessor.registerLocalUpdateHandler(localContext, ordConfig, opts.ordDirectory, (ordDocuments) => {
-      const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(Object.values(ordDocuments));
-
-      localRouter.updateConfig({
-        authMethods: opts.authentication.methods,
-        baseUrl,
-        ordDirectory: opts.ordDirectory,
-        ordDocuments,
-        ordConfig: ordConfigGetter,
-        fqnDocumentMap,
-        documentsSubDirectory: opts.ordDocumentsSubDirectory,
-      });
-    });
-  } else if (opts.sourceType === OptSourceType.Github) {
-    const githubOpts: GithubOpts = {
-      githubApiUrl: opts.githubApiUrl!,
-      githubRepository: opts.githubRepository!,
-      githubBranch: opts.githubBranch!,
-      githubToken: opts.githubToken,
-      customDirectory: opts.ordDirectory,
-    };
-
-    log.info("Loading ORD documents from GitHub");
-
-    const ordConfigGetter = createOrdConfigGetter({
-      authMethods: opts.authentication.methods,
-      sourceType: OptSourceType.Github,
-      ordSubDirectory: opts.ordDocumentsSubDirectory,
-      githubOpts,
-      baseUrl,
-    });
-
-    const { fqnDocumentMap } = await OrdDocumentProcessor.preprocessGithubDocuments(
-      githubOpts,
-      baseUrl,
-      opts.authentication.methods,
-      opts.ordDocumentsSubDirectory,
-    );
-
-    const githubRouter = new GithubRouter({
-      ...githubOpts,
-      authMethods: opts.authentication.methods,
-      baseUrl,
-      fqnDocumentMap,
-      ordConfig: ordConfigGetter,
-      documentsSubDirectory: opts.ordDocumentsSubDirectory,
-    });
-
-    await githubRouter.register(server);
-  }
+  router.register(server);
 }
 
 async function startServer(server: FastifyInstanceType, opts: ProviderServerOptions): Promise<ShutdownFunction> {
@@ -168,9 +109,9 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     });
 
     server.log.info(`Server started on port ${port}`);
-    server.log.info(`(Local Server) ORD entry-point available: ${serverEndpoint}${WELL_KNOWN_ENDPOINT}`);
+    server.log.info(`(Local Server) ORD entry-point available: ${serverEndpoint}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
     if (opts.baseUrl) {
-      server.log.info(`(Base URL) ORD entry-point available: ${opts.baseUrl}${WELL_KNOWN_ENDPOINT}`);
+      server.log.info(`(Base URL) ORD entry-point available: ${opts.baseUrl}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
     }
 
     // Return the shutdown function

@@ -1,5 +1,5 @@
 import { getOrdDocumentPath, getEncodedFilePath } from "../documentUrl.js";
-import { ORD_SERVER_PREFIX_PATH } from "../../constant.js";
+import { PATH_CONSTANTS } from "../../constant.js";
 
 describe("Document URL Utilities", () => {
   describe("getEncodedFilePath", () => {
@@ -56,16 +56,16 @@ describe("Document URL Utilities", () => {
 
       const result = getOrdDocumentPath(rootPath, file);
 
-      expect(result).toBe(`${ORD_SERVER_PREFIX_PATH}/ord_documents/document-1`);
+      expect(result).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/ord_documents/document-1`);
     });
 
-    it("should correctly prepend the ORD_SERVER_PREFIX_PATH", () => {
+    it("should correctly prepend the server prefix path", () => {
       const rootPath = "environments/eu10/stage-canary/defaults";
       const file = "environments/eu10/stage-canary/defaults/document-1.json";
 
       const result = getOrdDocumentPath(rootPath, file);
 
-      expect(result).toBe(`${ORD_SERVER_PREFIX_PATH}/document-1`);
+      expect(result).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/document-1`);
       expect(result).toContain("/ord/v1");
     });
 
@@ -75,7 +75,9 @@ describe("Document URL Utilities", () => {
 
       const result = getOrdDocumentPath(rootPath, file);
 
-      expect(result).toBe(`${ORD_SERVER_PREFIX_PATH}/ord_documents/document%20with%20spaces%20%26%20special%20chars`);
+      expect(result).toBe(
+        `${PATH_CONSTANTS.SERVER_PREFIX}/ord_documents/document%20with%20spaces%20%26%20special%20chars`,
+      );
     });
 
     it("should handle nested directories", () => {
@@ -84,7 +86,7 @@ describe("Document URL Utilities", () => {
 
       const result = getOrdDocumentPath(rootPath, file);
 
-      expect(result).toBe(`${ORD_SERVER_PREFIX_PATH}/defaults/ord_documents/nested/document-1`);
+      expect(result).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/defaults/ord_documents/nested/document-1`);
     });
 
     it("should handle examples directory structure", () => {
@@ -93,7 +95,7 @@ describe("Document URL Utilities", () => {
 
       const result = getOrdDocumentPath(rootPath, file);
 
-      expect(result).toBe(`${ORD_SERVER_PREFIX_PATH}/documents/document-1`);
+      expect(result).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/documents/document-1`);
     });
   });
 });

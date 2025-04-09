@@ -1,7 +1,7 @@
 import { fastifyAuth } from "@fastify/auth";
 import { fastifyBasicAuth } from "@fastify/basic-auth";
 import { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from "fastify";
-import { WELL_KNOWN_ENDPOINT } from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
 import { createBasicAuthValidator } from "src/middleware/basicAuthValidation.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
@@ -33,7 +33,7 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
     server.addHook(
       "onRequest",
       function (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction): void {
-        if (request.url.startsWith(WELL_KNOWN_ENDPOINT)) {
+        if (request.url.startsWith(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT)) {
           done();
         } else {
           // @ts-expect-error request type matching
