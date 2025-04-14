@@ -33,7 +33,10 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
     server.addHook(
       "onRequest",
       function (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction): void {
-        if (request.url.startsWith(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT)) {
+        if (
+          request.url.startsWith(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT) ||
+          request.url.startsWith(PATH_CONSTANTS.VERSION_ENDPOINT)
+        ) {
           done();
         } else {
           // @ts-expect-error request type matching

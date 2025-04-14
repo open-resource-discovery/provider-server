@@ -297,6 +297,20 @@ cf push
 
 </details>
 
+##### Re-deploy CF app
+
+```bash
+
+# 1. Login to Cloud Foundry
+cf login -a <api-url> -o <org> -s <space>
+
+# 2. Push the updated app without starting it
+cf push <your-app-name> \
+--no-manifest \
+--docker-image "ghcr.io/open-resource-discovery/provider-server:latest" \
+--docker-username <docker-username>
+```
+
 ## GitHub Token Permissions
 
 When using the GitHub source type (`-s github`), you need to provide a GitHub token with appropriate permissions. Both fine-grained personal access tokens (PATs) and classic tokens are supported.
