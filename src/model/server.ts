@@ -3,6 +3,7 @@ import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath } from "src/util/pathUtils.js";
 import { config } from "dotenv";
+
 config();
 
 export interface ProviderServerOptions {
@@ -42,14 +43,16 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
 
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
+  const documentsSubDirectory = options.documentsSubdirectory.replace(/^\//, "").replace(/\/$/, "");
+
   return {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
-    ordDocumentsSubDirectory: options.documentsSubdirectory || "documents",
+    ordDocumentsSubDirectory: documentsSubDirectory,
     baseUrl: updateBaseUrl(options.baseUrl),
-    host: options.host,
+    host: options.host?.replace(/\/$/, ""),
     port: options.port ? parseInt(options.port) : undefined,
     sourceType: options.sourceType,
-    githubApiUrl: options.githubApiUrl || process.env.GITHUB_API_URL,
+    githubApiUrl: (options.githubApiUrl || process.env.GITHUB_API_URL)?.replace(/\/$/, ""),
     githubRepository: options.githubRepository || process.env.GITHUB_REPOSITORY,
     githubBranch: options.githubBranch || process.env.GITHUB_BRANCH,
     githubToken: options.githubToken || process.env.GITHUB_TOKEN,

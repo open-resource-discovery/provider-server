@@ -21,17 +21,23 @@ export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["b
 interface BasicAuthUsers {
   [key: string]: string;
 }
+
 export async function validateAndParseOptions(options: CommandLineOptions): Promise<ProviderServerOptions> {
   const errors: string[] = [];
 
-  // Validate source type specific options
-  await validateSourceTypeOptions(options, errors);
-
-  // Validate authentication options
-  await validateAuthOptions(options.auth, errors);
-
-  // Validate baseUrl
   validateBaseUrlOption(options, errors);
+
+  validateAuthOptions(options.auth, errors);
+
+  validateSourceTypeOptionsOffline(options, errors);
+
+  if (errors.length > 0) {
+    throw ValidationError.fromErrors(errors);
+  }
+
+  if (options.sourceType === OptSourceType.Github) {
+    await validateSourceTypeOptionsOnline(options, errors);
+  }
 
   if (errors.length > 0) {
     throw ValidationError.fromErrors(errors);
@@ -48,96 +54,6 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
 
   if (!ordBaseUrlPattern.test(options.baseUrl)) {
     errors.push(`Detected invalid baseUrl: ${options.baseUrl}`);
-  }
-}
-
-async function validateGithubDirectoryContents(
-  path: string,
-  githubInstance: GitHubInstance,
-  githubToken: string,
-): Promise<void> {
-  const files = (await getGithubDirectoryContents(githubInstance, path, githubToken))
-    .filter((item) => item.type === "file")
-    .map((item) => item.path);
-
-  // Check if there is at least one valid document
-  let hasValidOrdDocument = false;
-
-  for (const file of files.filter((file) => file.endsWith(".json"))) {
-    const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, file, githubToken);
-
-    try {
-      const fileContents = Buffer.from(response.content, "base64").toString("utf-8");
-      const parsedFile = JSON.parse(fileContents);
-      validateOrdDocument(parsedFile as ORDDocument);
-      hasValidOrdDocument = true;
-    } catch {
-      log.warn(`Invalid ORD document found in ${file}`);
-    }
-  }
-
-  if (!hasValidOrdDocument) throw GitHubDirectoryInvalidError.forPath(path);
-}
-
-// validateSourceTypeOptions will validate given options and perform a directory structure check.
-// In source type "github" it will also check the access.
-async function validateSourceTypeOptions(options: CommandLineOptions, errors: string[]): Promise<void> {
-  const missingParams: string[] = [];
-
-  const githubApiUrl = options.githubApiUrl || process.env.GITHUB_API_URL;
-  const githubRepository = options.githubRepository || process.env.GITHUB_REPOSITORY;
-  const githubBranch = options.githubBranch || process.env.GITHUB_BRANCH;
-  const githubToken = options.githubToken || process.env.GITHUB_TOKEN;
-
-  switch (options.sourceType) {
-    case OptSourceType.Local:
-      if (!options.directory) {
-        errors.push('--directory (-d) is required when --source-type is "local"');
-      } else {
-        // Check the provided local directory structure
-        try {
-          validateLocalDirectory(options.directory, options.documentsSubdirectory);
-        } catch (error: unknown) {
-          errors.push(error instanceof LocalDirectoryError ? error.message : String(error));
-        }
-      }
-      break;
-    case OptSourceType.Github:
-      if (!githubApiUrl) missingParams.push("--github-api-url");
-      if (!githubRepository) missingParams.push("--github-repository");
-      if (!githubBranch) missingParams.push("--github-branch");
-      if (!githubToken) missingParams.push("--github-token");
-
-      if (missingParams.length > 0) {
-        errors.push(`Detected missing parameters for github source type: ${missingParams.join(", ")}`);
-      } else {
-        // Perform GitHub access and directory structure check
-        const pathSegments = normalizePath(options.directory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
-        const documentsSubDirectory = options.documentsSubdirectory || "documents";
-        try {
-          await validateGithubDirectoryContents(
-            joinFilePaths(pathSegments, documentsSubDirectory),
-            {
-              host: githubApiUrl!,
-              repo: githubRepository!,
-              branch: githubBranch!,
-            },
-            githubToken!,
-          );
-        } catch (error: unknown) {
-          let message: string;
-          if (error instanceof BackendError) {
-            message = error.message;
-          } else {
-            message = `An unexpected error occurred: ${error}`;
-          }
-
-          errors.push(message);
-        }
-      }
-      break;
-    default:
-      errors.push(`Invalid source type. Allowed options: ${Object.values(OptSourceType).join(", ")}`);
   }
 }
 
@@ -177,14 +93,34 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
   }
 }
 
-function isValidBasicAuthUsers(value: unknown): value is BasicAuthUsers {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
+function validateSourceTypeOptionsOffline(options: CommandLineOptions, errors: string[]): void {
+  const missingParams: string[] = [];
 
-  return Object.entries(value).every(
-    ([key, value]) => typeof key === "string" && typeof value === "string" && isBcryptHash(value),
-  );
+  switch (options.sourceType) {
+    case OptSourceType.Local:
+      if (!options.directory) {
+        errors.push('--directory (-d) is required when --source-type is "local"');
+      } else {
+        try {
+          validateLocalDirectory(options.directory, options.documentsSubdirectory);
+        } catch (error: unknown) {
+          errors.push(error instanceof LocalDirectoryError ? error.message : String(error));
+        }
+      }
+      break;
+    case OptSourceType.Github:
+      if (!options.githubApiUrl && !process.env.GITHUB_API_URL) missingParams.push("--github-api-url");
+      if (!options.githubRepository && !process.env.GITHUB_REPOSITORY) missingParams.push("--github-repository");
+      if (!options.githubBranch && !process.env.GITHUB_BRANCH) missingParams.push("--github-branch");
+      if (!options.githubToken && !process.env.GITHUB_TOKEN) missingParams.push("--github-token");
+
+      if (missingParams.length > 0) {
+        errors.push(`Detected missing parameters for github source type: ${missingParams.join(", ")}`);
+      }
+      break;
+    default:
+      errors.push(`Invalid source type. Allowed options: ${Object.values(OptSourceType).join(", ")}`);
+  }
 }
 
 function validateLocalDirectory(directoryPath: string, documentsSubDirectory: string = "documents"): void {
@@ -228,7 +164,11 @@ function validateLocalDirectory(directoryPath: string, documentsSubDirectory: st
     const files = fs.readdirSync(documentsPath, { recursive: true }) as string[];
     const hasFiles = files.some((file) => {
       const filePath = joinFilePaths(documentsPath, file);
-      return fs.statSync(filePath).isFile();
+      try {
+        return fs.statSync(filePath).isFile();
+      } catch {
+        return false;
+      }
     });
 
     if (!hasFiles) {
@@ -240,29 +180,131 @@ function validateLocalDirectory(directoryPath: string, documentsSubDirectory: st
 
     let hasValidOrdDocument = false;
 
-    // Check if the openResourceDiscovery property is present in all files
+    // Check if at least one valid ORD document exists
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
       const filePath = joinFilePaths(documentsPath, file);
-      const contents = fs.readFileSync(filePath).toString();
-
-      const document = JSON.parse(contents) as ORDDocument;
-
       try {
+        if (!fs.statSync(filePath).isFile()) continue;
+
+        const contents = fs.readFileSync(filePath).toString();
+        const document = JSON.parse(contents) as ORDDocument;
         validateOrdDocument(document);
         hasValidOrdDocument = true;
-      } catch {
-        log.warn(`${filePath} is not valid`);
+        break;
+      } catch (err) {
+        log.warn(`Validation failed for ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
     if (!hasValidOrdDocument) {
-      throw LocalDirectoryError.forPath(directoryPath, `No valid ORD document found in: ${directoryPath}`);
+      throw LocalDirectoryError.forPath(
+        directoryPath,
+        `No valid ORD document found in '${documentsSubDirectory}' folder: ${documentsPath}`,
+      );
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log.error(
+      `Local directory validation failed for ${directoryPath}: ${errorMessage}`,
+      error instanceof Error ? error : undefined,
+    );
     if (error instanceof LocalDirectoryError) {
       throw error;
     }
-    throw LocalDirectoryError.forPath(directoryPath, `Unexpected error: ${String(error)}`);
+    throw LocalDirectoryError.forPath(directoryPath, `Unexpected error during validation: ${errorMessage}`);
+  }
+}
+
+function isValidBasicAuthUsers(value: unknown): value is BasicAuthUsers {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.entries(value).every(
+    ([key, val]) => typeof key === "string" && typeof val === "string" && isBcryptHash(val),
+  );
+}
+
+async function validateSourceTypeOptionsOnline(options: CommandLineOptions, errors: string[]): Promise<void> {
+  // Re-retrieve potentially from env vars if not passed via CLI
+  const githubApiUrl = options.githubApiUrl || process.env.GITHUB_API_URL!;
+  const githubRepository = options.githubRepository || process.env.GITHUB_REPOSITORY!;
+  const githubBranch = options.githubBranch || process.env.GITHUB_BRANCH!;
+  const githubToken = options.githubToken || process.env.GITHUB_TOKEN!;
+
+  // Checks should have already ensured these are non-null
+  // Perform GitHub access and directory structure check
+  const pathSegments = normalizePath(options.directory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
+  const documentsSubDirectory = options.documentsSubdirectory || "documents";
+  const fullGitHubPath = joinFilePaths(pathSegments, documentsSubDirectory);
+
+  try {
+    log.info(`Checking GitHub path: ${githubApiUrl}/${githubRepository}/tree/${githubBranch}/${fullGitHubPath}`);
+    await validateGithubDirectoryContents(
+      fullGitHubPath,
+      {
+        host: githubApiUrl,
+        repo: githubRepository,
+        branch: githubBranch,
+      },
+      githubToken,
+    );
+    log.info(`GitHub path validation successful for: ${fullGitHubPath}`);
+  } catch (error: unknown) {
+    let message: string;
+    if (error instanceof BackendError) {
+      message = error.message;
+    } else if (error instanceof Error) {
+      message = `An unexpected error occurred during GitHub validation: ${error.message}`;
+    } else {
+      message = `An unexpected error occurred during GitHub validation: ${String(error)}`;
+    }
+    errors.push(message);
+  }
+}
+
+async function validateGithubDirectoryContents(
+  githubPath: string,
+  githubInstance: GitHubInstance,
+  githubToken: string,
+): Promise<void> {
+  log.debug(`Validating GitHub directory contents for path: ${githubPath}...`);
+  const directoryItems = await getGithubDirectoryContents(githubInstance, githubPath, githubToken);
+  const filesInDir = directoryItems.filter((item) => item.type === "file").map((item) => item.path);
+
+  log.debug(`Found ${filesInDir.length} file(s) in GitHub directory.`);
+
+  // Check if there is at least one valid JSON document
+  let hasValidOrdDocument = false;
+  const jsonFiles = filesInDir.filter((file) => file.endsWith(".json"));
+
+  if (jsonFiles.length === 0) {
+    const errMsg = `No JSON files found in directory: ${githubPath}`;
+    log.warn(errMsg);
+    throw GitHubDirectoryInvalidError.forPath(githubPath, new Error(errMsg));
+  }
+
+  log.debug(`Found ${jsonFiles.length} JSON file(s). Validating ORD content...`);
+
+  for (const filePath of jsonFiles) {
+    log.debug(`Fetching content for GitHub file: ${filePath}`);
+    try {
+      const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, filePath, githubToken);
+      const fileContents = Buffer.from(response.content, "base64").toString("utf-8");
+      const parsedFile = JSON.parse(fileContents);
+
+      log.debug(`Validating ORD document structure for: ${filePath}`);
+      validateOrdDocument(parsedFile as ORDDocument);
+      hasValidOrdDocument = true;
+      break;
+    } catch (err) {
+      log.warn(`Validation failed for GitHub file ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  if (!hasValidOrdDocument) {
+    const errMsg = `No valid ORD documents found in directory: ${githubPath}`;
+    throw GitHubDirectoryInvalidError.forPath(githubPath, new Error(errMsg));
   }
 }
