@@ -9,7 +9,7 @@ import { BackendError } from "../model/error/BackendError.js";
 import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
-import { GitHubInstance } from "../model/github.js"; // Removed unused GitHubFileResponse
+import { GitHubInstance } from "../model/github.js";
 import { fetchGitHubFile, getGithubDirectoryContents } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
