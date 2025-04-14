@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.8.1] - 2025-04-14
+
+### Changed
+
+- Improved GitHub file fetching, by adding a fallback to the `blobs` API, when file content is too large
+
 ## [0.8.0] - 2025-04-08
 
 ### Added
