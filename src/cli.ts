@@ -69,6 +69,9 @@ try {
   });
 } catch (error) {
   log.error(String(error));
-  showCleanHelp(program);
+  // Only show help if not in production mode
+  if (process.env.NODE_ENV !== "production") {
+    showCleanHelp(program);
+  }
   process.exit(1);
 }

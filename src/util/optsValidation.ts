@@ -9,7 +9,7 @@ import { BackendError } from "../model/error/BackendError.js";
 import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
-import { GitHubFileResponse, GitHubInstance } from "../model/github.js";
+import { GitHubInstance } from "../model/github.js";
 import { fetchGitHubFile, getGithubDirectoryContents } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
@@ -236,8 +236,7 @@ async function validateSourceTypeOptionsOnline(options: CommandLineOptions, erro
   // Checks should have already ensured these are non-null
   // Perform GitHub access and directory structure check
   const pathSegments = normalizePath(options.directory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
-  const documentsSubDirectory = options.documentsSubdirectory || "documents";
-  const fullGitHubPath = joinFilePaths(pathSegments, documentsSubDirectory);
+  const fullGitHubPath = joinFilePaths(pathSegments, options.documentsSubdirectory);
 
   try {
     log.info(`Checking GitHub path: ${githubApiUrl}/${githubRepository}/tree/${githubBranch}/${fullGitHubPath}`);
@@ -290,8 +289,7 @@ async function validateGithubDirectoryContents(
   for (const filePath of jsonFiles) {
     log.debug(`Fetching content for GitHub file: ${filePath}`);
     try {
-      const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, filePath, githubToken);
-      const fileContents = Buffer.from(response.content, "base64").toString("utf-8");
+      const fileContents = await fetchGitHubFile(githubInstance, filePath, githubToken);
       const parsedFile = JSON.parse(fileContents);
 
       log.debug(`Validating ORD document structure for: ${filePath}`);

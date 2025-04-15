@@ -1,6 +1,6 @@
 import { ORDDocument } from "@open-resource-discovery/specification";
 import { DocumentRepository } from "./interfaces/documentRepository.js";
-import { GithubOpts, GitHubFileResponse, GitHubInstance } from "../model/github.js";
+import { GithubOpts, GitHubInstance } from "../model/github.js";
 import { fetchGitHubFile, getDirectoryHash, getGithubDirectoryContents } from "../util/github.js";
 import { normalizePath, joinFilePaths } from "../util/pathUtils.js";
 import { PATH_CONSTANTS } from "../constant.js";
@@ -34,8 +34,7 @@ export class GithubDocumentRepository implements DocumentRepository {
   public async getDocument(relativePath: string): Promise<ORDDocument | null> {
     const githubPath = this.getFullGithubPath(relativePath);
     try {
-      const response = await fetchGitHubFile<GitHubFileResponse>(this.githubInstance, githubPath, this.githubToken);
-      const content = Buffer.from(response.content, "base64").toString("utf-8");
+      const content = await fetchGitHubFile(this.githubInstance, githubPath, this.githubToken);
       const jsonData = JSON.parse(content);
 
       // Basic validation to ensure it's an ORD document
@@ -119,8 +118,7 @@ export class GithubDocumentRepository implements DocumentRepository {
   public async getFileContent(relativePath: string): Promise<string | Buffer | null> {
     const githubPath = this.getFullGithubPath(relativePath);
     try {
-      const response = await fetchGitHubFile<GitHubFileResponse>(this.githubInstance, githubPath, this.githubToken);
-      return Buffer.from(response.content, "base64").toString("utf-8");
+      return await fetchGitHubFile(this.githubInstance, githubPath, this.githubToken);
     } catch (error) {
       log.error(`Error fetching file content from GitHub path ${githubPath}: ${error}`);
       return null;
