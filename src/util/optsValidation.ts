@@ -3,8 +3,7 @@ import fs from "fs";
 import path from "path";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { buildProviderServerOptions, ProviderServerOptions } from "src/model/server.js";
-import { PATH_CONSTANTS } from "../constant.js";
-import { joinFilePaths, normalizePath } from "../util/pathUtils.js";
+import { joinFilePaths } from "../util/pathUtils.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
@@ -35,15 +34,18 @@ export async function validateAndParseOptions(options: CommandLineOptions): Prom
     throw ValidationError.fromErrors(errors);
   }
 
-  if (options.sourceType === OptSourceType.Github) {
-    await validateSourceTypeOptionsOnline(options, errors);
+  const parsedOpts = buildProviderServerOptions(options);
+
+  if (parsedOpts.sourceType === OptSourceType.Github) {
+    await validateSourceTypeOptionsOnline(parsedOpts, errors);
   }
 
+  // Check for errors after online validation
   if (errors.length > 0) {
     throw ValidationError.fromErrors(errors);
   }
 
-  return buildProviderServerOptions(options);
+  return parsedOpts;
 }
 
 function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): void {
@@ -109,10 +111,10 @@ function validateSourceTypeOptionsOffline(options: CommandLineOptions, errors: s
       }
       break;
     case OptSourceType.Github:
-      if (!options.githubApiUrl && !process.env.GITHUB_API_URL) missingParams.push("--github-api-url");
-      if (!options.githubRepository && !process.env.GITHUB_REPOSITORY) missingParams.push("--github-repository");
-      if (!options.githubBranch && !process.env.GITHUB_BRANCH) missingParams.push("--github-branch");
-      if (!options.githubToken && !process.env.GITHUB_TOKEN) missingParams.push("--github-token");
+      if (!options.githubApiUrl) missingParams.push("--github-api-url");
+      if (!options.githubRepository) missingParams.push("--github-repository");
+      if (!options.githubBranch) missingParams.push("--github-branch");
+      if (!options.githubToken) missingParams.push("--github-token");
 
       if (missingParams.length > 0) {
         errors.push(`Detected missing parameters for github source type: ${missingParams.join(", ")}`);
@@ -226,17 +228,25 @@ function isValidBasicAuthUsers(value: unknown): value is BasicAuthUsers {
   );
 }
 
-async function validateSourceTypeOptionsOnline(options: CommandLineOptions, errors: string[]): Promise<void> {
-  // Re-retrieve potentially from env vars if not passed via CLI
-  const githubApiUrl = options.githubApiUrl || process.env.GITHUB_API_URL!;
-  const githubRepository = options.githubRepository || process.env.GITHUB_REPOSITORY!;
-  const githubBranch = options.githubBranch || process.env.GITHUB_BRANCH!;
-  const githubToken = options.githubToken || process.env.GITHUB_TOKEN!;
+export function trimLeadingAndTrailingSlashes(str: string | undefined): string | undefined {
+  if (str === undefined) return undefined;
+  return str.replace(/^\/|\/$/g, "");
+}
+
+export function trimTrailingSlash(str: string | undefined): string | undefined {
+  if (str === undefined) return undefined;
+  return str.replace(/\/$/, "");
+}
+
+async function validateSourceTypeOptionsOnline(options: ProviderServerOptions, errors: string[]): Promise<void> {
+  const githubApiUrl = options.githubApiUrl!;
+  const githubRepository = options.githubRepository!;
+  const githubBranch = options.githubBranch!;
+  const githubToken = options.githubToken!;
 
   // Checks should have already ensured these are non-null
   // Perform GitHub access and directory structure check
-  const pathSegments = normalizePath(options.directory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
-  const fullGitHubPath = joinFilePaths(pathSegments, options.documentsSubdirectory);
+  const fullGitHubPath = joinFilePaths(options.ordDirectory, options.ordDocumentsSubDirectory);
 
   try {
     log.info(`Checking GitHub path: ${githubApiUrl}/${githubRepository}/tree/${githubBranch}/${fullGitHubPath}`);
