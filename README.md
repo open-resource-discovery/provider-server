@@ -297,17 +297,17 @@ cf push
 
 </details>
 
-##### Re-deploy CF app
+##### Re-deploy a CF app
 
 ```bash
 
 # 1. Login to Cloud Foundry
 cf login -a <api-url> -o <org> -s <space>
 
-# 2. Push the updated app without starting it
+# 2. Push the updated app
 cf push <your-app-name> \
 --no-manifest \
---docker-image "ghcr.io/open-resource-discovery/provider-server:latest" \
+--docker-image "ghcr.io/open-resource-discovery/provider-server:<your-new-version>" \
 --docker-username <docker-username>
 ```
 
