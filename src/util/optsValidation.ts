@@ -9,7 +9,7 @@ import { BackendError } from "../model/error/BackendError.js";
 import { GitHubDirectoryInvalidError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
-import { GitHubFileResponse, GitHubInstance } from "../model/github.js";
+import { GitHubInstance } from "../model/github.js";
 import { fetchGitHubFile, getGithubDirectoryContents } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
@@ -64,10 +64,9 @@ async function validateGithubDirectoryContents(
   let hasValidOrdDocument = false;
 
   for (const file of files.filter((file) => file.endsWith(".json"))) {
-    const response = await fetchGitHubFile<GitHubFileResponse>(githubInstance, file, githubToken);
+    const fileContents = await fetchGitHubFile(githubInstance, file, githubToken);
 
     try {
-      const fileContents = Buffer.from(response.content, "base64").toString("utf-8");
       const parsedFile = JSON.parse(fileContents);
       validateOrdDocument(parsedFile as ORDDocument);
       hasValidOrdDocument = true;

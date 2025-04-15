@@ -137,7 +137,7 @@ describe("Options Validation", () => {
         ]),
       };
 
-      const mockResponseFile: Partial<Response> = {
+      const mockResponseFileMetadata: Partial<Response> = {
         ok: true,
         status: 200,
         statusText: "OK",
@@ -145,14 +145,17 @@ describe("Options Validation", () => {
           name: "test.json",
           path: "documents/test.json",
           type: "file",
+          sha: "dummySha123",
+          size: 123,
           content: Buffer.from(JSON.stringify({ openResourceDiscovery: {} })).toString("base64"),
+          encoding: "base64",
         }),
       };
 
       const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
       mockFetch
         .mockResolvedValueOnce(mockResponseDirectory as Response)
-        .mockResolvedValueOnce(mockResponseFile as Response);
+        .mockResolvedValueOnce(mockResponseFileMetadata as Response);
 
       const options = {
         sourceType: OptSourceType.Github,

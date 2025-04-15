@@ -7,6 +7,7 @@ import {
 } from "../model/error/GithubErrors.js";
 import { BackendError } from "../model/error/BackendError.js";
 import path from "path";
+import { Buffer } from "buffer";
 import { joinFilePaths, normalizePath } from "./pathUtils.js";
 
 export interface GitHubContentItem {
@@ -15,6 +16,8 @@ export interface GitHubContentItem {
   type: "file" | "dir";
   sha: string;
   size: number;
+  content?: string;
+  encoding?: string;
 }
 
 /**
@@ -39,22 +42,63 @@ function getGithubBranchUrl({ host, repo, branch }: GitHubInstance): string {
   return `${host}/repos/${repo}/contents?ref=${branch}`;
 }
 
-export async function fetchGitHubFile<T>(instance: GitHubInstance, filePath: string, token?: string): Promise<T> {
+/**
+ * Constructs the GitHub API URL for fetching a blob by SHA
+ * @param host GitHub API endpoint.
+ * @param repo GitHub repository. E.g., OWNER/REPO
+ * @param sha The SHA of the blob to fetch.
+ */
+function getGitHubBlobUrl({ host, repo }: GitHubInstance, sha: string): string {
+  return `${host}/repos/${repo}/git/blobs/${sha}`;
+}
+
+export async function fetchGitHubFile(instance: GitHubInstance, filePath: string, token?: string): Promise<string> {
   const githubToken = token || process.env.GITHUB_TOKEN;
   const fileUrl = getGitHubUrl(instance, filePath);
+  const headers: Record<string, string> = {};
+  if (githubToken) {
+    headers["Authorization"] = `Token ${githubToken}`;
+  }
 
   try {
-    const response = await fetch(
-      fileUrl,
-      githubToken
-        ? {
-            headers: { Authorization: `Token ${githubToken}` },
-          }
-        : {},
-    );
+    // 1. Fetch file metadata using Contents API
+    const metadataResponse = await fetch(fileUrl, { headers });
+    const metadata = (await validateGitHubResponse(metadataResponse, filePath, false)) as GitHubContentItem;
 
-    const data = await validateGitHubResponse(response, filePath, false);
-    return data as T;
+    // Ensure it's a file and has a SHA
+    if (metadata.type !== "file" || !metadata.sha) {
+      throw new GitHubAccessError("Invalid file metadata received", filePath, [
+        { code: "INVALID_METADATA", message: "Response is not a file or missing SHA" },
+      ]);
+    }
+
+    // If content is present and encoding is base64 (small file), decode and return
+    if (metadata.content && metadata.encoding === "base64") {
+      return Buffer.from(metadata.content, "base64").toString("utf-8");
+    }
+
+    // 2. Fetch blob content using Git Data API (Blobs) for large files or if content was missing
+    const blobUrl = getGitHubBlobUrl(instance, metadata.sha);
+    const blobResponse = await fetch(blobUrl, { headers });
+
+    if (!blobResponse.ok) {
+      throw GitHubAccessError.fromHttpError(blobResponse, filePath);
+    }
+
+    const blobData = (await blobResponse.json()) as {
+      content?: string;
+      encoding?: string;
+      sha?: string;
+      size?: number;
+    };
+
+    if (!blobData || typeof blobData.content !== "string" || blobData.encoding !== "base64") {
+      throw new GitHubAccessError("Invalid blob content received", filePath, [
+        { code: "INVALID_BLOB_CONTENT", message: "Blob response missing content or invalid encoding" },
+      ]);
+    }
+
+    return Buffer.from(blobData.content, "base64").toString("utf-8");
   } catch (error) {
     handleGitHubError(error, filePath, "fetch GitHub file");
   }
@@ -182,6 +226,12 @@ async function validateGitHubResponse(
     // Validate response type based on expectation
     if (expectDirectory) {
       if (!isDirectoryListing(data)) {
+        if (isFileResponse(data)) {
+          throw GitHubDirectoryNotFoundError.forPath(
+            path,
+            new Error(`Expected directory but received file: ${data.name}`),
+          );
+        }
         throw GitHubDirectoryNotFoundError.forPath(path, new Error("Response is not a directory listing"));
       }
     } else {
