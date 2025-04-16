@@ -4,6 +4,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.8.2] - 2025-04-16
+
+### Added
+
+- HTTP response headers now have a new entry: `x-provider-server-version`
+- New API endpoint `/api/v1/status`
+- Documentation for re-deployment on CF
+
+### Changed
+
+- Validation order of parameters / arguments / directories & files
+- Resilient URL (trailing slashes) checks
+
 ## [0.8.1] - 2025-04-14
 
 ### Changed
