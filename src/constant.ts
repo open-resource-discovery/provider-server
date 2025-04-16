@@ -8,7 +8,7 @@ export const PATH_CONSTANTS = {
   ORD_URL_PATH: "ord",
   ORD_VERSION: "v1",
   WELL_KNOWN_ENDPOINT: "/.well-known/open-resource-discovery",
-  VERSION_ENDPOINT: "/version",
+  STATUS_ENDPOINT: "/api/v1/status",
 
   // Derived paths
   SERVER_PREFIX: `/ord/v1`,

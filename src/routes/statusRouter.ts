@@ -18,13 +18,13 @@ export function getPackageVersion(): string {
 
 const version = getPackageVersion();
 
-function versionRouter(fastify: FastifyInstance, _opts: FastifyPluginOptions, done: (err?: Error) => void): void {
-  fastify.get("/version", (_request: FastifyRequest, _reply: FastifyReply) => {
+function statusRouter(fastify: FastifyInstance, _opts: FastifyPluginOptions, done: (err?: Error) => void): void {
+  fastify.get("/api/v1/status", (_request: FastifyRequest, _reply: FastifyReply) => {
     return { version };
   });
   done();
 }
 
-export default fp(versionRouter, {
-  name: "version-router",
+export default fp(statusRouter, {
+  name: "status-router",
 });

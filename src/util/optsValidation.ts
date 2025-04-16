@@ -13,6 +13,7 @@ import { fetchGitHubFile, getGithubDirectoryContents } from "./github.js";
 import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
 import { isBcryptHash } from "./passwordHash.js";
+import { getBaseUrl } from "./ordConfig.js";
 
 // @ts-expect-error baseUrl pattern selection
 export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
@@ -54,7 +55,9 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
     return;
   }
 
-  if (!ordBaseUrlPattern.test(options.baseUrl)) {
+  const baseUrlFixed = getBaseUrl(options.baseUrl);
+
+  if (!ordBaseUrlPattern.test(baseUrlFixed)) {
     errors.push(`Detected invalid baseUrl: ${options.baseUrl}`);
   }
 }

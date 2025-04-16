@@ -2,7 +2,7 @@ import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
 import fs from "node:fs";
 import path from "node:path";
-import versionRouter from "./routes/versionRouter.js";
+import statusRouter from "./routes/statusRouter.js";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
@@ -62,12 +62,12 @@ async function setupServer(server: FastifyInstanceType): Promise<void> {
   server.setErrorHandler(errorHandler);
   await server.register(fastifyETag);
 
-  // Register version router
-  await server.register(versionRouter);
+  // Register status router
+  await server.register(statusRouter);
 
   // Add version header to all responses
   server.addHook("onSend", (_request, reply, _, done) => {
-    reply.header("sap-provider-server-version", version);
+    reply.header("x-provider-server-version", version);
     done();
   });
 }

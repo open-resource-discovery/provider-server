@@ -4,7 +4,7 @@ import path from "path";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
-import { getPackageVersion } from "../routes/versionRouter.js";
+import { getPackageVersion } from "../routes/statusRouter.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
@@ -279,13 +279,13 @@ describe("Server Integration", () => {
     });
   });
 
-  describe("Version Endpoint", () => {
-    it("should return the correct version and status", async () => {
+  describe("Status Endpoint", () => {
+    it("should return the correct status object with version", async () => {
       const packageVersion = getPackageVersion();
-      const response = await fetch(`${SERVER_URL}/version`);
+      const response = await fetch(`${SERVER_URL}/api/v1/status`);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get("sap-provider-server-version")).toBe(packageVersion);
+      expect(response.headers.get("x-provider-server-version")).toBe(packageVersion);
       const data = await response.json();
       expect(data).toEqual({ version: packageVersion });
     });
