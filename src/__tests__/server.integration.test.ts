@@ -285,7 +285,7 @@ describe("Server Integration", () => {
       const response = await fetch(`${SERVER_URL}/api/v1/status`);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get("x-provider-server-version")).toBe(packageVersion);
+      expect(response.headers.get("x-ord-provider-server-version")).toBe(packageVersion);
       const data = await response.json();
       expect(data).toEqual({ version: packageVersion });
     });

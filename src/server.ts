@@ -67,7 +67,7 @@ async function setupServer(server: FastifyInstanceType): Promise<void> {
 
   // Add version header to all responses
   server.addHook("onSend", (_request, reply, _, done) => {
-    reply.header("x-provider-server-version", version);
+    reply.header("x-ord-provider-server-version", version);
     done();
   });
 }

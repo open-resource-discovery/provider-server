@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- HTTP response headers now have a new entry: `x-provider-server-version`
+- HTTP response headers now have a new entry: `x-ord-provider-server-version`
 - New API endpoint `/api/v1/status`
 - Documentation for re-deployment on CF
 
