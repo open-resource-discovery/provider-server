@@ -47,6 +47,22 @@ jest.mock("fs", () => ({
 
 jest.spyOn(global, "RegExp").mockImplementation(() => ordBaseUrlPattern);
 
+const mockStatSyncImplementation = (...args: unknown[]): { isDirectory?: () => boolean; isFile?: () => boolean } => {
+  const filePath = args[0] as string;
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  if (normalizedPath.endsWith("test-dir")) {
+    return { isDirectory: (): boolean => true };
+  }
+  if (normalizedPath.endsWith("test-dir/documents")) {
+    return { isDirectory: (): boolean => true };
+  }
+  if (normalizedPath.endsWith("test-dir/documents/file1.json")) {
+    return { isFile: (): boolean => true };
+  }
+
+  throw new Error(`fs.statSync called with unexpected path: ${filePath}`);
+};
+
 describe("Options Validation", () => {
   let validateAndParseOptions: typeof originalValidateAndParseOptions;
 
@@ -71,13 +87,8 @@ describe("Options Validation", () => {
   const baseUrl = "http://127.0.0.1:8080";
   describe("SourceType", () => {
     it("should validate local source type with required directory", async () => {
-      (fs.statSync as jest.Mock)
-        .mockImplementationOnce(() => ({ isDirectory: (): boolean => true })) // Main directory
-        .mockImplementationOnce(() => ({ isDirectory: (): boolean => true })) // Documents directory
-        .mockImplementationOnce(() => ({ isFile: (): boolean => true }));
-
+      (fs.statSync as jest.Mock).mockImplementation(mockStatSyncImplementation);
       (fs.readdirSync as jest.Mock).mockReturnValue(["file1.json"]);
-
       (fs.readFileSync as jest.Mock).mockReturnValue('{"openResourceDiscovery": {}}');
 
       const options = {
@@ -85,16 +96,13 @@ describe("Options Validation", () => {
         directory: "./test-dir",
         auth: [OptAuthMethod.Open],
         baseUrl,
+        documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options)).resolves.toBeDefined();
     });
 
     it("should throw an error for a json file without openResourceDiscoveryProperty", async () => {
-      (fs.statSync as jest.Mock)
-        .mockImplementationOnce(() => ({ isDirectory: (): boolean => true })) // Main directory
-        .mockImplementationOnce(() => ({ isDirectory: (): boolean => true })) // Documents directory
-        .mockImplementationOnce(() => ({ isFile: (): boolean => true }));
-
+      (fs.statSync as jest.Mock).mockImplementation(mockStatSyncImplementation);
       (fs.readdirSync as jest.Mock).mockReturnValue(["file1.json"]);
 
       const options = {
@@ -102,6 +110,7 @@ describe("Options Validation", () => {
         directory: "./test-dir",
         auth: [OptAuthMethod.Open],
         baseUrl,
+        documentsSubdirectory: "documents",
       };
 
       (fs.readFileSync as jest.Mock)
@@ -119,6 +128,7 @@ describe("Options Validation", () => {
       const options = {
         sourceType: OptSourceType.Local,
         auth: [OptAuthMethod.Open],
+        documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options)).rejects.toThrow();
     });
@@ -165,6 +175,7 @@ describe("Options Validation", () => {
         githubBranch: "main",
         githubToken: "token",
         baseUrl,
+        documentsSubdirectory: "documents",
       };
 
       await expect(validateAndParseOptions(options)).resolves.toBeDefined();
@@ -185,6 +196,7 @@ describe("Options Validation", () => {
         githubApiUrl: "https://api.github.com",
         githubRepository: "owner/repo",
         githubBranch: "main",
+        documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options)).rejects.toThrow();
     });
@@ -207,6 +219,7 @@ describe("Options Validation", () => {
         githubRepository: "owner/repo",
         githubBranch: "main",
         githubToken: "token",
+        documentsSubdirectory: "documents",
       };
 
       await expect(validateAndParseOptions(options)).rejects.toThrow();
@@ -224,6 +237,7 @@ describe("Options Validation", () => {
         sourceType: OptSourceType.Local,
         directory: "./test-dir",
         auth: [OptAuthMethod.Open, OptAuthMethod.Basic],
+        documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options)).rejects.toThrow();
     });
@@ -233,6 +247,7 @@ describe("Options Validation", () => {
         sourceType: OptSourceType.Local,
         directory: "./test-dir",
         auth: [OptAuthMethod.Basic],
+        documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options)).rejects.toThrow();
     });
@@ -244,6 +259,7 @@ describe("Options Validation", () => {
         sourceType: OptSourceType.Local,
         directory: "./test-dir",
         auth: [OptAuthMethod.Open],
+        documentsSubdirectory: "documents",
         baseUrl: "test:8080",
       };
       await expect(validateAndParseOptions(options)).rejects.toThrow();
@@ -251,19 +267,15 @@ describe("Options Validation", () => {
       const options2 = {
         ...options,
         baseUrl: "http://localhost",
+        documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options2)).rejects.toThrow();
     });
 
     it("should pass with valid baseUrl", async (): Promise<void> => {
       const mockValidFileSystem = (): void => {
-        (fs.statSync as jest.Mock)
-          .mockImplementationOnce(() => ({ isDirectory: (): boolean => true })) // Main directory
-          .mockImplementationOnce(() => ({ isDirectory: (): boolean => true })) // Documents directory
-          .mockImplementationOnce(() => ({ isFile: (): boolean => true })); // File check
-
+        (fs.statSync as jest.Mock).mockImplementation(mockStatSyncImplementation);
         (fs.readdirSync as jest.Mock).mockReturnValue(["file1.json"]);
-
         (fs.readFileSync as jest.Mock)
           .mockReset()
           .mockImplementation(() => JSON.stringify({ openResourceDiscovery: {} }));
@@ -273,6 +285,7 @@ describe("Options Validation", () => {
         sourceType: OptSourceType.Local,
         directory: "./test-dir",
         auth: [OptAuthMethod.Open],
+        documentsSubdirectory: "documents",
       };
 
       const validBaseUrls = ["http://127.0.0.1:8080", "https://example.com/ord/v1"];

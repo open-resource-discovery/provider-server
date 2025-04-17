@@ -1,5 +1,8 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
+import fs from "node:fs";
+import path from "node:path";
+import statusRouter from "./routes/statusRouter.js";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
@@ -9,6 +12,21 @@ import { type ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
 import { RouterFactory } from "./factories/routerFactory.js";
 import { FqnDocumentMap } from "./util/fqnHelpers.js";
+
+// Helper to get package.json version
+function getPackageVersion(): string {
+  try {
+    const packageJsonPath = path.resolve(process.cwd(), "package.json");
+    const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
+    const packageJson = JSON.parse(packageJsonContent);
+    return packageJson.version || "unknown";
+  } catch (error) {
+    log.error("Failed to read package.json version:", error);
+    return "unknown";
+  }
+}
+
+const version = getPackageVersion();
 
 export { ProviderServerOptions }; // Re-export the type
 
@@ -43,6 +61,15 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 async function setupServer(server: FastifyInstanceType): Promise<void> {
   server.setErrorHandler(errorHandler);
   await server.register(fastifyETag);
+
+  // Register status router
+  await server.register(statusRouter);
+
+  // Add version header to all responses
+  server.addHook("onSend", (_request, reply, _, done) => {
+    reply.header("x-ord-provider-server-version", version);
+    done();
+  });
 }
 
 async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOptions): Promise<void> {
