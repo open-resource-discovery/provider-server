@@ -12,16 +12,19 @@ export function parseSourceType(value: string): OptSourceType {
 export enum OptAuthMethod {
   Open = "open",
   Basic = "basic",
+  MTLS = "mtls",
 }
 
 export enum OrdAccessStrategy {
   Open = "open",
   Basic = "sap.businesshub:basic-auth:v1",
+  MTLS = "sap:cmp-mtls:v1",
 }
 
 const optAuthToOrdAccessStrategyMap = {
   [OptAuthMethod.Open]: OrdAccessStrategy.Open,
   [OptAuthMethod.Basic]: OrdAccessStrategy.Basic,
+  [OptAuthMethod.MTLS]: OrdAccessStrategy.MTLS,
 };
 
 export function mapOptAuthToOrdAccessStrategy(optAuthMethod: OptAuthMethod): OrdAccessStrategy {
@@ -48,4 +51,8 @@ export interface CommandLineOptions {
   githubBranch?: string;
   githubRepository?: string;
   githubToken?: string;
+  mtlsCaPath?: string;
+  mtlsCertPath?: string;
+  mtlsKeyPath?: string;
+  mtlsRejectUnauthorized?: boolean;
 }

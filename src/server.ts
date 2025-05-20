@@ -1,12 +1,13 @@
 import fastifyETag from "@fastify/etag";
-import fastify from "fastify";
+import fastify, { FastifyServerOptions } from "fastify";
 import fs from "node:fs";
 import path from "node:path";
+import https from "node:https";
 import statusRouter from "./routes/statusRouter.js";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
-import { OptSourceType } from "src/model/cli.js";
+import { OptSourceType, OptAuthMethod } from "src/model/cli.js";
 import { type FastifyInstanceType } from "src/model/fastify.js";
 import { type ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
@@ -37,11 +38,35 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   log.info("ORD Provider Server");
   log.info("============================================================");
 
-  const server = fastify({
+  // Configure server options
+  const serverOptions: FastifyServerOptions & { https?: https.ServerOptions } = {
     loggerInstance: log,
     ignoreTrailingSlash: true,
     exposeHeadRoutes: true,
-  });
+  };
+
+  // Add HTTPS options if using mTLS
+  if (opts.authentication.methods.includes(OptAuthMethod.MTLS) && opts.mtls) {
+    log.info("mTLS authentication enabled. Configuring HTTPS server.");
+    try {
+      serverOptions.https = {
+        key: fs.readFileSync(opts.mtls.keyPath),
+        cert: fs.readFileSync(opts.mtls.certPath),
+        ca: fs.readFileSync(opts.mtls.caPath),
+        requestCert: true,
+        rejectUnauthorized: opts.mtls.rejectUnauthorized,
+      };
+      log.info(`  Server Key: ${opts.mtls.keyPath}`);
+      log.info(`  Server Cert: ${opts.mtls.certPath}`);
+      log.info(`  CA Cert: ${opts.mtls.caPath}`);
+      log.info(`  Reject Unauthorized: ${opts.mtls.rejectUnauthorized}`);
+    } catch (error) {
+      log.error(`Error reading mTLS certificate files: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to configure mTLS: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  const server = fastify(serverOptions);
 
   // Basic server setup
   await setupServer(server);

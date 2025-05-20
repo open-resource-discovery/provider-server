@@ -49,7 +49,19 @@ program
   .option("--github-api-url <githubApiUrl>", "GitHub host to make API calls", process.env.GITHUB_API_URL)
   .option("--github-branch <githubBranch>", "GitHub branch", process.env.GITHUB_BRANCH)
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
-  .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN);
+  .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
+  .option(
+    "--mtls-ca-path <path>",
+    "Path to CA certificate for validating client certificates",
+    process.env.MTLS_CA_PATH,
+  )
+  .option("--mtls-cert-path <path>", "Path to server certificate", process.env.MTLS_CERT_PATH)
+  .option("--mtls-key-path <path>", "Path to server private key", process.env.MTLS_KEY_PATH)
+  .option(
+    "--mtls-reject-unauthorized",
+    "Reject unauthorized clients (defaults to true)",
+    process.env.MTLS_REJECT_UNAUTHORIZED !== "false",
+  );
 
 program.version(packageJson.version);
 program.addHelpText("before", "Loads and validates ORD documents and exposes them as an ORD Document API\n");

@@ -82,7 +82,7 @@ npx @open-resource-discovery/provider-server --help
 | -------------------------------------- | ------------------------ | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-b, --base-url <type>`                | `local`                  | Yes              | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
 | `-s, --source-type <type>`             | `local`                  | No               | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
-| `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`)                                                                                                     |
+| `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`, `mtls`)                                                                                             |
 | `-d, --directory <path>`               | -                        | Yes (for local)  | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
 | `-ds, --documents-subdirectory <path>` | `documents`              | No               | `ORD_DOCUMENTS_SUBDIRECTORY` | Directory containing the ORD Documents with at least one ORD document. Supports nested folder structures. Can also be applied to a GitHub Repository. |
 | `--host <host>`                        | `0.0.0.0`                | No               | `SERVER_HOST`                | Host for server, without port                                                                                                                         |
@@ -91,6 +91,10 @@ npx @open-resource-discovery/provider-server --help
 | `--github-branch <branch>`             | `main`                   | Yes (for github) | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
 | `--github-repository <repo>`           | -                        | Yes (for github) | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
 | `--github-token <token>`               | -                        | Yes (for github) | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
+| `--mtls-ca-path <path>`                | -                        | Yes (for mtls)   | `MTLS_CA_PATH`               | Path to CA certificate for validating client certificates                                                                                             |
+| `--mtls-cert-path <path>`              | -                        | Yes (for mtls)   | `MTLS_CERT_PATH`             | Path to server certificate                                                                                                                            |
+| `--mtls-key-path <path>`               | -                        | Yes (for mtls)   | `MTLS_KEY_PATH`              | Path to server private key                                                                                                                            |
+| `--mtls-reject-unauthorized`           | `true`                   | No               | `MTLS_REJECT_UNAUTHORIZED`   | Reject unauthorized clients (set to 'false' to allow unauthorized certs, not recommended for production)                                              |
 
 ### Required Structure
 
@@ -192,6 +196,98 @@ This will output something like `admin:$2y$05$...` - use only the hash part (sta
 
 > [!IMPORTANT]
 > Make sure to use strong passwords and handle the BASIC_AUTH environment variable securely. Never commit real credentials or .env files to version control.
+
+#### Mutual TLS (mTLS) Authentication
+
+The server supports Mutual TLS (mTLS) authentication, which provides stronger security through certificate-based client authentication. When mTLS is enabled, both the server and client must present a certificate signed by a trusted certificate authority (CA).
+
+To use mTLS:
+
+1. **Generate Certificates**: You need:
+
+   - A CA certificate for validating client certificates
+   - A server certificate and private key
+   - Client certificates signed by the CA
+
+2. **Configure the Server** with the necessary certificate paths:
+
+   ```bash
+   npm run dev -- --auth mtls \
+     --mtls-ca-path ./certs/ca.pem \
+     --mtls-cert-path ./certs/server.crt \
+     --mtls-key-path ./certs/server.key
+   ```
+
+3. **With Docker**:
+   ```bash
+   docker run -p 8443:8443 \
+     -v "$(pwd)/path-to-your-metadata:/app/data" \
+     -v "$(pwd)/certs:/app/certs" \
+     ghcr.io/open-resource-discovery/provider-server:latest \
+     -d /app/data \
+     --auth mtls \
+     --mtls-ca-path /app/certs/ca.pem \
+     --mtls-cert-path /app/certs/server.crt \
+     --mtls-key-path /app/certs/server.key \
+     --base-url 'https://example.com'
+   ```
+
+For testing purposes, you can use the scripts included in the repository:
+
+```bash
+# Generate test certificates
+chmod +x scripts/generate-test-certs.sh
+./scripts/generate-test-certs.sh
+
+# Run comprehensive mTLS tests
+chmod +x scripts/test-mtls.sh
+./scripts/test-mtls.sh
+
+# Test mTLS middleware's handling of unauthorized certificates
+chmod +x scripts/test-mtls-unauthorized-handling.sh
+./scripts/test-mtls-unauthorized-handling.sh
+```
+
+Example curl command to test manually with client certificates:
+
+```bash
+curl --cacert ./certs_test/ca.pem \
+     --cert ./certs_test/client.crt \
+     --key ./certs_test/client.key \
+     https://127.0.0.1:8080/ord/v1/documents/example
+```
+
+> [!IMPORTANT]
+>
+> - The server automatically switches to HTTPS when mTLS is enabled
+> - Ensure all certificates are properly secured and maintained
+> - The `MTLS_REJECT_UNAUTHORIZED` flag controls whether TLS handshakes with unauthorized clients are rejected immediately (default), or if they're handled by the middleware
+
+#### Multiple Authentication Methods
+
+The server supports using multiple authentication methods simultaneously by providing a comma-separated list of authentication methods. When multiple methods are specified, a request will be authenticated if it passes any of the specified authentication methods.
+
+Currently, the following combination is supported:
+
+- `mtls,basic` - Authenticate with either mTLS certificate or basic authentication
+
+Example usage:
+
+```bash
+# Using both mTLS and basic authentication
+npm run dev -- --auth mtls,basic \
+  --mtls-ca-path ./certs/ca.pem \
+  --mtls-cert-path ./certs/server.crt \
+  --mtls-key-path ./certs/server.key \
+  --base-url 'https://example.com'
+```
+
+> [!NOTE]
+> When using multiple authentication methods:
+>
+> - The `open` method cannot be combined with any other method
+> - All requirements for each individual authentication method still apply (e.g., you need to provide both basic auth credentials and mTLS certificates)
+> - The server will try each authentication method in sequence until one succeeds
 
 <details>
 <summary>Using htpasswd in your environment</summary>

@@ -27,7 +27,7 @@ export async function validateAndParseOptions(options: CommandLineOptions): Prom
 
   validateBaseUrlOption(options, errors);
 
-  validateAuthOptions(options.auth, errors);
+  validateAuthOptions(options.auth, errors, options);
 
   validateSourceTypeOptionsOffline(options, errors);
 
@@ -62,16 +62,17 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
   }
 }
 
-function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): void {
+function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], options?: CommandLineOptions): void {
   const isOpen = authMethods.includes(OptAuthMethod.Open);
   const isBasicAuth = authMethods.includes(OptAuthMethod.Basic);
+  const isMtls = authMethods.includes(OptAuthMethod.MTLS);
 
-  if (isOpen && isBasicAuth) {
+  if (isOpen && (isBasicAuth || isMtls)) {
     errors.push('Authentication method "open" cannot be used together with other options.');
     return;
   }
 
-  if (!isOpen && !isBasicAuth) {
+  if (!isOpen && !isBasicAuth && !isMtls) {
     errors.push("No valid authentication method specified.");
     return;
   }
@@ -94,6 +95,30 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
       errors.push(
         `Invalid JSON in environment variable "BASIC_AUTH": ${error instanceof Error ? error.message : String(error)}`,
       );
+    }
+  }
+
+  // Validate mTLS options if mTLS is enabled and options are provided
+  if (isMtls && options) {
+    const missingParams: string[] = [];
+    if (!options.mtlsCaPath) missingParams.push("--mtls-ca-path");
+    if (!options.mtlsCertPath) missingParams.push("--mtls-cert-path");
+    if (!options.mtlsKeyPath) missingParams.push("--mtls-key-path");
+
+    if (missingParams.length > 0) {
+      errors.push(`Detected missing parameters for mTLS authentication: ${missingParams.join(", ")}`);
+      return;
+    }
+
+    // Validate file existence
+    if (options.mtlsCaPath && !fs.existsSync(options.mtlsCaPath)) {
+      errors.push(`CA certificate file not found: ${options.mtlsCaPath}`);
+    }
+    if (options.mtlsCertPath && !fs.existsSync(options.mtlsCertPath)) {
+      errors.push(`Server certificate file not found: ${options.mtlsCertPath}`);
+    }
+    if (options.mtlsKeyPath && !fs.existsSync(options.mtlsKeyPath)) {
+      errors.push(`Server private key file not found: ${options.mtlsKeyPath}`);
     }
   }
 }

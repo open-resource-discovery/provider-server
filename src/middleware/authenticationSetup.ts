@@ -5,6 +5,9 @@ import { PATH_CONSTANTS } from "src/constant.js";
 import { createBasicAuthValidator } from "src/middleware/basicAuthValidation.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
+import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
+import { log } from "src/util/logger.js";
+import { TLSSocket } from "tls";
 
 export interface AuthSetupOptions {
   authMethods: OptAuthMethod[];
@@ -13,13 +16,17 @@ export interface AuthSetupOptions {
 
 export async function setupAuthentication(server: FastifyInstanceType, options: AuthSetupOptions): Promise<void> {
   if (options.authMethods.includes(OptAuthMethod.Open)) {
+    log.info("Authentication is disabled (open mode)");
     return;
   }
 
   await server.register(fastifyAuth);
 
   const authMethods = [];
+
+  // Configure Basic Authentication if enabled
   if (options.authMethods.includes(OptAuthMethod.Basic) && options.validUsers) {
+    log.info("Basic Authentication enabled");
     await server.register(fastifyBasicAuth, {
       validate: createBasicAuthValidator(options.validUsers),
       authenticate: true,
@@ -27,20 +34,82 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
     authMethods.push(server.basicAuth);
   }
 
-  if (authMethods.length > 0) {
-    const authenticate = server.auth(authMethods, { relation: "or" });
+  // Configure mTLS Authentication if enabled
+  if (options.authMethods.includes(OptAuthMethod.MTLS)) {
+    log.info("mTLS Authentication enabled");
+
+    // Store authenticated flag in request for later use when combined with basic auth
+    interface RequestWithAuth extends FastifyRequest {
+      isMtlsAuthenticated?: boolean;
+    }
+
+    // For mTLS, we add a modified onRequest hook that sets authentication flag
+    server.addHook("onRequest", (request: RequestWithAuth, _: FastifyReply, done: HookHandlerDoneFunction) => {
+      try {
+        // Access the raw request from Node.js and check if it's a TLS connection
+        const socket = request.raw.socket;
+
+        if (!socket || !(socket instanceof TLSSocket)) {
+          log.warn("mTLS authentication error: Not a TLS connection");
+          // Don't fail the request yet, just mark as not authenticated via mTLS
+          request.isMtlsAuthenticated = false;
+          return done();
+        }
+
+        // Check if client certificate was provided and validated
+        if (!socket.authorized) {
+          log.warn(`mTLS authentication failed: Unauthorized client certificate`);
+          request.isMtlsAuthenticated = false;
+          return done();
+        }
+
+        // Get certificate information for logging/debugging
+        const clientCert = socket.getPeerCertificate();
+        if (clientCert && clientCert.subject) {
+          const subject = clientCert.subject;
+          log.debug(`mTLS authentication successful for: ${subject.CN || "Unknown"}`);
+          log.debug(
+            `Certificate details - Subject: ${JSON.stringify(subject)}, Issuer: ${JSON.stringify(clientCert.issuer)}, Valid: ${clientCert.valid_from} to ${clientCert.valid_to}`,
+          );
+        }
+
+        // Mark as authenticated via mTLS
+        request.isMtlsAuthenticated = true;
+        done();
+      } catch (error) {
+        log.error(`mTLS authentication error: ${error instanceof Error ? error.message : String(error)}`);
+        request.isMtlsAuthenticated = false;
+        done();
+      }
+    });
+  }
+
+  // Set up the authentication hook
+  if (authMethods.length > 0 || options.authMethods.includes(OptAuthMethod.MTLS)) {
+    const authenticate = authMethods.length > 0 ? server.auth(authMethods, { relation: "or" }) : null;
 
     server.addHook(
       "onRequest",
-      function (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction): void {
+      function (
+        request: FastifyRequest & { isMtlsAuthenticated?: boolean },
+        reply: FastifyReply,
+        done: HookHandlerDoneFunction,
+      ): void {
         if (
           request.url.startsWith(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT) ||
           request.url.startsWith(PATH_CONSTANTS.STATUS_ENDPOINT)
         ) {
           done();
-        } else {
+        } else if (request.isMtlsAuthenticated) {
+          // If already authenticated via mTLS, allow the request
+          done();
+        } else if (authenticate) {
+          // Otherwise, try basic auth if configured
           // @ts-expect-error request type matching
           authenticate(request, reply, done);
+        } else {
+          // If no authentication method succeeded, reject the request
+          done(new UnauthorizedError("Authentication failed"));
         }
       },
     );

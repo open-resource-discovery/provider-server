@@ -22,6 +22,12 @@ export interface ProviderServerOptions {
     methods: OptAuthMethod[];
     basicAuthUsers?: Record<string, string>;
   };
+  mtls?: {
+    caPath: string;
+    certPath: string;
+    keyPath: string;
+    rejectUnauthorized: boolean;
+  };
 }
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
@@ -43,7 +49,7 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
 
-  return {
+  const providerOpts: ProviderServerOptions = {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
     ordDocumentsSubDirectory: trimLeadingAndTrailingSlashes(options.documentsSubdirectory) || "", // Ensure it's never undefined
     baseUrl: updateBaseUrl(options.baseUrl),
@@ -59,4 +65,15 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
   };
+
+  if (options.auth.includes(OptAuthMethod.MTLS)) {
+    providerOpts.mtls = {
+      caPath: options.mtlsCaPath!,
+      certPath: options.mtlsCertPath!,
+      keyPath: options.mtlsKeyPath!,
+      rejectUnauthorized: options.mtlsRejectUnauthorized !== undefined ? options.mtlsRejectUnauthorized : true,
+    };
+  }
+
+  return providerOpts;
 }
