@@ -1,5 +1,6 @@
 {
-  "extends": ["config:recommended"],
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "docker:enableMajor", ":pinAllExceptPeerDependencies"],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
@@ -7,65 +8,76 @@
   "schedule": ["at any time"],
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["at any time"]
-  },
-
   "packageRules": [
     {
-      "matchPackageNames": ["*"],
-      "automerge": true,
-      "automergeType": "pr"
-    },
-    {
+      "groupName": "Docker Dependencies",
+      "matchManagers": ["dockerfile"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
       "semanticCommitType": "chore",
-      "matchPackageNames": ["*"]
+      "automerge": true
     },
     {
-      "matchPackagePatterns": ["fastify", "fastify-plugin", "@fastify/*"],
-      "groupName": "Fastify Core"
+      "groupName": "Fastify Core",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["fastify", "fastify-plugin", "/^@fastify\\//"]
     },
     {
-      "matchPackageNames": ["pino", "pino-pretty"],
-      "groupName": "Logging"
+      "groupName": "ORD Specification",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@open-resource-discovery/specification"]
     },
     {
-      "matchPackageNames": ["commander", "dotenv"],
-      "groupName": "CLI and Utils"
+      "groupName": "Security",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["bcryptjs"]
     },
     {
-      "matchPackageNames": ["bcrypt", "@types/bcrypt"],
-      "groupName": "Security"
+      "groupName": "CLI and Utils",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["commander", "dotenv"]
     },
     {
-      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"],
-      "groupName": "Linting Tools"
+      "groupName": "Logging",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["pino", "pino-pretty"]
     },
     {
-      "matchPackageNames": ["typescript", "ts-jest", "tsx", "tsc-alias", "@tsconfig/node22"],
-      "groupName": "TypeScript Build Tools"
+      "groupName": "Linting Tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["eslint", "@eslint/js", "@sap/eslint-config", "prettier"]
     },
     {
+      "groupName": "TypeScript Build Tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript", "ts-jest", "tsx", "tsc-alias", "@tsconfig/node22", "@types/node"]
+    },
+    {
+      "groupName": "Testing Frameworks",
+      "matchManagers": ["npm"],
       "matchPackageNames": [
         "jest",
         "jest-cli",
-        "jest-junit",
         "jest-fetch-mock",
+        "jest-junit",
         "jest-watch-typeahead",
+        "fetch-mock",
         "@types/jest",
-        "@types/js-yaml"
-      ],
-      "groupName": "Testing Frameworks"
+        "@types/js-yaml",
+        "@types/got"
+      ]
     },
     {
-      "matchPackageNames": ["rimraf", "husky", "is-ci", "lint-staged"],
-      "groupName": "Misc Tools"
+      "groupName": "Misc Tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["rimraf", "husky", "is-ci", "lint-staged"]
     },
     {
-      "groupName": "Docker Dependencies",
-      "matchCategories": ["dockerfile"],
-      "enabled": true
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchDatasources": ["npm"],
+      "semanticCommitType": "chore",
+      "automerge": true
     }
   ]
 }
