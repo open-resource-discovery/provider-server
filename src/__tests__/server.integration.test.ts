@@ -1,14 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@open-resource-discovery/specification";
 import path from "path";
-import {
-  ORD_DOCUMENTS_SUB_DIRECTORY,
-  ORD_DOCUMENTS_URL_PATH,
-  ORD_SERVER_PREFIX_PATH,
-  WELL_KNOWN_ENDPOINT,
-} from "src/constant.js";
+import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
+import { getPackageVersion } from "../routes/statusRouter.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
@@ -29,7 +25,7 @@ describe("Server Integration", () => {
   beforeAll(async () => {
     const options: ProviderServerOptions = {
       ordDirectory: LOCAL_DIRECTORY,
-      ordDocumentsSubDirectory: ORD_DOCUMENTS_SUB_DIRECTORY,
+      ordDocumentsSubDirectory: PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
       sourceType: OptSourceType.Local,
       host: TEST_HOST,
       port: TEST_PORT,
@@ -49,7 +45,7 @@ describe("Server Integration", () => {
 
   describe("Well-Known Endpoint", () => {
     it("should return ORD configuration without authentication", async () => {
-      const response = await fetch(`${SERVER_URL}${WELL_KNOWN_ENDPOINT}`);
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -57,7 +53,7 @@ describe("Server Integration", () => {
     });
 
     it("should list all available documents in configuration", async () => {
-      const response = await fetch(`${SERVER_URL}${WELL_KNOWN_ENDPOINT}`);
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
       const data = (await response.json()) as ORDConfiguration;
 
       expect(data.openResourceDiscoveryV1.documents).toBeDefined();
@@ -73,13 +69,13 @@ describe("Server Integration", () => {
 
   describe("ORD Documents Endpoint", () => {
     it("should require authentication for accessing documents", async () => {
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`);
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`);
       expect(response.status).toBe(401);
     });
 
     it("should return document with valid authentication", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -95,7 +91,7 @@ describe("Server Integration", () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
       const headers = { Authorization: `Basic ${credentials}` };
 
-      const configResponse = await fetch(`${SERVER_URL}${WELL_KNOWN_ENDPOINT}`);
+      const configResponse = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
       const config = (await configResponse.json()) as ORDConfiguration;
       const documents = config.openResourceDiscoveryV1.documents!;
 
@@ -110,7 +106,7 @@ describe("Server Integration", () => {
 
     it("should handle document names with special characters", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -121,7 +117,7 @@ describe("Server Integration", () => {
 
     it("should correctly extract document name when URL contains .json extension", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1.json`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1.json`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -135,7 +131,7 @@ describe("Server Integration", () => {
 
     it("should correctly extract document name when URL contains dots and a .json extension", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/sap.ref-app-example.json`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/sap.ref-app-example.json`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -151,7 +147,7 @@ describe("Server Integration", () => {
   describe("Static Resources", () => {
     it("should serve static files with authentication", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_SERVER_PREFIX_PATH}/astronomy/v1/openapi/oas3.json`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/astronomy/v1/openapi/oas3.json`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -171,7 +167,7 @@ describe("Server Integration", () => {
   describe("Error Handling", () => {
     it("should return 404 for non-existent documents", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/non-existent-document`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/non-existent-document`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -184,7 +180,7 @@ describe("Server Integration", () => {
 
     it("should return 401 with invalid credentials", async () => {
       const credentials = Buffer.from("admin:wrong").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -195,7 +191,7 @@ describe("Server Integration", () => {
 
     it("should handle malformed document names gracefully", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/../../etc/passwd`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/../../etc/passwd`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -211,7 +207,7 @@ describe("Server Integration", () => {
     beforeAll(async () => {
       const options: ProviderServerOptions = {
         ordDirectory: LOCAL_DIRECTORY,
-        ordDocumentsSubDirectory: ORD_DOCUMENTS_SUB_DIRECTORY,
+        ordDocumentsSubDirectory: PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
         sourceType: OptSourceType.Local,
         host: TEST_HOST,
         port: MULTI_AUTH_PORT,
@@ -231,7 +227,7 @@ describe("Server Integration", () => {
 
     it("should accept basic auth when multiple auth methods are configured", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL_2}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, {
+      const response = await fetch(`${SERVER_URL_2}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -244,7 +240,7 @@ describe("Server Integration", () => {
   describe("Server Configuration", () => {
     it("should set correct content type headers", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
@@ -263,7 +259,7 @@ describe("Server Integration", () => {
 
       const requests = Array(10)
         .fill(null)
-        .map(() => fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, { headers }));
+        .map(() => fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, { headers }));
 
       const responses = await Promise.all(requests);
       responses.forEach((response) => {
@@ -273,13 +269,25 @@ describe("Server Integration", () => {
 
     it("should return ETag headers for caching", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}${ORD_DOCUMENTS_URL_PATH}/ref-app-example-1`, {
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
       });
 
       expect(response.headers.get("etag")).toBeTruthy();
+    });
+  });
+
+  describe("Status Endpoint", () => {
+    it("should return the correct status object with version", async () => {
+      const packageVersion = getPackageVersion();
+      const response = await fetch(`${SERVER_URL}/api/v1/status`);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-ord-provider-server-version")).toBe(packageVersion);
+      const data = await response.json();
+      expect(data).toEqual({ version: packageVersion });
     });
   });
 });

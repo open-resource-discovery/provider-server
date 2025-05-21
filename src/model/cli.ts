@@ -39,7 +39,7 @@ export function parseAuthMethods(value: string): OptAuthMethod[] {
 export interface CommandLineOptions {
   sourceType: OptSourceType;
   directory?: string;
-  documentsSubdirectory?: string;
+  documentsSubdirectory: string;
   auth: OptAuthMethod[];
   baseUrl?: string;
   host?: string;

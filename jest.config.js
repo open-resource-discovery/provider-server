@@ -34,4 +34,7 @@ export default {
   testMatch: ["<rootDir>/src/**/*.test.ts"],
   testTimeout: 30000,
   watchPlugins: ["jest-watch-typeahead/filename", "jest-watch-typeahead/testname"],
+  testEnvironmentOptions: {
+    NODE_OPTIONS: "--experimental-vm-modules",
+  },
 };

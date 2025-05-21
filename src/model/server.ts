@@ -1,7 +1,10 @@
 import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
+import { normalizePath } from "src/util/pathUtils.js";
+import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
 import { config } from "dotenv";
+
 config();
 
 export interface ProviderServerOptions {
@@ -23,8 +26,15 @@ export interface ProviderServerOptions {
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
   ordDirectory = ordDirectory !== undefined ? ordDirectory : process.env.ORD_DIRECTORY || "";
-  if (ordDirectory?.startsWith("/") && sourceType === OptSourceType.Github) {
-    ordDirectory = ordDirectory.replace("/", "");
+
+  if (sourceType === OptSourceType.Github) {
+    ordDirectory = trimLeadingAndTrailingSlashes(normalizePath(ordDirectory));
+    if (ordDirectory === undefined || ordDirectory.trim() === "") {
+      ordDirectory = ".";
+    }
+  } else {
+    // For local paths, just normalize
+    ordDirectory = normalizePath(ordDirectory);
   }
 
   return ordDirectory;
@@ -32,17 +42,18 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
 
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
+
   return {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
-    ordDocumentsSubDirectory: options.documentsSubdirectory || "documents",
+    ordDocumentsSubDirectory: trimLeadingAndTrailingSlashes(options.documentsSubdirectory) || "", // Ensure it's never undefined
     baseUrl: updateBaseUrl(options.baseUrl),
-    host: options.host,
+    host: trimTrailingSlash(options.host),
     port: options.port ? parseInt(options.port) : undefined,
     sourceType: options.sourceType,
-    githubApiUrl: options.githubApiUrl || process.env.GITHUB_API_URL,
-    githubRepository: options.githubRepository || process.env.GITHUB_REPOSITORY,
-    githubBranch: options.githubBranch || process.env.GITHUB_BRANCH,
-    githubToken: options.githubToken || process.env.GITHUB_TOKEN,
+    githubApiUrl: trimTrailingSlash(options.githubApiUrl),
+    githubRepository: options.githubRepository,
+    githubBranch: options.githubBranch,
+    githubToken: options.githubToken,
     authentication: {
       methods: options.auth,
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
