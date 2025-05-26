@@ -4,6 +4,7 @@ import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath } from "src/util/pathUtils.js";
 import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
 import { config } from "dotenv";
+import { MtlsMode } from "../constant.js";
 
 config();
 
@@ -74,9 +75,9 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
 
   if (options.auth.includes(OptAuthMethod.MTLS)) {
     // Check if SAP CF mTLS mode is enabled
-    const mtlsMode = process.env.MTLS_MODE || "standard";
+    const mtlsMode = process.env.MTLS_MODE || MtlsMode.Standard;
 
-    if (mtlsMode === "sap-cf") {
+    if (mtlsMode === MtlsMode.SapCmpMtls) {
       // In SAP CF mode, certificate files are not required
       providerOpts.authentication.sapCfMtls = {
         enabled: true,

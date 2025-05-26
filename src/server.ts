@@ -58,12 +58,11 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
         cert: fs.readFileSync(opts.mtls.certPath),
         ca: fs.readFileSync(opts.mtls.caPath),
         requestCert: true,
-        rejectUnauthorized: opts.mtls.rejectUnauthorized,
       };
+
       log.info(`  Server Key: ${opts.mtls.keyPath}`);
       log.info(`  Server Cert: ${opts.mtls.certPath}`);
       log.info(`  CA Cert: ${opts.mtls.caPath}`);
-      log.info(`  Reject Unauthorized: ${opts.mtls.rejectUnauthorized}`);
     } catch (error) {
       log.error(`Error reading mTLS certificate files: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`Failed to configure mTLS: ${error instanceof Error ? error.message : String(error)}`);

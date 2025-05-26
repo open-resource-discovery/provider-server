@@ -59,15 +59,8 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
         decodeBase64Headers: options.sapCfMtls.decodeBase64Headers ?? true,
       });
 
-      // Add SAP CF mTLS validation as preHandler hook
-      server.addHook("preHandler", sapCfMtlsHook);
-
-      // Also add a hook to mark successful SAP CF mTLS authentication
-      server.addHook("onRequest", (request: RequestWithAuth, _: FastifyReply, done: HookHandlerDoneFunction) => {
-        // If we reach here after SAP CF mTLS validation, the request is authenticated
-        request.isMtlsAuthenticated = true;
-        done();
-      });
+      // Add SAP CF mTLS validation as onRequest hook
+      server.addHook("onRequest", sapCfMtlsHook);
     } else {
       log.info("Standard mTLS Authentication enabled");
 

@@ -14,6 +14,7 @@ import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
 import { isBcryptHash } from "./passwordHash.js";
 import { getBaseUrl } from "./ordConfig.js";
+import { MtlsMode } from "../constant.js";
 
 // @ts-expect-error baseUrl pattern selection
 export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
@@ -101,9 +102,9 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], opt
   // Validate mTLS options if mTLS is enabled and options are provided
   if (isMtls && options) {
     // Check if SAP CF mode is enabled
-    const mtlsMode = process.env.MTLS_MODE || "standard";
+    const mtlsMode = process.env.MTLS_MODE || MtlsMode.Standard;
 
-    if (mtlsMode === "sap-cf") {
+    if (mtlsMode === MtlsMode.SapCmpMtls) {
       // In SAP CF mode, certificate files are not required but we need trusted issuers or subjects
       log.info("SAP CF mTLS mode detected - certificate files not required");
 

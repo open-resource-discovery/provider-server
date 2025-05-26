@@ -1,10 +1,10 @@
 import { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from "fastify";
-import { UnauthorizedError } from "../model/error/UnauthorizedError.js";
 import { log } from "../util/logger.js";
 
-// Extend FastifyRequest to include client certificate info
+// Extend FastifyRequest to include client certificate info and mTLS authentication status
 declare module "fastify" {
   interface FastifyRequest {
+    isMtlsAuthenticated?: boolean;
     clientCertificate?: {
       subject: {
         DN?: string;
@@ -71,7 +71,9 @@ export function createSapCfMtlsHook(options: SapCfMtlsOptions = {}) {
       const verifyStatus = headers["x-ssl-client-verify"];
       if (verifyStatus !== "0") {
         log.warn(`SAP CF mTLS: Client certificate verification failed. Status: ${verifyStatus}`);
-        return done(new UnauthorizedError("Client certificate verification failed"));
+        // Mark as not authenticated via mTLS and continue (to allow basic auth)
+        request.isMtlsAuthenticated = false;
+        return done();
       }
 
       // Extract and decode certificate details
@@ -106,7 +108,9 @@ export function createSapCfMtlsHook(options: SapCfMtlsOptions = {}) {
 
         if (!isTrustedSubject) {
           log.warn(`SAP CF mTLS: Certificate subject not trusted. Subject: ${subjectDn}`);
-          return done(new UnauthorizedError("Certificate subject not trusted"));
+          // Mark as not authenticated via mTLS and continue (to allow basic auth)
+          request.isMtlsAuthenticated = false;
+          return done();
         }
       }
 
@@ -120,7 +124,9 @@ export function createSapCfMtlsHook(options: SapCfMtlsOptions = {}) {
 
         if (!isTrustedIssuer) {
           log.warn(`SAP CF mTLS: Certificate issuer not trusted. Issuer: ${issuerDn}`);
-          return done(new UnauthorizedError("Certificate issuer not trusted"));
+          // Mark as not authenticated via mTLS and continue (to allow basic auth)
+          request.isMtlsAuthenticated = false;
+          return done();
         }
       }
 
@@ -139,11 +145,15 @@ export function createSapCfMtlsHook(options: SapCfMtlsOptions = {}) {
         raw: headers["x-forwarded-client-cert"] || "",
       };
 
+      // If we got here, mTLS authentication succeeded
+      request.isMtlsAuthenticated = true;
       log.info(`SAP CF mTLS: Client certificate authorized. Subject CN: ${subjectCn}`);
       done();
     } catch (error) {
       log.error("SAP CF mTLS: Error during client certificate validation:", error);
-      done(new UnauthorizedError("mTLS authentication failed"));
+      // Mark as not authenticated via mTLS and continue (to allow basic auth)
+      request.isMtlsAuthenticated = false;
+      done();
     }
   };
 }
