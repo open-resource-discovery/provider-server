@@ -21,6 +21,12 @@ export interface ProviderServerOptions {
   authentication: {
     methods: OptAuthMethod[];
     basicAuthUsers?: Record<string, string>;
+    sapCfMtls?: {
+      enabled: boolean;
+      trustedIssuers?: string[];
+      trustedSubjects?: string[];
+      decodeBase64Headers?: boolean;
+    };
   };
   mtls?: {
     caPath: string;
@@ -67,6 +73,19 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
   };
 
   if (options.auth.includes(OptAuthMethod.MTLS)) {
+    // Check if SAP CF mTLS mode is enabled
+    const mtlsMode = process.env.MTLS_MODE || "standard";
+
+    if (mtlsMode === "sap-cf") {
+      // In SAP CF mode, certificate files are not required
+      providerOpts.authentication.sapCfMtls = {
+        enabled: true,
+        trustedIssuers: process.env.MTLS_TRUSTED_ISSUERS ? process.env.MTLS_TRUSTED_ISSUERS.split(";") : undefined,
+        trustedSubjects: process.env.MTLS_TRUSTED_SUBJECTS ? process.env.MTLS_TRUSTED_SUBJECTS.split(";") : undefined,
+        decodeBase64Headers: process.env.MTLS_DECODE_BASE64_HEADERS !== "false",
+      };
+    }
+
     providerOpts.mtls = {
       caPath: options.mtlsCaPath!,
       certPath: options.mtlsCertPath!,

@@ -45,9 +45,13 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     exposeHeadRoutes: true,
   };
 
-  // Add HTTPS options if using mTLS
-  if (opts.authentication.methods.includes(OptAuthMethod.MTLS) && opts.mtls) {
-    log.info("mTLS authentication enabled. Configuring HTTPS server.");
+  // Add HTTPS options if using standard mTLS (not SAP CF mode)
+  if (
+    opts.authentication.methods.includes(OptAuthMethod.MTLS) &&
+    opts.mtls &&
+    !opts.authentication.sapCfMtls?.enabled
+  ) {
+    log.info("Standard mTLS authentication enabled. Configuring HTTPS server.");
     try {
       serverOptions.https = {
         key: fs.readFileSync(opts.mtls.keyPath),
@@ -64,6 +68,8 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       log.error(`Error reading mTLS certificate files: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`Failed to configure mTLS: ${error instanceof Error ? error.message : String(error)}`);
     }
+  } else if (opts.authentication.methods.includes(OptAuthMethod.MTLS) && opts.authentication.sapCfMtls?.enabled) {
+    log.info("SAP CF mTLS authentication enabled. Server will run in HTTP mode (TLS handled by platform).");
   }
 
   const server = fastify(serverOptions);
@@ -75,6 +81,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   await setupAuthentication(server, {
     authMethods: opts.authentication.methods,
     validUsers: opts.authentication.basicAuthUsers,
+    sapCfMtls: opts.authentication.sapCfMtls,
   });
 
   // Configure routing based on source type

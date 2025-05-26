@@ -3,6 +3,7 @@ import { fastifyBasicAuth } from "@fastify/basic-auth";
 import { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { createBasicAuthValidator } from "src/middleware/basicAuthValidation.js";
+import { createSapCfMtlsHook } from "src/middleware/sapCfMtlsValidation.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
@@ -12,6 +13,12 @@ import { TLSSocket } from "tls";
 export interface AuthSetupOptions {
   authMethods: OptAuthMethod[];
   validUsers?: Record<string, string>;
+  sapCfMtls?: {
+    enabled: boolean;
+    trustedIssuers?: string[];
+    trustedSubjects?: string[];
+    decodeBase64Headers?: boolean;
+  };
 }
 
 export async function setupAuthentication(server: FastifyInstanceType, options: AuthSetupOptions): Promise<void> {
@@ -36,52 +43,74 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
 
   // Configure mTLS Authentication if enabled
   if (options.authMethods.includes(OptAuthMethod.MTLS)) {
-    log.info("mTLS Authentication enabled");
-
     // Store authenticated flag in request for later use when combined with basic auth
     interface RequestWithAuth extends FastifyRequest {
       isMtlsAuthenticated?: boolean;
     }
 
-    // For mTLS, we add a modified onRequest hook that sets authentication flag
-    server.addHook("onRequest", (request: RequestWithAuth, _: FastifyReply, done: HookHandlerDoneFunction) => {
-      try {
-        // Access the raw request from Node.js and check if it's a TLS connection
-        const socket = request.raw.socket;
+    // Check if SAP CF mTLS mode is enabled
+    if (options.sapCfMtls?.enabled) {
+      log.info("SAP Cloud Foundry mTLS Authentication enabled");
 
-        if (!socket || !(socket instanceof TLSSocket)) {
-          log.warn("mTLS authentication error: Not a TLS connection");
-          // Don't fail the request yet, just mark as not authenticated via mTLS
-          request.isMtlsAuthenticated = false;
-          return done();
-        }
+      // Create SAP CF mTLS hook with configuration from environment
+      const sapCfMtlsHook = createSapCfMtlsHook({
+        trustedIssuers: options.sapCfMtls.trustedIssuers || [],
+        trustedSubjects: options.sapCfMtls.trustedSubjects || [],
+        decodeBase64Headers: options.sapCfMtls.decodeBase64Headers ?? true,
+      });
 
-        // Check if client certificate was provided and validated
-        if (!socket.authorized) {
-          log.warn(`mTLS authentication failed: Unauthorized client certificate`);
-          request.isMtlsAuthenticated = false;
-          return done();
-        }
+      // Add SAP CF mTLS validation as preHandler hook
+      server.addHook("preHandler", sapCfMtlsHook);
 
-        // Get certificate information for logging/debugging
-        const clientCert = socket.getPeerCertificate();
-        if (clientCert && clientCert.subject) {
-          const subject = clientCert.subject;
-          log.debug(`mTLS authentication successful for: ${subject.CN || "Unknown"}`);
-          log.debug(
-            `Certificate details - Subject: ${JSON.stringify(subject)}, Issuer: ${JSON.stringify(clientCert.issuer)}, Valid: ${clientCert.valid_from} to ${clientCert.valid_to}`,
-          );
-        }
-
-        // Mark as authenticated via mTLS
+      // Also add a hook to mark successful SAP CF mTLS authentication
+      server.addHook("onRequest", (request: RequestWithAuth, _: FastifyReply, done: HookHandlerDoneFunction) => {
+        // If we reach here after SAP CF mTLS validation, the request is authenticated
         request.isMtlsAuthenticated = true;
         done();
-      } catch (error) {
-        log.error(`mTLS authentication error: ${error instanceof Error ? error.message : String(error)}`);
-        request.isMtlsAuthenticated = false;
-        done();
-      }
-    });
+      });
+    } else {
+      log.info("Standard mTLS Authentication enabled");
+
+      // For standard mTLS, we add a modified onRequest hook that sets authentication flag
+      server.addHook("onRequest", (request: RequestWithAuth, _: FastifyReply, done: HookHandlerDoneFunction) => {
+        try {
+          // Access the raw request from Node.js and check if it's a TLS connection
+          const socket = request.raw.socket;
+
+          if (!socket || !(socket instanceof TLSSocket)) {
+            log.warn("mTLS authentication error: Not a TLS connection");
+            // Don't fail the request yet, just mark as not authenticated via mTLS
+            request.isMtlsAuthenticated = false;
+            return done();
+          }
+
+          // Check if client certificate was provided and validated
+          if (!socket.authorized) {
+            log.warn(`mTLS authentication failed: Unauthorized client certificate`);
+            request.isMtlsAuthenticated = false;
+            return done();
+          }
+
+          // Get certificate information for logging/debugging
+          const clientCert = socket.getPeerCertificate();
+          if (clientCert && clientCert.subject) {
+            const subject = clientCert.subject;
+            log.debug(`mTLS authentication successful for: ${subject.CN || "Unknown"}`);
+            log.debug(
+              `Certificate details - Subject: ${JSON.stringify(subject)}, Issuer: ${JSON.stringify(clientCert.issuer)}, Valid: ${clientCert.valid_from} to ${clientCert.valid_to}`,
+            );
+          }
+
+          // Mark as authenticated via mTLS
+          request.isMtlsAuthenticated = true;
+          done();
+        } catch (error) {
+          log.error(`mTLS authentication error: ${error instanceof Error ? error.message : String(error)}`);
+          request.isMtlsAuthenticated = false;
+          done();
+        }
+      });
+    }
   }
 
   // Set up the authentication hook

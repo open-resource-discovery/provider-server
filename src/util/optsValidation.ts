@@ -100,25 +100,47 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], opt
 
   // Validate mTLS options if mTLS is enabled and options are provided
   if (isMtls && options) {
-    const missingParams: string[] = [];
-    if (!options.mtlsCaPath) missingParams.push("--mtls-ca-path");
-    if (!options.mtlsCertPath) missingParams.push("--mtls-cert-path");
-    if (!options.mtlsKeyPath) missingParams.push("--mtls-key-path");
+    // Check if SAP CF mode is enabled
+    const mtlsMode = process.env.MTLS_MODE || "standard";
 
-    if (missingParams.length > 0) {
-      errors.push(`Detected missing parameters for mTLS authentication: ${missingParams.join(", ")}`);
-      return;
-    }
+    if (mtlsMode === "sap-cf") {
+      // In SAP CF mode, certificate files are not required but we need trusted issuers or subjects
+      log.info("SAP CF mTLS mode detected - certificate files not required");
 
-    // Validate file existence
-    if (options.mtlsCaPath && !fs.existsSync(options.mtlsCaPath)) {
-      errors.push(`CA certificate file not found: ${options.mtlsCaPath}`);
-    }
-    if (options.mtlsCertPath && !fs.existsSync(options.mtlsCertPath)) {
-      errors.push(`Server certificate file not found: ${options.mtlsCertPath}`);
-    }
-    if (options.mtlsKeyPath && !fs.existsSync(options.mtlsKeyPath)) {
-      errors.push(`Server private key file not found: ${options.mtlsKeyPath}`);
+      const trustedIssuers = process.env.MTLS_TRUSTED_ISSUERS;
+      const trustedSubjects = process.env.MTLS_TRUSTED_SUBJECTS;
+
+      if (!trustedIssuers && !trustedSubjects) {
+        errors.push(
+          "SAP CF mTLS mode requires at least one of MTLS_TRUSTED_ISSUERS or MTLS_TRUSTED_SUBJECTS to be configured",
+        );
+      } else if (trustedIssuers && trustedIssuers.trim() === "") {
+        errors.push("MTLS_TRUSTED_ISSUERS cannot be empty when configured");
+      } else if (trustedSubjects && trustedSubjects.trim() === "") {
+        errors.push("MTLS_TRUSTED_SUBJECTS cannot be empty when configured");
+      }
+    } else {
+      // Standard mTLS mode requires certificate files
+      const missingParams: string[] = [];
+      if (!options.mtlsCaPath) missingParams.push("--mtls-ca-path");
+      if (!options.mtlsCertPath) missingParams.push("--mtls-cert-path");
+      if (!options.mtlsKeyPath) missingParams.push("--mtls-key-path");
+
+      if (missingParams.length > 0) {
+        errors.push(`Detected missing parameters for mTLS authentication: ${missingParams.join(", ")}`);
+        return;
+      }
+
+      // Validate file existence
+      if (options.mtlsCaPath && !fs.existsSync(options.mtlsCaPath)) {
+        errors.push(`CA certificate file not found: ${options.mtlsCaPath}`);
+      }
+      if (options.mtlsCertPath && !fs.existsSync(options.mtlsCertPath)) {
+        errors.push(`Server certificate file not found: ${options.mtlsCertPath}`);
+      }
+      if (options.mtlsKeyPath && !fs.existsSync(options.mtlsKeyPath)) {
+        errors.push(`Server private key file not found: ${options.mtlsKeyPath}`);
+      }
     }
   }
 }
