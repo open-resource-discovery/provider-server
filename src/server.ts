@@ -58,6 +58,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
         cert: fs.readFileSync(opts.mtls.certPath),
         ca: fs.readFileSync(opts.mtls.caPath),
         requestCert: true,
+        rejectUnauthorized: opts.mtls.rejectUnauthorized,
       };
 
       log.info(`  Server Key: ${opts.mtls.keyPath}`);
@@ -81,6 +82,12 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     authMethods: opts.authentication.methods,
     validUsers: opts.authentication.basicAuthUsers,
     sapCfMtls: opts.authentication.sapCfMtls,
+    mtls: opts.mtls
+      ? {
+          trustedIssuers: opts.mtls.trustedIssuers,
+          trustedSubjects: opts.mtls.trustedSubjects,
+        }
+      : undefined,
   });
 
   // Configure routing based on source type

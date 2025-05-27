@@ -9,6 +9,7 @@ import { FastifyInstanceType } from "src/model/fastify.js";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 import { log } from "src/util/logger.js";
 import { TLSSocket } from "tls";
+import { tokenizeDn, dnTokensMatch, subjectToDn } from "src/util/certificateHelpers.js";
 
 export interface AuthSetupOptions {
   authMethods: OptAuthMethod[];
@@ -18,6 +19,10 @@ export interface AuthSetupOptions {
     trustedIssuers?: string[];
     trustedSubjects?: string[];
     decodeBase64Headers?: boolean;
+  };
+  mtls?: {
+    trustedIssuers?: string[];
+    trustedSubjects?: string[];
   };
 }
 
@@ -92,6 +97,40 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
             log.debug(
               `Certificate details - Subject: ${JSON.stringify(subject)}, Issuer: ${JSON.stringify(clientCert.issuer)}, Valid: ${clientCert.valid_from} to ${clientCert.valid_to}`,
             );
+
+            // Validate subject if trusted subjects are configured
+            if (options.mtls?.trustedSubjects && options.mtls.trustedSubjects.length > 0) {
+              const subjectDn = subjectToDn(subject);
+              const subjectTokens = tokenizeDn(subjectDn);
+              const isTrustedSubject = options.mtls.trustedSubjects.some((trustedSubject) => {
+                const trustedTokens = tokenizeDn(trustedSubject);
+                return dnTokensMatch(subjectTokens, trustedTokens);
+              });
+
+              if (!isTrustedSubject) {
+                log.warn(`Standard mTLS: Certificate subject not trusted. Subject: ${subjectDn}`);
+                // Mark as not authenticated via mTLS and continue (to allow basic auth)
+                request.isMtlsAuthenticated = false;
+                return done();
+              }
+            }
+
+            // Validate issuer if trusted issuers are configured
+            if (options.mtls?.trustedIssuers && options.mtls.trustedIssuers.length > 0 && clientCert.issuer) {
+              const issuerDn = subjectToDn(clientCert.issuer);
+              const issuerTokens = tokenizeDn(issuerDn);
+              const isTrustedIssuer = options.mtls.trustedIssuers.some((trustedIssuer) => {
+                const trustedTokens = tokenizeDn(trustedIssuer);
+                return dnTokensMatch(issuerTokens, trustedTokens);
+              });
+
+              if (!isTrustedIssuer) {
+                log.warn(`Standard mTLS: Certificate issuer not trusted. Issuer: ${issuerDn}`);
+                // Mark as not authenticated via mTLS and continue (to allow basic auth)
+                request.isMtlsAuthenticated = false;
+                return done();
+              }
+            }
           }
 
           // Mark as authenticated via mTLS

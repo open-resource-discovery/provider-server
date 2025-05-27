@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { log } from "../util/logger.js";
+import { tokenizeDn, dnTokensMatch } from "../util/certificateHelpers.js";
 
 // Extend FastifyRequest to include client certificate info and mTLS authentication status
 declare module "fastify" {
@@ -165,36 +166,4 @@ function isBase64Encoded(str: string): boolean {
   // Basic check - more sophisticated validation could be added
   const base64Regex = /^[A-Za-z0-9+/]+=*$/;
   return base64Regex.test(str) && str.length % 4 === 0;
-}
-
-/**
- * Tokenize a Distinguished Name (DN) string into components
- * Supports both comma and slash separators
- */
-function tokenizeDn(dn: string): string[] {
-  // Remove leading slash if present
-  const cleanDn = dn.startsWith("/") ? dn.substring(1) : dn;
-
-  // Split by either comma or slash, then filter out empty strings
-  const tokens = cleanDn
-    .split(/[,/]/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 0);
-
-  return tokens;
-}
-
-/**
- * Check if two sets of DN tokens match (order-independent)
- */
-function dnTokensMatch(tokens1: string[], tokens2: string[]): boolean {
-  if (tokens1.length !== tokens2.length) {
-    return false;
-  }
-
-  // Sort tokens to make comparison order-independent
-  const sorted1 = [...tokens1].sort();
-  const sorted2 = [...tokens2].sort();
-
-  return sorted1.every((token, index) => token === sorted2[index]);
 }

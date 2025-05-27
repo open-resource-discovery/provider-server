@@ -95,6 +95,10 @@ npx @open-resource-discovery/provider-server --help
 | `--mtls-cert-path <path>`              | -                        | Yes (for mtls)   | `MTLS_CERT_PATH`             | Path to server certificate                                                                                                                            |
 | `--mtls-key-path <path>`               | -                        | Yes (for mtls)   | `MTLS_KEY_PATH`              | Path to server private key                                                                                                                            |
 | `--mtls-reject-unauthorized`           | `true`                   | No               | `MTLS_REJECT_UNAUTHORIZED`   | Reject unauthorized clients (set to 'false' to allow unauthorized certs, not recommended for production)                                              |
+| -                                      | `standard`               | No               | `MTLS_MODE`                  | mTLS mode (`standard` or `sap:cmp-mtls`)                                                                                                              |
+| -                                      | -                        | No               | `MTLS_TRUSTED_ISSUERS`       | Semicolon-separated list of trusted certificate issuers (DN format)                                                                                   |
+| -                                      | -                        | No               | `MTLS_TRUSTED_SUBJECTS`      | Semicolon-separated list of trusted certificate subjects (DN format)                                                                                  |
+| -                                      | -                        | No               | `MTLS_CONFIG_ENDPOINTS`      | Semicolon-separated list of URLs to fetch certificate configuration from                                                                              |
 
 ### Required Structure
 
@@ -232,28 +236,30 @@ To use mTLS:
      --base-url 'https://example.com'
    ```
 
-For testing purposes, you can use the scripts included in the repository:
+**Example with certificate validation:**
 
 ```bash
-# Generate test certificates
-chmod +x scripts/generate-test-certs.sh
-./scripts/generate-test-certs.sh
+# Set trusted issuers and subjects
+export MTLS_TRUSTED_ISSUERS="CN=My Company CA,O=My Company,C=US"
+export MTLS_TRUSTED_SUBJECTS="CN=api-client,O=My Company,C=US;CN=web-client,O=My Company,C=US"
 
-# Run comprehensive mTLS tests
-chmod +x scripts/test-mtls.sh
-./scripts/test-mtls.sh
+# Or fetch from endpoints
+export MTLS_CONFIG_ENDPOINTS="https://config.mycompany.com/api/mtls-certs"
 
-# Test mTLS middleware's handling of unauthorized certificates
-chmod +x scripts/test-mtls-unauthorized-handling.sh
-./scripts/test-mtls-unauthorized-handling.sh
+# Start the server
+npm run dev -- --auth mtls \
+  --mtls-ca-path ./certs/ca.pem \
+  --mtls-cert-path ./certs/server.crt \
+  --mtls-key-path ./certs/server.key \
+  --base-url 'https://api.example.com'
 ```
 
 Example curl command to test manually with client certificates:
 
 ```bash
-curl --cacert ./certs_test/ca.pem \
-     --cert ./certs_test/client.crt \
-     --key ./certs_test/client.key \
+curl --cacert ./your_ca.pem \
+     --cert ./your_client.crt \
+     --key ./your_client.key \
      https://127.0.0.1:8080/ord/v1/documents/example
 ```
 
@@ -262,6 +268,75 @@ curl --cacert ./certs_test/ca.pem \
 > - The server automatically switches to HTTPS when mTLS is enabled
 > - Ensure all certificates are properly secured and maintained
 > - The `MTLS_REJECT_UNAUTHORIZED` flag controls whether TLS handshakes with unauthorized clients are rejected immediately (default), or if they're handled by the middleware
+
+##### Advanced mTLS Configuration
+
+The server supports additional mTLS configuration options for fine-grained control over client certificate validation:
+
+###### Trusted Issuers and Subjects
+
+You can restrict which client certificates are accepted by specifying trusted certificate issuers and subjects:
+
+**Environment Variables:**
+
+- `MTLS_TRUSTED_ISSUERS` - Semicolon-separated list of trusted certificate issuers
+- `MTLS_TRUSTED_SUBJECTS` - Semicolon-separated list of trusted certificate subjects
+
+Example:
+
+```bash
+export MTLS_TRUSTED_ISSUERS="CN=My Company CA,O=My Company,C=US;CN=Partner CA,O=Partner Inc,C=US"
+export MTLS_TRUSTED_SUBJECTS="CN=allowed-client,O=My Company,C=US"
+```
+
+###### Dynamic Certificate Configuration
+
+For environments where trusted certificates need to be managed dynamically, the server supports fetching certificate information from external endpoints:
+
+**Environment Variable:**
+
+- `MTLS_CONFIG_ENDPOINTS` - Semicolon-separated list of URLs that return certificate configuration
+
+Each endpoint should return a JSON response with the following fields:
+
+```json
+{
+  "certIssuer": "CN=My Company CA,O=My Company,C=US;CN=Partner CA,O=Partner Inc,C=US",
+  "certSubject": "CN=allowed-client,O=My Company,C=US"
+}
+```
+
+Example configuration:
+
+```bash
+export MTLS_CONFIG_ENDPOINTS="https://dev.example.com/mtls-certs;https://stage.example.com/certs"
+```
+
+The server will:
+
+1. Fetch certificate information from all configured endpoints at startup
+2. Merge the results with any statically configured trusted issuers/subjects
+3. Use the combined list for client certificate validation
+
+> [!NOTE]
+>
+> - If an endpoint is unreachable, the server will log a warning and continue with other endpoints
+> - Both static configuration (via `MTLS_TRUSTED_ISSUERS/SUBJECTS`) and dynamic configuration (via `MTLS_CONFIG_ENDPOINTS`) can be used together
+> - Each endpoint has a default timeout of 10 seconds
+
+###### SAP Cloud Platform mTLS Mode
+
+For SAP Cloud Platform deployments, the server supports a special mTLS mode that validates certificates using headers provided by the platform's proxy:
+
+```bash
+export MTLS_MODE="sap:cmp-mtls"
+```
+
+In this mode:
+
+- The server validates client certificates using SAP CF-specific headers (X-SSL-Client-Verify, X-SSL-Client-Subject-DN, etc.)
+- Certificate validation is performed by the platform's HAProxy/Gorouter
+- The same `MTLS_TRUSTED_ISSUERS` and `MTLS_TRUSTED_SUBJECTS` configurations apply
 
 #### Multiple Authentication Methods
 

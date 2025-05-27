@@ -36,7 +36,7 @@ export async function validateAndParseOptions(options: CommandLineOptions): Prom
     throw ValidationError.fromErrors(errors);
   }
 
-  const parsedOpts = buildProviderServerOptions(options);
+  const parsedOpts = await buildProviderServerOptions(options);
 
   if (parsedOpts.sourceType === OptSourceType.Github) {
     await validateSourceTypeOptionsOnline(parsedOpts, errors);

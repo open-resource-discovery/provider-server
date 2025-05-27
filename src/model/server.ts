@@ -5,6 +5,7 @@ import { normalizePath } from "src/util/pathUtils.js";
 import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
 import { config } from "dotenv";
 import { MtlsMode } from "../constant.js";
+import { fetchMtlsTrustedCertsFromEndpoints, mergeTrustedCerts } from "../services/mtlsEndpointService.js";
 
 config();
 
@@ -34,6 +35,8 @@ export interface ProviderServerOptions {
     certPath: string;
     keyPath: string;
     rejectUnauthorized: boolean;
+    trustedIssuers?: string[];
+    trustedSubjects?: string[];
   };
 }
 
@@ -53,7 +56,7 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
   return ordDirectory;
 }
 
-export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
+export async function buildProviderServerOptions(options: CommandLineOptions): Promise<ProviderServerOptions> {
   log.info("Building server configuration...");
 
   const providerOpts: ProviderServerOptions = {
@@ -87,12 +90,52 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       };
     }
 
+    // Initialize base mTLS configuration
     providerOpts.mtls = {
       caPath: options.mtlsCaPath!,
       certPath: options.mtlsCertPath!,
       keyPath: options.mtlsKeyPath!,
       rejectUnauthorized: options.mtlsRejectUnauthorized !== undefined ? options.mtlsRejectUnauthorized : true,
     };
+
+    // For standard mTLS mode, handle trusted issuers and subjects
+    if (mtlsMode !== MtlsMode.SapCmpMtls) {
+      // Parse configured trusted issuers and subjects
+      const configuredTrustedCerts = {
+        trustedIssuers: process.env.MTLS_TRUSTED_ISSUERS ? process.env.MTLS_TRUSTED_ISSUERS.split(";") : undefined,
+        trustedSubjects: process.env.MTLS_TRUSTED_SUBJECTS ? process.env.MTLS_TRUSTED_SUBJECTS.split(";") : undefined,
+      };
+
+      // Fetch from endpoints if configured
+      if (process.env.MTLS_CONFIG_ENDPOINTS) {
+        const endpoints = process.env.MTLS_CONFIG_ENDPOINTS.split(";").filter((e) => e.trim());
+        if (endpoints.length > 0) {
+          log.info(`Fetching MTLS trusted certificates from ${endpoints.length} endpoints...`);
+          try {
+            const endpointCerts = await fetchMtlsTrustedCertsFromEndpoints(endpoints);
+            const mergedCerts = mergeTrustedCerts(endpointCerts, configuredTrustedCerts);
+
+            providerOpts.mtls.trustedIssuers = mergedCerts.trustedIssuers;
+            providerOpts.mtls.trustedSubjects = mergedCerts.trustedSubjects;
+
+            log.info(
+              `Loaded ${providerOpts.mtls.trustedIssuers?.length || 0} trusted issuers and ${providerOpts.mtls.trustedSubjects?.length || 0} trusted subjects`,
+            );
+          } catch (error) {
+            log.error(
+              `Failed to fetch MTLS certificates from endpoints: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            // Fall back to configured values
+            providerOpts.mtls.trustedIssuers = configuredTrustedCerts.trustedIssuers;
+            providerOpts.mtls.trustedSubjects = configuredTrustedCerts.trustedSubjects;
+          }
+        }
+      } else {
+        // Use only configured values
+        providerOpts.mtls.trustedIssuers = configuredTrustedCerts.trustedIssuers;
+        providerOpts.mtls.trustedSubjects = configuredTrustedCerts.trustedSubjects;
+      }
+    }
   }
 
   return providerOpts;
