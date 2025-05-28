@@ -82,10 +82,43 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
 
     if (mtlsMode === MtlsMode.SapCmpMtls) {
       // In SAP CF mode, certificate files are not required
-      providerOpts.authentication.sapCfMtls = {
-        enabled: true,
+      // Parse configured trusted issuers and subjects
+      const configuredTrustedCerts = {
         trustedIssuers: process.env.MTLS_TRUSTED_ISSUERS ? process.env.MTLS_TRUSTED_ISSUERS.split(";") : undefined,
         trustedSubjects: process.env.MTLS_TRUSTED_SUBJECTS ? process.env.MTLS_TRUSTED_SUBJECTS.split(";") : undefined,
+      };
+
+      let finalTrustedIssuers = configuredTrustedCerts.trustedIssuers;
+      let finalTrustedSubjects = configuredTrustedCerts.trustedSubjects;
+
+      // Fetch from endpoints if configured
+      if (process.env.MTLS_CONFIG_ENDPOINTS) {
+        const endpoints = process.env.MTLS_CONFIG_ENDPOINTS.split(";").filter((e) => e.trim());
+        if (endpoints.length > 0) {
+          log.info(`SAP CF mTLS: Fetching trusted certificates from ${endpoints.length} endpoints...`);
+          try {
+            const endpointCerts = await fetchMtlsTrustedCertsFromEndpoints(endpoints);
+            const mergedCerts = mergeTrustedCerts(endpointCerts, configuredTrustedCerts);
+
+            finalTrustedIssuers = mergedCerts.trustedIssuers;
+            finalTrustedSubjects = mergedCerts.trustedSubjects;
+
+            log.info(
+              `SAP CF mTLS: Loaded ${finalTrustedIssuers?.length || 0} trusted issuers and ${finalTrustedSubjects?.length || 0} trusted subjects`,
+            );
+          } catch (error) {
+            log.error(
+              `SAP CF mTLS: Failed to fetch certificates from endpoints: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            // Fall back to configured values
+          }
+        }
+      }
+
+      providerOpts.authentication.sapCfMtls = {
+        enabled: true,
+        trustedIssuers: finalTrustedIssuers,
+        trustedSubjects: finalTrustedSubjects,
         decodeBase64Headers: process.env.MTLS_DECODE_BASE64_HEADERS !== "false",
       };
     }
