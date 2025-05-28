@@ -1,0 +1,83 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "docker:enableMajor", ":pinAllExceptPeerDependencies"],
+  "semanticCommits": "enabled",
+  "enabledManagers": ["npm", "dockerfile"],
+  "branchPrefix": "deps/",
+  "timezone": "Europe/Berlin",
+  "schedule": ["at any time"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "packageRules": [
+    {
+      "groupName": "Docker Dependencies",
+      "matchManagers": ["dockerfile"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
+      "semanticCommitType": "chore",
+      "automerge": true
+    },
+    {
+      "groupName": "Fastify Core",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["fastify", "fastify-plugin", "/^@fastify\\//"]
+    },
+    {
+      "groupName": "ORD Specification",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@open-resource-discovery/specification"]
+    },
+    {
+      "groupName": "Security",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["bcryptjs"]
+    },
+    {
+      "groupName": "CLI and Utils",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["commander", "dotenv"]
+    },
+    {
+      "groupName": "Logging",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["pino", "pino-pretty"]
+    },
+    {
+      "groupName": "Linting Tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["eslint", "@eslint/js", "@sap/eslint-config", "prettier"]
+    },
+    {
+      "groupName": "TypeScript Build Tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript", "ts-jest", "tsx", "tsc-alias", "@tsconfig/node22", "@types/node"]
+    },
+    {
+      "groupName": "Testing Frameworks",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "jest",
+        "jest-cli",
+        "jest-fetch-mock",
+        "jest-junit",
+        "jest-watch-typeahead",
+        "fetch-mock",
+        "@types/jest",
+        "@types/js-yaml",
+        "@types/got"
+      ]
+    },
+    {
+      "groupName": "Misc Tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["rimraf", "husky", "is-ci", "lint-staged"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchDatasources": ["npm"],
+      "semanticCommitType": "chore",
+      "automerge": true
+    }
+  ]
+}
