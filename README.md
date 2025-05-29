@@ -95,10 +95,12 @@ npx @open-resource-discovery/provider-server --help
 | `--mtls-cert-path <path>`              | -                        | Yes (for mtls)   | `MTLS_CERT_PATH`             | Path to server certificate                                                                                                                            |
 | `--mtls-key-path <path>`               | -                        | Yes (for mtls)   | `MTLS_KEY_PATH`              | Path to server private key                                                                                                                            |
 | `--mtls-reject-unauthorized`           | `true`                   | No               | `MTLS_REJECT_UNAUTHORIZED`   | Reject unauthorized clients (set to 'false' to allow unauthorized certs, not recommended for production)                                              |
-| -                                      | `standard`               | No               | `MTLS_MODE`                  | mTLS mode (`standard` or `sap:cmp-mtls`)                                                                                                              |
-| -                                      | -                        | No               | `MTLS_TRUSTED_ISSUERS`       | Semicolon-separated list of trusted certificate issuers (DN format)                                                                                   |
-| -                                      | -                        | No               | `MTLS_TRUSTED_SUBJECTS`      | Semicolon-separated list of trusted certificate subjects (DN format)                                                                                  |
-| -                                      | -                        | No               | `MTLS_CONFIG_ENDPOINTS`      | Semicolon-separated list of URLs to fetch certificate configuration from                                                                              |
+| `--mtls-mode <mode>`                   | `standard`               | No               | `MTLS_MODE`                  | mTLS mode (`standard` or `sap:cmp-mtls`)                                                                                                              |
+| `--mtls-trusted-issuers <issuers>`     | -                        | No\*             | `MTLS_TRUSTED_ISSUERS`       | Semicolon-separated list of trusted certificate issuers (DN format)                                                                                   |
+| `--mtls-trusted-subjects <subjects>`   | -                        | No\*             | `MTLS_TRUSTED_SUBJECTS`      | Semicolon-separated list of trusted certificate subjects (DN format)                                                                                  |
+| `--mtls-config-endpoints <endpoints>`  | -                        | No\*             | `MTLS_CONFIG_ENDPOINTS`      | Semicolon-separated list of URLs to fetch certificate configuration from                                                                              |
+
+\* For `sap:cmp-mtls` mode, at least one of `MTLS_TRUSTED_ISSUERS`, `MTLS_TRUSTED_SUBJECTS`, or `MTLS_CONFIG_ENDPOINTS` must be provided.
 
 ### Required Structure
 
@@ -239,11 +241,11 @@ To use mTLS:
 **Example with certificate validation:**
 
 ```bash
-# Set trusted issuers and subjects
+# Option 1: Set trusted issuers and subjects
 export MTLS_TRUSTED_ISSUERS="CN=My Company CA,O=My Company,C=US"
 export MTLS_TRUSTED_SUBJECTS="CN=api-client,O=My Company,C=US;CN=web-client,O=My Company,C=US"
 
-# Or fetch from endpoints
+# Option 2: Fetch from endpoints (can be used together with Option 1)
 export MTLS_CONFIG_ENDPOINTS="https://config.mycompany.com/api/mtls-certs"
 
 # Start the server
@@ -322,11 +324,12 @@ The server will:
 >
 > - If an endpoint is unreachable, the server will log a warning and continue with other endpoints
 > - Both static configuration (via `MTLS_TRUSTED_ISSUERS/SUBJECTS`) and dynamic configuration (via `MTLS_CONFIG_ENDPOINTS`) can be used together
+> - The values from `MTLS_CONFIG_ENDPOINTS` are added to (not replacing) any values from `MTLS_TRUSTED_ISSUERS` and `MTLS_TRUSTED_SUBJECTS`
 > - Each endpoint has a default timeout of 10 seconds
 
-###### SAP Cloud Platform mTLS Mode
+###### SAP BTP (Cloud Foundry) mTLS Mode
 
-For SAP Cloud Platform deployments, the server supports a special mTLS mode that validates certificates using headers provided by the platform's proxy:
+For Cloud Foundry deployments, the server supports a special mTLS mode that validates certificates using headers provided by the platform's proxy:
 
 ```bash
 export MTLS_MODE="sap:cmp-mtls"
@@ -336,7 +339,8 @@ In this mode:
 
 - The server validates client certificates using SAP CF-specific headers (X-SSL-Client-Verify, X-SSL-Client-Subject-DN, etc.)
 - Certificate validation is performed by the platform's HAProxy/Gorouter
-- The same `MTLS_TRUSTED_ISSUERS` and `MTLS_TRUSTED_SUBJECTS` configurations apply
+- At least one of `MTLS_TRUSTED_ISSUERS`, `MTLS_TRUSTED_SUBJECTS`, or `MTLS_CONFIG_ENDPOINTS` must be provided
+- The same configuration options apply: you can use static values, dynamic endpoints, or both
 
 #### Multiple Authentication Methods
 

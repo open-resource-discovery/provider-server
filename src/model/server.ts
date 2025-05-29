@@ -78,22 +78,23 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
 
   if (options.auth.includes(OptAuthMethod.MTLS)) {
     // Check if SAP CF mTLS mode is enabled
-    const mtlsMode = process.env.MTLS_MODE || MtlsMode.Standard;
+    const mtlsMode = options.mtlsMode || MtlsMode.Standard;
 
     if (mtlsMode === MtlsMode.SapCmpMtls) {
       // In SAP CF mode, certificate files are not required
       // Parse configured trusted issuers and subjects
       const configuredTrustedCerts = {
-        trustedIssuers: process.env.MTLS_TRUSTED_ISSUERS ? process.env.MTLS_TRUSTED_ISSUERS.split(";") : undefined,
-        trustedSubjects: process.env.MTLS_TRUSTED_SUBJECTS ? process.env.MTLS_TRUSTED_SUBJECTS.split(";") : undefined,
+        trustedIssuers: options.mtlsTrustedIssuers?.split(";") || undefined,
+        trustedSubjects: options.mtlsTrustedSubjects?.split(";") || undefined,
       };
 
       let finalTrustedIssuers = configuredTrustedCerts.trustedIssuers;
       let finalTrustedSubjects = configuredTrustedCerts.trustedSubjects;
 
       // Fetch from endpoints if configured
-      if (process.env.MTLS_CONFIG_ENDPOINTS) {
-        const endpoints = process.env.MTLS_CONFIG_ENDPOINTS.split(";").filter((e) => e.trim());
+      const configEndpoints = options.mtlsConfigEndpoints;
+      if (configEndpoints) {
+        const endpoints = configEndpoints.split(";").filter((e) => e.trim());
         if (endpoints.length > 0) {
           log.info(`SAP CF mTLS: Fetching trusted certificates from ${endpoints.length} endpoints...`);
           try {
@@ -135,13 +136,14 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
     if (mtlsMode !== MtlsMode.SapCmpMtls) {
       // Parse configured trusted issuers and subjects
       const configuredTrustedCerts = {
-        trustedIssuers: process.env.MTLS_TRUSTED_ISSUERS ? process.env.MTLS_TRUSTED_ISSUERS.split(";") : undefined,
-        trustedSubjects: process.env.MTLS_TRUSTED_SUBJECTS ? process.env.MTLS_TRUSTED_SUBJECTS.split(";") : undefined,
+        trustedIssuers: options.mtlsTrustedIssuers?.split(";") || undefined,
+        trustedSubjects: options.mtlsTrustedSubjects?.split(";") || undefined,
       };
 
       // Fetch from endpoints if configured
-      if (process.env.MTLS_CONFIG_ENDPOINTS) {
-        const endpoints = process.env.MTLS_CONFIG_ENDPOINTS.split(";").filter((e) => e.trim());
+      const configEndpoints = options.mtlsConfigEndpoints || process.env.MTLS_CONFIG_ENDPOINTS;
+      if (configEndpoints) {
+        const endpoints = configEndpoints.split(";").filter((e) => e.trim());
         if (endpoints.length > 0) {
           log.info(`Fetching MTLS trusted certificates from ${endpoints.length} endpoints...`);
           try {

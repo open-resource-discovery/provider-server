@@ -61,6 +61,22 @@ program
     "--mtls-reject-unauthorized",
     "Reject unauthorized clients (defaults to true)",
     process.env.MTLS_REJECT_UNAUTHORIZED !== "false",
+  )
+  .option("--mtls-mode <mode>", "mTLS mode (standard or sap:cmp-mtls)", process.env.MTLS_MODE || "standard")
+  .option(
+    "--mtls-trusted-issuers <issuers>",
+    "Semicolon-separated list of trusted certificate issuers (DN format)",
+    process.env.MTLS_TRUSTED_ISSUERS,
+  )
+  .option(
+    "--mtls-trusted-subjects <subjects>",
+    "Semicolon-separated list of trusted certificate subjects (DN format)",
+    process.env.MTLS_TRUSTED_SUBJECTS,
+  )
+  .option(
+    "--mtls-config-endpoints <endpoints>",
+    "Semicolon-separated list of URLs to fetch certificate configuration from",
+    process.env.MTLS_CONFIG_ENDPOINTS,
   );
 
 program.version(packageJson.version);

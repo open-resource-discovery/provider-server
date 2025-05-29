@@ -55,4 +55,8 @@ export interface CommandLineOptions {
   mtlsCertPath?: string;
   mtlsKeyPath?: string;
   mtlsRejectUnauthorized?: boolean;
+  mtlsMode?: string;
+  mtlsTrustedIssuers?: string;
+  mtlsTrustedSubjects?: string;
+  mtlsConfigEndpoints?: string;
 }
