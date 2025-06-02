@@ -6,6 +6,7 @@ import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsV
 import { config } from "dotenv";
 import { MtlsMode } from "../constant.js";
 import { fetchMtlsTrustedCertsFromEndpoints, mergeTrustedCerts } from "../services/mtlsEndpointService.js";
+import { ValidationError } from "./error/ValidationError.js";
 
 config();
 
@@ -114,6 +115,18 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
             // Fall back to configured values
           }
         }
+      }
+
+      // Validate that we have at least one trusted issuer and subject configured
+      if (
+        !finalTrustedIssuers ||
+        finalTrustedIssuers.length === 0 ||
+        !finalTrustedSubjects ||
+        finalTrustedSubjects.length === 0
+      ) {
+        throw ValidationError.fromErrors([
+          "SAP CF mTLS mode requires at least one trusted issuer or trusted subject to be configured (from environment variables or config endpoints)",
+        ]);
       }
 
       providerOpts.authentication.sapCfMtls = {
