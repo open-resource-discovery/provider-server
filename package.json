@@ -40,7 +40,7 @@
     "@fastify/basic-auth": "6.2.0",
     "@fastify/etag": "6.0.3",
     "@fastify/static": "8.2.0",
-    "@open-resource-discovery/specification": "^1.9.11",
+    "@open-resource-discovery/specification": "1.9.11",
     "bcryptjs": "3.0.2",
     "commander": "^13.1.0",
     "dotenv": "16.4.7",
