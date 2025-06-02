@@ -19,3 +19,8 @@ export const PATH_CONSTANTS = {
   GITHUB_DEFAULT_ROOT: "data",
   GITHUB_DOCUMENTS_PATH: "data/documents",
 };
+
+export enum MtlsMode {
+  Standard = "standard",
+  SapCmpMtls = "sap:cmp-mtls",
+}

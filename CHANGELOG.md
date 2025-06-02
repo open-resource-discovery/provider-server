@@ -4,6 +4,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Advanced mTLS configuration support:
+  - Trusted certificate issuers validation via `MTLS_TRUSTED_ISSUERS` environment variable and `--mtls-trusted-issuers` CLI option
+  - Trusted certificate subjects validation via `MTLS_TRUSTED_SUBJECTS` environment variable and `--mtls-trusted-subjects` CLI option
+  - Dynamic certificate configuration via `MTLS_CONFIG_ENDPOINTS` environment variable and `--mtls-config-endpoints` CLI option
+  - Support for fetching trusted certificates from external endpoints at startup
+- SAP BTP (Cloud Foundry) mTLS mode (`sap:cmp-mtls`) for certificate validation using platform headers
+  - Configurable via `MTLS_MODE` environment variable and `--mtls-mode` CLI option
+  - At least one of trusted issuers, subjects, or config endpoints must be provided in this mode
+- Certificate Distinguished Name (DN) parsing and matching utilities
+- Support for combining mTLS configuration from both CLI options and environment variables
+
+### Changed
+
+- mTLS authentication now supports fine-grained certificate validation
+- Certificate validation can be configured both statically and dynamically
+- Improved mTLS middleware to support both standard TLS socket validation and SAP CF header-based validation
+- Enhanced mTLS configuration flexibility with CLI options taking precedence over environment variables
+
 ## [0.8.2] - 2025-04-16
 
 ### Added
