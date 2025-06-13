@@ -78,19 +78,29 @@ docker run -p 8080:8080 \
 npx @open-resource-discovery/provider-server --help
 ```
 
-| Option                                 | Default                  | Required         | Env Var                      | Description                                                                                                                                           |
-| -------------------------------------- | ------------------------ | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-b, --base-url <type>`                | `local`                  | Yes              | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
-| `-s, --source-type <type>`             | `local`                  | No               | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
-| `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`)                                                                                                     |
-| `-d, --directory <path>`               | -                        | Yes (for local)  | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
-| `-ds, --documents-subdirectory <path>` | `documents`              | No               | `ORD_DOCUMENTS_SUBDIRECTORY` | Directory containing the ORD Documents with at least one ORD document. Supports nested folder structures. Can also be applied to a GitHub Repository. |
-| `--host <host>`                        | `0.0.0.0`                | No               | `SERVER_HOST`                | Host for server, without port                                                                                                                         |
-| `--port <number>`                      | `8080`                   | No               | `SERVER_PORT`                | Server port                                                                                                                                           |
-| `--github-api-url <apiUrl>`            | `https://api.github.com` | Yes (for github) | `GITHUB_API_URL`             | GitHub API endpoint for API calls                                                                                                                     |
-| `--github-branch <branch>`             | `main`                   | Yes (for github) | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
-| `--github-repository <repo>`           | -                        | Yes (for github) | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
-| `--github-token <token>`               | -                        | Yes (for github) | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
+| Option                                 | Default                  | Required               | Env Var                      | Description                                                                                                                                           |
+| -------------------------------------- | ------------------------ | ---------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-b, --base-url <type>`                | `local`                  | Yes                    | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
+| `-s, --source-type <type>`             | `local`                  | No                     | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
+| `-a, --auth <types>`                   | `open`                   | No                     | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`, `mtls`)                                                                                             |
+| `-d, --directory <path>`               | -                        | Yes (for local)        | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
+| `-ds, --documents-subdirectory <path>` | `documents`              | No                     | `ORD_DOCUMENTS_SUBDIRECTORY` | Directory containing the ORD Documents with at least one ORD document. Supports nested folder structures. Can also be applied to a GitHub Repository. |
+| `--host <host>`                        | `0.0.0.0`                | No                     | `SERVER_HOST`                | Host for server, without port                                                                                                                         |
+| `--port <number>`                      | `8080`                   | No                     | `SERVER_PORT`                | Server port                                                                                                                                           |
+| `--github-api-url <apiUrl>`            | `https://api.github.com` | Yes (for github)       | `GITHUB_API_URL`             | GitHub API endpoint for API calls                                                                                                                     |
+| `--github-branch <branch>`             | `main`                   | Yes (for github)       | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
+| `--github-repository <repo>`           | -                        | Yes (for github)       | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
+| `--github-token <token>`               | -                        | Yes (for github)       | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
+| `--mtls-ca-path <path>`                | -                        | Yes (for mtls)         | `MTLS_CA_PATH`               | Path to CA certificate for validating client certificates                                                                                             |
+| `--mtls-cert-path <path>`              | -                        | Yes (for mtls)         | `MTLS_CERT_PATH`             | Path to server certificate                                                                                                                            |
+| `--mtls-key-path <path>`               | -                        | Yes (for mtls)         | `MTLS_KEY_PATH`              | Path to server private key                                                                                                                            |
+| `--mtls-reject-unauthorized`           | `true`                   | No                     | `MTLS_REJECT_UNAUTHORIZED`   | Reject unauthorized clients (set to 'false' to allow unauthorized certs, not recommended for production)                                              |
+| `--mtls-mode <mode>`                   | `standard`               | No                     | `MTLS_MODE`                  | mTLS mode (`standard` or `sap:cmp-mtls`)                                                                                                              |
+| `--mtls-trusted-issuers <issuers>`     | -                        | No\*                   | `MTLS_TRUSTED_ISSUERS`       | Semicolon-separated list of trusted certificate issuers (DN format)                                                                                   |
+| `--mtls-trusted-subjects <subjects>`   | -                        | No\*                   | `MTLS_TRUSTED_SUBJECTS`      | Semicolon-separated list of trusted certificate subjects (DN format)                                                                                  |
+| `--mtls-config-endpoints <endpoints>`  | -                        | Yes (for sap:cmp-mtls) | `MTLS_CONFIG_ENDPOINTS`      | Semicolon-separated list of URLs to fetch certificate configuration from                                                                              |
+
+\* For `sap:cmp-mtls` mode, `MTLS_CONFIG_ENDPOINTS` is mandatory. Additionally, at least one trusted issuer or subject must be available (from environment variables or config endpoints).
 
 ### Required Structure
 
@@ -192,6 +202,173 @@ This will output something like `admin:$2y$05$...` - use only the hash part (sta
 
 > [!IMPORTANT]
 > Make sure to use strong passwords and handle the BASIC_AUTH environment variable securely. Never commit real credentials or .env files to version control.
+
+#### Mutual TLS (mTLS) Authentication
+
+The server supports Mutual TLS (mTLS) authentication, which provides stronger security through certificate-based client authentication. When mTLS is enabled, both the server and client must present a certificate signed by a trusted certificate authority (CA).
+
+To use mTLS:
+
+1. **Generate Certificates**: You need:
+
+   - A CA certificate for validating client certificates
+   - A server certificate and private key
+   - Client certificates signed by the CA
+
+2. **Configure the Server** with the necessary certificate paths:
+
+   ```bash
+   npm run dev -- --auth mtls \
+     --mtls-ca-path ./certs/ca.pem \
+     --mtls-cert-path ./certs/server.crt \
+     --mtls-key-path ./certs/server.key
+   ```
+
+3. **With Docker**:
+   ```bash
+   docker run -p 8443:8443 \
+     -v "$(pwd)/path-to-your-metadata:/app/data" \
+     -v "$(pwd)/certs:/app/certs" \
+     ghcr.io/open-resource-discovery/provider-server:latest \
+     -d /app/data \
+     --auth mtls \
+     --mtls-ca-path /app/certs/ca.pem \
+     --mtls-cert-path /app/certs/server.crt \
+     --mtls-key-path /app/certs/server.key \
+     --base-url 'https://example.com'
+   ```
+
+**Example with certificate validation:**
+
+```bash
+# Option 1: Set trusted issuers and subjects
+export MTLS_TRUSTED_ISSUERS="CN=My Company CA,O=My Company,C=US"
+export MTLS_TRUSTED_SUBJECTS="CN=api-client,O=My Company,C=US;CN=web-client,O=My Company,C=US"
+
+# Option 2: Fetch from endpoints (can be used together with Option 1)
+export MTLS_CONFIG_ENDPOINTS="https://config.mycompany.com/api/mtls-certs"
+
+# Start the server
+npm run dev -- --auth mtls \
+  --mtls-ca-path ./certs/ca.pem \
+  --mtls-cert-path ./certs/server.crt \
+  --mtls-key-path ./certs/server.key \
+  --base-url 'https://api.example.com'
+```
+
+Example curl command to test manually with client certificates:
+
+```bash
+curl --cacert ./your_ca.pem \
+     --cert ./your_client.crt \
+     --key ./your_client.key \
+     https://127.0.0.1:8080/ord/v1/documents/example
+```
+
+> [!IMPORTANT]
+>
+> - The server automatically switches to HTTPS when mTLS is enabled
+> - Ensure all certificates are properly secured and maintained
+> - The `MTLS_REJECT_UNAUTHORIZED` flag controls whether TLS handshakes with unauthorized clients are rejected immediately (default), or if they're handled by the middleware
+
+##### Advanced mTLS Configuration
+
+The server supports additional mTLS configuration options for fine-grained control over client certificate validation:
+
+###### Trusted Issuers and Subjects
+
+You can restrict which client certificates are accepted by specifying trusted certificate issuers and subjects:
+
+**Environment Variables:**
+
+- `MTLS_TRUSTED_ISSUERS` - Semicolon-separated list of trusted certificate issuers
+- `MTLS_TRUSTED_SUBJECTS` - Semicolon-separated list of trusted certificate subjects
+
+Example:
+
+```bash
+export MTLS_TRUSTED_ISSUERS="CN=My Company CA,O=My Company,C=US;CN=Partner CA,O=Partner Inc,C=US"
+export MTLS_TRUSTED_SUBJECTS="CN=allowed-client,O=My Company,C=US"
+```
+
+###### Dynamic Certificate Configuration
+
+For environments where trusted certificates need to be managed dynamically, the server supports fetching certificate information from external endpoints:
+
+**Environment Variable:**
+
+- `MTLS_CONFIG_ENDPOINTS` - Semicolon-separated list of URLs that return certificate configuration
+
+Each endpoint should return a JSON response with the following fields:
+
+```json
+{
+  "certIssuer": "CN=My Company CA,O=My Company,C=US;CN=Partner CA,O=Partner Inc,C=US",
+  "certSubject": "CN=allowed-client,O=My Company,C=US"
+}
+```
+
+Example configuration:
+
+```bash
+export MTLS_CONFIG_ENDPOINTS="https://dev.example.com/mtls-certs;https://stage.example.com/certs"
+```
+
+The server will:
+
+1. Fetch certificate information from all configured endpoints at startup
+2. Merge the results with any statically configured trusted issuers/subjects
+3. Use the combined list for client certificate validation
+
+> [!NOTE]
+>
+> - If an endpoint is unreachable, the server will log a warning and continue with other endpoints
+> - Both static configuration (via `MTLS_TRUSTED_ISSUERS/SUBJECTS`) and dynamic configuration (via `MTLS_CONFIG_ENDPOINTS`) can be used together
+> - The values from `MTLS_CONFIG_ENDPOINTS` are added to (not replacing) any values from `MTLS_TRUSTED_ISSUERS` and `MTLS_TRUSTED_SUBJECTS`
+> - Each endpoint has a default timeout of 10 seconds
+
+###### SAP BTP (Cloud Foundry) mTLS Mode
+
+For Cloud Foundry deployments, the server supports a special mTLS mode that validates certificates using headers provided by the platform's proxy:
+
+```bash
+export MTLS_MODE="sap:cmp-mtls"
+export MTLS_CONFIG_ENDPOINTS="https://config.example.com/mtls-certs"
+```
+
+In this mode:
+
+- The server validates client certificates using SAP CF-specific headers (X-SSL-Client-Verify, X-SSL-Client-Subject-DN, etc.)
+- Certificate validation is performed by the platform's HAProxy/Gorouter
+- `MTLS_CONFIG_ENDPOINTS` is **mandatory** and must provide certificate configuration
+- At least one trusted issuer and subject must be available (from environment variables or config endpoints)
+- You can combine static configuration (`MTLS_TRUSTED_ISSUERS`, `MTLS_TRUSTED_SUBJECTS`) with dynamic endpoints
+
+#### Multiple Authentication Methods
+
+The server supports using multiple authentication methods simultaneously by providing a comma-separated list of authentication methods. When multiple methods are specified, a request will be authenticated if it passes any of the specified authentication methods.
+
+Currently, the following combination is supported:
+
+- `mtls,basic` - Authenticate with either mTLS certificate or basic authentication
+
+Example usage:
+
+```bash
+# Using both mTLS and basic authentication
+npm run dev -- --auth mtls,basic \
+  --mtls-ca-path ./certs/ca.pem \
+  --mtls-cert-path ./certs/server.crt \
+  --mtls-key-path ./certs/server.key \
+  --base-url 'https://example.com'
+```
+
+> [!NOTE]
+> When using multiple authentication methods:
+>
+> - The `open` method cannot be combined with any other method
+> - All requirements for each individual authentication method still apply (e.g., you need to provide both basic auth credentials and mTLS certificates)
+> - The server will try each authentication method in sequence until one succeeds
 
 <details>
 <summary>Using htpasswd in your environment</summary>

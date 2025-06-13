@@ -10,6 +10,12 @@ jest.mock("bcryptjs", () => ({
   hash: jest.fn().mockImplementation(() => Promise.resolve("hashedPassword")),
 }));
 
+// Mock the passwordHash module to make isBcryptHash always return true for our tests
+jest.mock("src/util/passwordHash.js", () => ({
+  isBcryptHash: jest.fn().mockReturnValue(true),
+  comparePassword: jest.fn().mockResolvedValue(true as never),
+}));
+
 // @ts-expect-error baseUrl pattern selection
 const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
 
@@ -230,6 +236,7 @@ describe("Options Validation", () => {
     beforeEach(() => {
       (fs.statSync as jest.Mock).mockImplementation(() => ({ isDirectory: (): boolean => true }));
       (fs.readdirSync as jest.Mock).mockReturnValue(["file1.txt"]);
+      (fs.existsSync as jest.Mock).mockReset();
     });
 
     it("should throw error for mixed auth with open strategy", async () => {
@@ -250,6 +257,80 @@ describe("Options Validation", () => {
         documentsSubdirectory: "documents",
       };
       await expect(validateAndParseOptions(options)).rejects.toThrow();
+    });
+
+    it("should throw error for mtls auth without certificate paths", async () => {
+      const options = {
+        sourceType: OptSourceType.Local,
+        directory: "./test-dir",
+        auth: [OptAuthMethod.MTLS],
+        documentsSubdirectory: "documents",
+        baseUrl,
+      };
+      await expect(validateAndParseOptions(options)).rejects.toThrow(/missing parameters/);
+    });
+
+    it("should throw error if mtls certificate files don't exist", async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((path) => {
+        // Only the CA path exists
+        return path === "/path/to/ca.pem";
+      });
+
+      const options = {
+        sourceType: OptSourceType.Local,
+        directory: "./test-dir",
+        auth: [OptAuthMethod.MTLS],
+        documentsSubdirectory: "documents",
+        baseUrl,
+        mtlsCaPath: "/path/to/ca.pem",
+        mtlsCertPath: "/path/to/cert.pem", // These don't exist in our mock
+        mtlsKeyPath: "/path/to/key.pem", // These don't exist in our mock
+      };
+      await expect(validateAndParseOptions(options)).rejects.toThrow(/certificate file not found/);
+    });
+
+    it("should validate mtls auth with all required certificate paths", async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.statSync as jest.Mock).mockImplementation(mockStatSyncImplementation);
+      (fs.readdirSync as jest.Mock).mockReturnValue(["file1.json"]);
+      (fs.readFileSync as jest.Mock).mockImplementation(() => JSON.stringify({ openResourceDiscovery: {} }));
+
+      const options = {
+        sourceType: OptSourceType.Local,
+        directory: "./test-dir",
+        auth: [OptAuthMethod.MTLS],
+        documentsSubdirectory: "documents",
+        baseUrl,
+        mtlsCaPath: "/path/to/ca.pem",
+        mtlsCertPath: "/path/to/cert.pem",
+        mtlsKeyPath: "/path/to/key.pem",
+      };
+      await expect(validateAndParseOptions(options)).resolves.toBeDefined();
+    });
+
+    it("should validate combination of mtls and basic auth", async () => {
+      // Properly format the BASIC_AUTH json string - the isBcryptHash check is mocked above
+      process.env.BASIC_AUTH = '{"admin":"$2a$10$xxxxxxxxxxxxxxxxxxxxxxxx"}';
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.statSync as jest.Mock).mockImplementation(mockStatSyncImplementation);
+      (fs.readdirSync as jest.Mock).mockReturnValue(["file1.json"]);
+      (fs.readFileSync as jest.Mock).mockImplementation(() => JSON.stringify({ openResourceDiscovery: {} }));
+
+      const options = {
+        sourceType: OptSourceType.Local,
+        directory: "./test-dir",
+        auth: [OptAuthMethod.MTLS, OptAuthMethod.Basic],
+        documentsSubdirectory: "documents",
+        baseUrl,
+        mtlsCaPath: "/path/to/ca.pem",
+        mtlsCertPath: "/path/to/cert.pem",
+        mtlsKeyPath: "/path/to/key.pem",
+      };
+
+      await expect(validateAndParseOptions(options)).resolves.toBeDefined();
+
+      delete process.env.BASIC_AUTH;
     });
   });
 
