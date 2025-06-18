@@ -4,7 +4,7 @@ import { PATH_CONSTANTS } from "../constant.js";
 import { log } from "../util/logger.js";
 import { BaseRouter } from "./baseRouter.js";
 import { FqnDocumentMap, isOrdId } from "../util/fqnHelpers.js";
-import { joinFilePaths } from "../util/pathUtils.js";
+import { joinFilePaths, ordIdToPathSegment } from "../util/pathUtils.js";
 import { OptAuthMethod } from "../model/cli.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { InternalServerError } from "../model/error/InternalServerError.js";
@@ -121,7 +121,11 @@ export class DocumentRouter extends BaseRouter {
       if (resourceMap) {
         relativePath = resourceMap.filePath;
       } else {
-        relativePath = joinFilePaths(ordId, unknownPath);
+        if (isOrdId(ordId)) {
+          relativePath = joinFilePaths(ordIdToPathSegment(ordId), unknownPath);
+        } else {
+          relativePath = joinFilePaths(ordId, unknownPath);
+        }
       }
 
       try {
