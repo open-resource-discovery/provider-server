@@ -45,14 +45,16 @@ export class DocumentRouter extends BaseRouter {
 
       try {
         const document = await this.documentService.getProcessedDocument(relativePath);
-        return document;
+        return reply.send(document);
       } catch (error) {
         log.error(`Error fetching document ${relativePath}: ${error}`);
         if (error instanceof BackendError) {
-          return reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          return reply;
         } else {
           const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          return reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          return reply;
         }
       }
     });
@@ -64,7 +66,8 @@ export class DocumentRouter extends BaseRouter {
 
       // Skip if this is a documents route or another known route handled elsewhere
       if (fileName === this.documentsSubDirectory || fileName === ".well-known") {
-        return reply.callNotFound();
+        reply.callNotFound();
+        return reply;
       }
 
       try {
@@ -74,10 +77,12 @@ export class DocumentRouter extends BaseRouter {
           const contentString = Buffer.isBuffer(content) ? content.toString("utf-8") : content;
           try {
             const jsonData = JSON.parse(contentString);
-            return reply.type("application/json").send(jsonData);
+            reply.type("application/json").send(jsonData);
+            return reply;
           } catch (_parseError) {
             log.warn(`Failed to parse JSON for ${fileName}, returning raw string content with JSON header.`);
-            return reply.type("application/json").send(contentString);
+            reply.type("application/json").send(contentString);
+            return reply;
           }
         } else {
           // For non-JSON files, send the content directly.
@@ -86,10 +91,12 @@ export class DocumentRouter extends BaseRouter {
       } catch (error) {
         log.error(`Error fetching root file ${fileName}: ${error}`);
         if (error instanceof BackendError) {
-          return reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          return reply;
         } else {
           const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          return reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          return reply;
         }
       }
     });
@@ -101,7 +108,8 @@ export class DocumentRouter extends BaseRouter {
 
       // Skip if this is a documents route
       if (ordId === this.documentsSubDirectory) {
-        return reply.callNotFound();
+        reply.callNotFound();
+        return reply;
       }
 
       let fileName = unknownPath;
@@ -131,10 +139,12 @@ export class DocumentRouter extends BaseRouter {
           const contentString = Buffer.isBuffer(content) ? content.toString("utf-8") : content;
           try {
             const jsonData = JSON.parse(contentString);
-            return reply.type("application/json").send(jsonData);
+            reply.type("application/json").send(jsonData);
+            return reply;
           } catch (_parseError) {
             log.warn(`Failed to parse JSON for ${relativePath}, returning raw string content with JSON header.`);
-            return reply.type("application/json").send(contentString);
+            reply.type("application/json").send(contentString);
+            return reply;
           }
         } else {
           return reply.send(content);
@@ -142,10 +152,12 @@ export class DocumentRouter extends BaseRouter {
       } catch (error) {
         log.error(`Error fetching resource file ${relativePath}: ${error}`);
         if (error instanceof BackendError) {
-          return reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          return reply;
         } else {
           const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          return reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          return reply;
         }
       }
     });
