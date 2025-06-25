@@ -48,13 +48,11 @@ export class DocumentRouter extends BaseRouter {
         return reply.send(document);
       } catch (error) {
         log.error(`Error fetching document ${relativePath}: ${error}`);
+        // Let the error propagate to the global error handler
         if (error instanceof BackendError) {
-          reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
-          return reply;
+          throw error;
         } else {
-          const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
-          return reply;
+          throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
         }
       }
     });
@@ -66,8 +64,7 @@ export class DocumentRouter extends BaseRouter {
 
       // Skip if this is a documents route or another known route handled elsewhere
       if (fileName === this.documentsSubDirectory || fileName === ".well-known") {
-        reply.callNotFound();
-        return reply;
+        return reply.callNotFound();
       }
 
       try {
@@ -77,12 +74,10 @@ export class DocumentRouter extends BaseRouter {
           const contentString = Buffer.isBuffer(content) ? content.toString("utf-8") : content;
           try {
             const jsonData = JSON.parse(contentString);
-            reply.type("application/json").send(jsonData);
-            return reply;
+            return reply.type("application/json").send(jsonData);
           } catch (_parseError) {
             log.warn(`Failed to parse JSON for ${fileName}, returning raw string content with JSON header.`);
-            reply.type("application/json").send(contentString);
-            return reply;
+            return reply.type("application/json").send(contentString);
           }
         } else {
           // For non-JSON files, send the content directly.
@@ -90,13 +85,11 @@ export class DocumentRouter extends BaseRouter {
         }
       } catch (error) {
         log.error(`Error fetching root file ${fileName}: ${error}`);
+        // Let the error propagate to the global error handler
         if (error instanceof BackendError) {
-          reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
-          return reply;
+          throw error;
         } else {
-          const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
-          return reply;
+          throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
         }
       }
     });
@@ -108,8 +101,7 @@ export class DocumentRouter extends BaseRouter {
 
       // Skip if this is a documents route
       if (ordId === this.documentsSubDirectory) {
-        reply.callNotFound();
-        return reply;
+        return reply.callNotFound();
       }
 
       let fileName = unknownPath;
@@ -139,25 +131,21 @@ export class DocumentRouter extends BaseRouter {
           const contentString = Buffer.isBuffer(content) ? content.toString("utf-8") : content;
           try {
             const jsonData = JSON.parse(contentString);
-            reply.type("application/json").send(jsonData);
-            return reply;
+            return reply.type("application/json").send(jsonData);
           } catch (_parseError) {
             log.warn(`Failed to parse JSON for ${relativePath}, returning raw string content with JSON header.`);
-            reply.type("application/json").send(contentString);
-            return reply;
+            return reply.type("application/json").send(contentString);
           }
         } else {
           return reply.send(content);
         }
       } catch (error) {
         log.error(`Error fetching resource file ${relativePath}: ${error}`);
+        // Let the error propagate to the global error handler
         if (error instanceof BackendError) {
-          reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
-          return reply;
+          throw error;
         } else {
-          const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
-          return reply;
+          throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
         }
       }
     });
