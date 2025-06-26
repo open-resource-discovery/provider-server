@@ -45,10 +45,6 @@ export class DocumentRouter extends BaseRouter {
 
       try {
         const document = await this.documentService.getProcessedDocument(relativePath);
-        if (reply.sent) {
-          log.info(`[DOCUMENTS ROUTE] Reply already sent for ${relativePath}!`);
-          return;
-        }
         return reply.send(document);
       } catch (error) {
         log.error(`Error fetching document ${relativePath}: ${error}`);
