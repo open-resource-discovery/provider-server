@@ -41,18 +41,18 @@ export class DocumentRouter extends BaseRouter {
       const { "*": documentPath } = request.params as { "*": string };
       const documentPathWithExtension = documentPath.endsWith(".json") ? documentPath : `${documentPath}.json`;
       const relativePath = `${this.documentsSubDirectory}/${documentPathWithExtension}`;
-      log.info(`Request received for ORD document: ${relativePath}`);
+      log.info(`[DOCUMENTS ROUTE] Request received for ORD document: ${relativePath}`);
 
       try {
         const document = await this.documentService.getProcessedDocument(relativePath);
-        return document;
+        return reply.send(document);
       } catch (error) {
         log.error(`Error fetching document ${relativePath}: ${error}`);
+        // Let the error propagate to the global error handler
         if (error instanceof BackendError) {
-          return reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          throw error;
         } else {
-          const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          return reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
         }
       }
     });
@@ -85,11 +85,11 @@ export class DocumentRouter extends BaseRouter {
         }
       } catch (error) {
         log.error(`Error fetching root file ${fileName}: ${error}`);
+        // Let the error propagate to the global error handler
         if (error instanceof BackendError) {
-          return reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          throw error;
         } else {
-          const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          return reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
         }
       }
     });
@@ -97,7 +97,7 @@ export class DocumentRouter extends BaseRouter {
     server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/:ordId/*`, async (request, reply) => {
       let { ordId } = request.params as { ordId: string };
       const { "*": unknownPath } = request.params as { "*": string };
-      log.info(`Request received for resource file: ordId=${ordId}, path=${unknownPath}`);
+      log.info(`[ORDID ROUTE] Request received for resource file: ordId=${ordId}, path=${unknownPath}`);
 
       // Skip if this is a documents route
       if (ordId === this.documentsSubDirectory) {
@@ -141,11 +141,11 @@ export class DocumentRouter extends BaseRouter {
         }
       } catch (error) {
         log.error(`Error fetching resource file ${relativePath}: ${error}`);
+        // Let the error propagate to the global error handler
         if (error instanceof BackendError) {
-          return reply.code(error.getHttpStatusCode()).send(error.getErrorResponse());
+          throw error;
         } else {
-          const internalError = new InternalServerError(error instanceof Error ? error.message : "Unknown error");
-          return reply.code(internalError.getHttpStatusCode()).send(internalError.getErrorResponse());
+          throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
         }
       }
     });
