@@ -43,7 +43,7 @@
     "@open-resource-discovery/specification": "1.11.1",
     "bcryptjs": "3.0.2",
     "commander": "14.0.0",
-    "dotenv": "16.5.0",
+    "dotenv": "16.6.1",
     "fastify": "5.4.0",
     "fastify-plugin": "5.0.1",
     "pino": "9.7.0",
