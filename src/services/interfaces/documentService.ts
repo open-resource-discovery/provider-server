@@ -1,5 +1,6 @@
 import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js"; // Import FqnDocumentMap
+import { Perspective } from "../../model/perspective.js";
 
 export interface DocumentService {
   /**
@@ -12,9 +13,10 @@ export interface DocumentService {
 
   /**
    * Gets the processed ORD configuration, handling caching.
+   * @param perspective Optional perspective filter to filter documents by perspective.
    * @returns The processed ORD configuration.
    */
-  getOrdConfiguration(): Promise<ORDConfiguration>;
+  getOrdConfiguration(perspective?: Perspective): Promise<ORDConfiguration>;
 
   /**
    * Gets the content of a non-ORD file.
