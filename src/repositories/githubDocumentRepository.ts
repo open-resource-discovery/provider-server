@@ -12,6 +12,11 @@ export class GithubDocumentRepository implements DocumentRepository {
   private readonly githubToken?: string;
   private readonly rootPath: string;
 
+  // Throttling properties for directory hash
+  private lastHashFetchTime: number = 0;
+  private cachedDirectoryHash: string | null = null;
+  private readonly HASH_THROTTLE_DURATION = 10000; // 10 seconds in milliseconds
+
   public constructor(githubOpts: GithubOpts) {
     this.githubInstance = {
       host: githubOpts.githubApiUrl,
@@ -75,10 +80,25 @@ export class GithubDocumentRepository implements DocumentRepository {
 
   // Expects directoryPath relative to rootPath
   public async getDirectoryHash(relativePath: string): Promise<string | null> {
+    const currentTime = Date.now();
+    const timeSinceLastFetch = currentTime - this.lastHashFetchTime;
+
+    // Check if we should use cached hash
+    if (this.cachedDirectoryHash && timeSinceLastFetch < this.HASH_THROTTLE_DURATION) {
+      log.debug(`Using cached directory hash (${timeSinceLastFetch}ms since last fetch)`);
+      return this.cachedDirectoryHash;
+    }
+
+    // Fetch new hash from GitHub
     const fullDirectoryPath = this.getFullGithubPath(relativePath);
     try {
+      log.debug(`Fetching fresh directory hash from GitHub (${timeSinceLastFetch}ms since last fetch)`);
       const hash = await getDirectoryHash(this.githubInstance, fullDirectoryPath, this.githubToken);
-      return hash || null;
+
+      this.cachedDirectoryHash = hash || null;
+      this.lastHashFetchTime = currentTime;
+
+      return this.cachedDirectoryHash;
     } catch (error) {
       log.error(`Error fetching directory hash from GitHub path ${fullDirectoryPath}: ${error}`);
       return null;
