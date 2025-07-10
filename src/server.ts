@@ -12,6 +12,11 @@ import { type ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
 import { RouterFactory } from "./factories/routerFactory.js";
 import { FqnDocumentMap } from "./util/fqnHelpers.js";
+import { FileSystemManager } from "./services/fileSystemManager.js";
+import { GithubContentFetcher } from "./services/githubContentFetcher.js";
+import { UpdateScheduler } from "./services/updateScheduler.js";
+import { WebhookRouter } from "./routes/webhookRouter.js";
+import { buildGithubConfig } from "./model/github.js";
 
 // Helper to get package.json version
 function getPackageVersion(): string {
@@ -32,6 +37,9 @@ export { ProviderServerOptions }; // Re-export the type
 
 type ShutdownFunction = () => Promise<void>;
 
+let fileSystemManager: FileSystemManager | null = null;
+let updateScheduler: UpdateScheduler | null = null;
+
 export async function startProviderServer(opts: ProviderServerOptions): Promise<ShutdownFunction> {
   log.info("============================================================");
   log.info("ORD Provider Server");
@@ -42,6 +50,17 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     ignoreTrailingSlash: true,
     exposeHeadRoutes: true,
   });
+
+  // Initialize file system manager
+  fileSystemManager = new FileSystemManager({
+    dataDir: opts.dataDir,
+  });
+  await fileSystemManager.initialize();
+
+  // Perform warm-up if using GitHub source
+  if (opts.sourceType === OptSourceType.Github) {
+    await performWarmup(opts);
+  }
 
   // Basic server setup
   await setupServer(server);
@@ -55,15 +74,75 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   // Configure routing based on source type
   await setupRouting(server, opts);
 
+  // Setup webhook endpoint if using GitHub
+  if (opts.sourceType === OptSourceType.Github && updateScheduler) {
+    const webhookRouter = new WebhookRouter(
+      updateScheduler,
+      {
+        secret: opts.webhookSecret,
+        branch: opts.githubBranch!,
+      },
+      log,
+    );
+    webhookRouter.register(server);
+  }
+
   return await startServer(server, opts);
+}
+
+async function performWarmup(opts: ProviderServerOptions): Promise<void> {
+  log.info("Performing server warm-up...");
+
+  const githubConfig = buildGithubConfig({
+    apiUrl: opts.githubApiUrl!,
+    repository: opts.githubRepository!,
+    branch: opts.githubBranch!,
+    token: opts.githubToken,
+    rootDirectory: opts.ordDirectory,
+  });
+
+  const contentFetcher = new GithubContentFetcher(githubConfig);
+
+  updateScheduler = new UpdateScheduler(
+    {
+      updateDelay: opts.updateDelay,
+      updateInterval: opts.updateInterval,
+    },
+    contentFetcher,
+    fileSystemManager!,
+    log,
+  );
+
+  // Initialize the scheduler to load metadata
+  await updateScheduler.initialize();
+
+  // Check if we have a current version
+  const currentVersion = await fileSystemManager!.getCurrentVersion();
+
+  if (!currentVersion) {
+    log.info("No current version found. Fetching initial content from GitHub...");
+
+    try {
+      await updateScheduler.forceUpdate();
+      log.info("Initial content fetch completed successfully");
+    } catch (error) {
+      log.fatal("Failed to fetch initial content from GitHub: %s", error);
+      throw error;
+    }
+  } else {
+    log.info(`Using existing version: ${currentVersion}`);
+  }
 }
 
 async function setupServer(server: FastifyInstanceType): Promise<void> {
   server.setErrorHandler(errorHandler);
   await server.register(fastifyETag);
 
-  // Register status router
-  await server.register(statusRouter);
+  // Register status router with enhanced functionality
+  await server.register(statusRouter, {
+    fileSystemManager,
+    updateScheduler,
+  });
 
   // Add version header to all responses
   server.addHook("onSend", (_request, reply, _, done) => {
@@ -87,6 +166,9 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   log.info(`>> GitHub Repository: ${opts.githubRepository || "-"}`);
   log.info(`>> GitHub Branch: ${opts.githubBranch || "-"}`);
   log.info(`>> GitHub Token: ${opts.githubToken?.slice(-4).padStart(opts.githubToken.length, "*") || "-"}`);
+  log.info(`>> Data Directory: ${opts.dataDir}`);
+  log.info(`>> Update Delay: ${opts.updateDelay / 1000}s`);
+  log.info(`>> Update Interval: ${opts.updateInterval / 60000}m`);
   if (opts.authentication?.methods) {
     log.info(`>> Authentication Methods: ${opts.authentication.methods.join(", ")}`);
   }
@@ -96,30 +178,19 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     );
   }
 
-  // FQN map generation is now handled within the DocumentService,
-  // triggered by the RouterFactory when creating the service instance.
-  // We still need to pass an initial (empty) map to the factory options,
-  // as the factory passes it down, but the *real* map used by the router
-  // will be the one generated and retrieved by the factory from the service.
   const initialFqnDocumentMap: FqnDocumentMap = {};
 
+  // For GitHub source, always use local filesystem with the current version directory
+  const effectiveOrdDirectory =
+    opts.sourceType === OptSourceType.Github ? fileSystemManager!.getCurrentPath() : opts.ordDirectory;
+
   const router = await RouterFactory.createRouter({
-    sourceType: opts.sourceType,
+    sourceType: OptSourceType.Local, // Always use local mode now
     baseUrl: baseUrl,
     authMethods: opts.authentication.methods,
     fqnDocumentMap: initialFqnDocumentMap,
     documentsSubDirectory: opts.ordDocumentsSubDirectory,
-    githubOpts:
-      opts.sourceType === OptSourceType.Github
-        ? {
-            githubApiUrl: opts.githubApiUrl!,
-            githubRepository: opts.githubRepository!,
-            githubBranch: opts.githubBranch!,
-            githubToken: opts.githubToken,
-            customDirectory: opts.ordDirectory,
-          }
-        : undefined,
-    ordDirectory: opts.sourceType === OptSourceType.Local ? opts.ordDirectory : undefined,
+    ordDirectory: effectiveOrdDirectory,
   });
 
   router.register(server);

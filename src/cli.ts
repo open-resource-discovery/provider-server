@@ -49,7 +49,15 @@ program
   .option("--github-api-url <githubApiUrl>", "GitHub host to make API calls", process.env.GITHUB_API_URL)
   .option("--github-branch <githubBranch>", "GitHub branch", process.env.GITHUB_BRANCH)
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
-  .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN);
+  .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
+  .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
+  .option("--webhook-secret <webhookSecret>", "GitHub webhook secret", process.env.WEBHOOK_SECRET)
+  .option("--update-delay <updateDelay>", "Delay before processing webhook (seconds)", process.env.UPDATE_DELAY || "30")
+  .option(
+    "--update-interval <updateInterval>",
+    "Minimum time between updates (minutes)",
+    process.env.UPDATE_INTERVAL || "5",
+  );
 
 program.version(packageJson.version);
 program.addHelpText("before", "Loads and validates ORD documents and exposes them as an ORD Document API\n");

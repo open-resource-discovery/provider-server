@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import path from "path";
+import * as fs from "fs/promises";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
 import { PATH_CONSTANTS } from "../constant.js";
@@ -9,6 +10,14 @@ import { PATH_CONSTANTS } from "../constant.js";
 jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
   hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+}));
+
+// Mock p-limit to avoid ESM issues in tests
+jest.mock("p-limit", () => ({
+  default:
+    () =>
+    (fn: () => unknown): unknown =>
+      fn(),
 }));
 
 describe("End-to-End Testing", () => {
@@ -31,11 +40,20 @@ describe("End-to-End Testing", () => {
         methods: [OptAuthMethod.Basic],
         basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
       },
+      dataDir: "./test-data",
+      updateDelay: 30000,
+      updateInterval: 300000,
     });
   });
 
   afterAll(async () => {
     await shutdownServer();
+    // Clean up test data directory
+    try {
+      await fs.rm("./test-data", { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   it("should complete full user journey", async () => {

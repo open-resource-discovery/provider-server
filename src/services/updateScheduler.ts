@@ -1,0 +1,182 @@
+import { EventEmitter } from "events";
+import { ContentFetcher, ContentFetchProgress } from "./interfaces/contentFetcher.js";
+import { FileSystemManager } from "./fileSystemManager.js";
+import { Logger } from "pino";
+
+export interface UpdateSchedulerConfig {
+  updateDelay: number; // milliseconds
+  updateInterval: number; // milliseconds
+}
+
+export interface UpdateStatus {
+  lastUpdateTime: Date | null;
+  scheduledUpdateTime: Date | null;
+  updateInProgress: boolean;
+  failedUpdates: number;
+  currentVersion: string | null;
+}
+
+export class UpdateScheduler extends EventEmitter {
+  private readonly config: UpdateSchedulerConfig;
+  private readonly contentFetcher: ContentFetcher;
+  private readonly fileSystemManager: FileSystemManager;
+  private readonly logger: Logger;
+
+  private updateTimeout: NodeJS.Timeout | null = null;
+  private updateInProgress = false;
+  private lastUpdateTime: Date | null = null;
+  private scheduledUpdateTime: Date | null = null;
+  private failedUpdates = 0;
+
+  public constructor(
+    config: UpdateSchedulerConfig,
+    contentFetcher: ContentFetcher,
+    fileSystemManager: FileSystemManager,
+    logger: Logger,
+  ) {
+    super();
+    this.config = config;
+    this.contentFetcher = contentFetcher;
+    this.fileSystemManager = fileSystemManager;
+    this.logger = logger;
+  }
+
+  public async initialize(): Promise<void> {
+    // Load last update time from metadata
+    const metadata = await this.fileSystemManager.getMetadata();
+    if (metadata) {
+      this.lastUpdateTime = metadata.fetchTime;
+      this.logger.info(`Loaded last update time from metadata: ${this.lastUpdateTime.toISOString()}`);
+    }
+  }
+
+  public scheduleUpdate(delay?: number): void {
+    let effectiveDelay = delay ?? this.config.updateDelay;
+
+    // Check if we're within the throttle interval
+    if (this.lastUpdateTime) {
+      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime.getTime();
+      if (timeSinceLastUpdate < this.config.updateInterval) {
+        const remainingTime = this.config.updateInterval - timeSinceLastUpdate;
+        this.logger.info(`Update throttled. Next update allowed in ${Math.ceil(remainingTime / 1000)}s`);
+        // Use the remaining time instead of passing it recursively
+        effectiveDelay = Math.max(effectiveDelay, remainingTime);
+      }
+    }
+
+    // Cancel any existing scheduled update
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
+
+    // Abort any running update
+    if (this.updateInProgress) {
+      this.logger.info("Aborting current update to schedule new one");
+      this.contentFetcher.abortFetch();
+    }
+
+    this.scheduledUpdateTime = new Date(Date.now() + effectiveDelay);
+    this.logger.info(`Update scheduled for ${this.scheduledUpdateTime.toISOString()}`);
+
+    this.updateTimeout = setTimeout(() => {
+      this.performUpdate().catch((error) => {
+        this.logger.error("Update failed: %s", error);
+        this.failedUpdates++;
+        this.emit("update-failed", error);
+      });
+    }, effectiveDelay);
+
+    this.emit("update-scheduled", this.scheduledUpdateTime);
+  }
+
+  public async forceUpdate(): Promise<void> {
+    if (this.updateInProgress) {
+      throw new Error("Update already in progress");
+    }
+
+    // Cancel scheduled update
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+      this.scheduledUpdateTime = null;
+    }
+
+    await this.performUpdate();
+  }
+
+  private async performUpdate(): Promise<void> {
+    if (this.updateInProgress) {
+      return;
+    }
+
+    this.updateInProgress = true;
+    this.scheduledUpdateTime = null;
+    this.emit("update-started");
+
+    const tempDir = await this.fileSystemManager.getTempDirectory();
+
+    try {
+      this.logger.info("Starting content update");
+
+      // Fetch content to temp directory
+      const metadata = await this.contentFetcher.fetchAllContent(tempDir, (progress: ContentFetchProgress) => {
+        this.emit("update-progress", progress);
+      });
+
+      // Validate the new content
+      const isValid = await this.fileSystemManager.validateContent(tempDir);
+      if (!isValid) {
+        throw new Error("Content validation failed");
+      }
+
+      // Atomically swap directories
+      await this.fileSystemManager.swapDirectories(tempDir);
+
+      // Save metadata
+      await this.fileSystemManager.saveMetadata(metadata);
+
+      this.lastUpdateTime = metadata.fetchTime;
+      this.failedUpdates = 0;
+
+      this.logger.info(`Successfully updated content to commit ${metadata.commitHash}`);
+      this.emit("update-completed");
+    } catch (error) {
+      this.logger.error(`Update failed: ${error}`);
+      this.failedUpdates++;
+
+      // Cleanup failed update
+      try {
+        await this.fileSystemManager.cleanupTempDirectory();
+      } catch (cleanupError) {
+        this.logger.error("Failed to cleanup temp directory:", cleanupError);
+      }
+
+      throw error;
+    } finally {
+      this.updateInProgress = false;
+    }
+  }
+
+  public getStatus(): UpdateStatus {
+    return {
+      lastUpdateTime: this.lastUpdateTime,
+      scheduledUpdateTime: this.scheduledUpdateTime,
+      updateInProgress: this.updateInProgress,
+      failedUpdates: this.failedUpdates,
+      currentVersion: null, // Will be set by fileSystemManager
+    };
+  }
+
+  public isUpdateScheduled(): boolean {
+    return this.scheduledUpdateTime !== null;
+  }
+
+  public isUpdateInProgress(): boolean {
+    return this.updateInProgress;
+  }
+
+  public getLastUpdateTime(): Date | null {
+    return this.lastUpdateTime;
+  }
+}

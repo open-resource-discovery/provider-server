@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@open-resource-discovery/specification";
 import path from "path";
+import * as fs from "fs/promises";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
@@ -10,6 +11,14 @@ import { getPackageVersion } from "../routes/statusRouter.js";
 jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
   hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+}));
+
+// Mock p-limit to avoid ESM issues in tests
+jest.mock("p-limit", () => ({
+  default:
+    () =>
+    (fn: () => unknown): unknown =>
+      fn(),
 }));
 
 describe("Server Integration", () => {
@@ -34,6 +43,9 @@ describe("Server Integration", () => {
         methods: [OptAuthMethod.Basic],
         basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
       },
+      dataDir: "./test-data",
+      updateDelay: 30000,
+      updateInterval: 300000,
     };
 
     shutdownServer = await startProviderServer(options);
@@ -41,6 +53,12 @@ describe("Server Integration", () => {
 
   afterAll(async () => {
     await shutdownServer();
+    // Clean up test data directory
+    try {
+      await fs.rm("./test-data", { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   describe("Well-Known Endpoint", () => {
@@ -216,6 +234,9 @@ describe("Server Integration", () => {
           methods: [OptAuthMethod.Basic],
           basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
         },
+        dataDir: "./test-data-2",
+        updateDelay: 30000,
+        updateInterval: 300000,
       };
 
       shutdownServer = await startProviderServer(options);
@@ -223,6 +244,12 @@ describe("Server Integration", () => {
 
     afterAll(async () => {
       await shutdownServer();
+      // Clean up test data directory
+      try {
+        await fs.rm("./test-data-2", { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     });
 
     it("should accept basic auth when multiple auth methods are configured", async () => {
@@ -287,7 +314,7 @@ describe("Server Integration", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("x-ord-provider-server-version")).toBe(packageVersion);
       const data = await response.json();
-      expect(data).toEqual({ version: packageVersion });
+      expect(data).toEqual({ health: "healthy", version: packageVersion });
     });
   });
 });

@@ -46,3 +46,6 @@ coverage/
 .env.test
 
 manifest.yaml
+
+# Data directory for static file serving
+data/
