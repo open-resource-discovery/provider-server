@@ -12,7 +12,7 @@ export function hasPerspecive(doc: ORDDocument): boolean {
 }
 
 /**
- * Get the perspective from a document, defaulting to system-version
+ * Get the perspective from a document, defaulting to system-instance
  * Note: This uses our custom default instead of the spec's default
  */
 export function getDocumentPerspective(doc: ORDDocument): Perspective {

@@ -181,6 +181,7 @@ export class DocumentService implements DocumentServiceInterface {
 
     return {
       ...document,
+      perspective: getDocumentPerspective(document),
       describedSystemInstance: {
         ...document.describedSystemInstance,
         baseUrl: this.processingContext.baseUrl,
