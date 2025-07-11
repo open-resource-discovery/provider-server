@@ -26,7 +26,6 @@ interface StatusRouterOptions extends FastifyPluginOptions {
 }
 
 interface StatusResponse {
-  health: "healthy" | "degraded" | "unhealthy";
   version: string;
   content?: {
     lastFetchTime: string | null;
@@ -46,7 +45,6 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
   fastify.get("/api/v1/status", async (_request: FastifyRequest, _reply: FastifyReply): Promise<StatusResponse> => {
     const response: StatusResponse = {
       version,
-      health: "healthy",
     };
 
     if (opts.fileSystemManager && opts.updateScheduler) {
@@ -64,13 +62,6 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
         scheduledUpdateTime: updateStatus.scheduledUpdateTime?.toISOString() || null,
         failedUpdates: updateStatus.failedUpdates,
       };
-
-      // Set health based on failed updates
-      if (updateStatus.failedUpdates > 5) {
-        response.health = "unhealthy";
-      } else if (updateStatus.failedUpdates > 0) {
-        response.health = "degraded";
-      }
     }
 
     return response;
@@ -195,7 +186,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
             const button = document.getElementById('updateButton');
             button.disabled = true;
             button.textContent = 'Scheduling...';
-            
+
             fetch('/webhook/github', {
                 method: 'POST',
                 headers: {
@@ -218,7 +209,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
                 button.disabled = false;
             });
         }
-        
+
         // Auto-refresh every 30 seconds
         setInterval(() => {
             location.reload();
@@ -228,20 +219,13 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
 <body>
     <div class="container">
         <h1>ORD Provider Server Status</h1>
-        
+
         <div class="status-grid">
-            <div class="status-item">
-                <div class="status-label">Health Status</div>
-                <div class="status-value">
-                    <span class="health-badge health-${statusData.health}">${statusData.health.toUpperCase()}</span>
-                </div>
-            </div>
-            
             <div class="status-item">
                 <div class="status-label">Server Version</div>
                 <div class="status-value">${statusData.version}</div>
             </div>
-            
+
             ${
               statusData.content
                 ? `
@@ -249,7 +233,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
                     <div class="status-label">Content Version</div>
                     <div class="status-value">${statusData.content.currentVersion || "No version"}</div>
                 </div>
-                
+
                 <div class="status-item">
                     <div class="status-label">Last Update</div>
                     <div class="status-value">${
@@ -258,7 +242,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
                         : "Never"
                     }</div>
                 </div>
-                
+
                 <div class="status-item">
                     <div class="status-label">Update Status</div>
                     <div class="status-value">
@@ -272,7 +256,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
                         }
                     </div>
                 </div>
-                
+
                 ${
                   statusData.content.failedUpdates > 0
                     ? `
@@ -283,10 +267,10 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
                 `
                     : ""
                 }
-                
-                <button 
-                    id="updateButton" 
-                    class="update-button" 
+
+                <button
+                    id="updateButton"
+                    class="update-button"
                     onclick="triggerUpdate()"
                     ${statusData.content.updateStatus !== "idle" ? "disabled" : ""}
                 >
