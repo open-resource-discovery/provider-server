@@ -22,6 +22,10 @@ export interface ProviderServerOptions {
     methods: OptAuthMethod[];
     basicAuthUsers?: Record<string, string>;
   };
+  dataDir: string;
+  webhookSecret?: string;
+  updateDelay: number;
+  updateInterval: number;
 }
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
@@ -58,5 +62,9 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       methods: options.auth,
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
+    dataDir: options.dataDir || "./data",
+    webhookSecret: options.webhookSecret,
+    updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
+    updateInterval: (parseInt(options.updateInterval as string) || 5) * 60 * 1000, // Convert minutes to milliseconds
   };
 }
