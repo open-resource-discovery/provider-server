@@ -39,7 +39,7 @@ describe("Perspective Support", () => {
   });
 
   describe("getDocumentPerspective", () => {
-    it("should default to 'system-version' when no perspective is specified", async () => {
+    it("should default to 'system-instance' when no perspective is specified", async () => {
       const doc1 = createMockDocument();
       const doc2 = createMockDocument(undefined);
 
@@ -55,7 +55,7 @@ describe("Perspective Support", () => {
 
       expect(config.openResourceDiscoveryV1.documents).toHaveLength(2);
       config.openResourceDiscoveryV1.documents?.forEach((doc) => {
-        expect(doc).toHaveProperty("perspective", "system-version");
+        expect(doc).toHaveProperty("perspective", "system-instance");
       });
     });
 
@@ -113,7 +113,7 @@ describe("Perspective Support", () => {
 
     it("should filter documents by system-version perspective", async () => {
       const config = await documentService.getOrdConfiguration("system-version");
-      expect(config.openResourceDiscoveryV1.documents).toHaveLength(3);
+      expect(config.openResourceDiscoveryV1.documents).toHaveLength(2);
 
       config.openResourceDiscoveryV1.documents?.forEach((doc) => {
         expect(doc).toHaveProperty("perspective", "system-version");
@@ -122,7 +122,7 @@ describe("Perspective Support", () => {
 
     it("should filter documents by system-instance perspective", async () => {
       const config = await documentService.getOrdConfiguration("system-instance");
-      expect(config.openResourceDiscoveryV1.documents).toHaveLength(1);
+      expect(config.openResourceDiscoveryV1.documents).toHaveLength(2);
 
       config.openResourceDiscoveryV1.documents?.forEach((doc) => {
         expect(doc).toHaveProperty("perspective", "system-instance");

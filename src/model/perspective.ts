@@ -2,7 +2,7 @@ import { ORDDocument } from "@open-resource-discovery/specification";
 
 export type Perspective = "system-version" | "system-instance" | "system-independent";
 
-export const DEFAULT_PERSPECTIVE: Perspective = "system-version";
+export const DEFAULT_PERSPECTIVE: Perspective = "system-instance";
 
 /**
  * Type guard to check if a document has perspective property defined

@@ -4,8 +4,8 @@ import { ORDDocument } from "@open-resource-discovery/specification";
 
 describe("Perspective Model", () => {
   describe("DEFAULT_PERSPECTIVE", () => {
-    it("should be 'system-version'", () => {
-      expect(DEFAULT_PERSPECTIVE).toBe("system-version");
+    it("should be 'system-instance'", () => {
+      expect(DEFAULT_PERSPECTIVE).toBe("system-instance");
     });
   });
 
@@ -59,7 +59,7 @@ describe("Perspective Model", () => {
       expect(getDocumentPerspective(doc)).toBe("system-instance");
     });
 
-    it("should return 'system-version' when perspective is not set", () => {
+    it("should return 'system-instance' when perspective is not set", () => {
       const doc: ORDDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
@@ -67,10 +67,10 @@ describe("Perspective Model", () => {
         },
       };
 
-      expect(getDocumentPerspective(doc)).toBe("system-version");
+      expect(getDocumentPerspective(doc)).toBe("system-instance");
     });
 
-    it("should return 'system-version' when perspective is undefined", () => {
+    it("should return 'system-instance' when perspective is undefined", () => {
       const doc: ORDDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
@@ -79,7 +79,7 @@ describe("Perspective Model", () => {
         perspective: undefined,
       };
 
-      expect(getDocumentPerspective(doc)).toBe("system-version");
+      expect(getDocumentPerspective(doc)).toBe("system-instance");
     });
 
     it("should handle all valid perspective values", () => {
