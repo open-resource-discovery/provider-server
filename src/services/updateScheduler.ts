@@ -25,8 +25,13 @@ export class UpdateScheduler extends EventEmitter {
   private updateTimeout: NodeJS.Timeout | null = null;
   private updateInProgress = false;
   private lastUpdateTime: Date | null = null;
+  private lastWebhookUpdateTime: Date | null = null;
   private scheduledUpdateTime: Date | null = null;
   private failedUpdates = 0;
+  private webhookCooldownTimeout: NodeJS.Timeout | null = null;
+
+  // 5 second cooldown for webhook-triggered updates
+  private static readonly WEBHOOK_COOLDOWN = 5000;
 
   public constructor(
     config: UpdateSchedulerConfig,
@@ -105,6 +110,59 @@ export class UpdateScheduler extends EventEmitter {
     await this.performUpdate();
   }
 
+  public async scheduleImmediateUpdate(): Promise<void> {
+    if (this.webhookCooldownTimeout) {
+      clearTimeout(this.webhookCooldownTimeout);
+      this.webhookCooldownTimeout = null;
+    }
+
+    // Check webhook cooldown
+    if (this.lastWebhookUpdateTime) {
+      const timeSinceLastWebhook = Date.now() - this.lastWebhookUpdateTime.getTime();
+      if (timeSinceLastWebhook < UpdateScheduler.WEBHOOK_COOLDOWN) {
+        const remainingTime = UpdateScheduler.WEBHOOK_COOLDOWN - timeSinceLastWebhook;
+        this.logger.info(
+          `Webhook update throttled. Will process latest request in ${Math.ceil(remainingTime / 1000)}s`,
+        );
+
+        // Schedule to process the latest webhook after cooldown
+        this.webhookCooldownTimeout = setTimeout(() => {
+          this.webhookCooldownTimeout = null;
+          this.scheduleImmediateUpdate().catch((error) => {
+            this.logger.error("Webhook update after cooldown failed:", error);
+          });
+        }, remainingTime);
+        return;
+      }
+    }
+
+    // If update is already in progress, abort it to process the latest webhook
+    if (this.updateInProgress) {
+      this.logger.info("Aborting current update to process latest webhook request");
+      this.contentFetcher.abortFetch();
+      // Wait a bit for the abort to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    // Cancel any scheduled update
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+      this.scheduledUpdateTime = null;
+    }
+
+    this.lastWebhookUpdateTime = new Date();
+    this.logger.info("Starting immediate webhook-triggered update");
+
+    try {
+      await this.performUpdate();
+    } catch (error) {
+      this.logger.error("Webhook update failed:", error);
+      this.emit("update-failed", error);
+      throw error;
+    }
+  }
+
   private async performUpdate(): Promise<void> {
     if (this.updateInProgress) {
       return;
@@ -119,7 +177,9 @@ export class UpdateScheduler extends EventEmitter {
     try {
       this.logger.info("Starting content update");
 
-      // Fetch content to temp directory
+      const currentVersion = await this.fileSystemManager.getCurrentVersion();
+      this.logger.debug(`  Current version: ${currentVersion || "none"}`);
+
       const metadata = await this.contentFetcher.fetchAllContent(tempDir, (progress: ContentFetchProgress) => {
         this.emit("update-progress", progress);
       });
@@ -130,7 +190,6 @@ export class UpdateScheduler extends EventEmitter {
         throw new Error("Content validation failed");
       }
 
-      // Atomically swap directories
       await this.fileSystemManager.swapDirectories(tempDir);
 
       // Save metadata

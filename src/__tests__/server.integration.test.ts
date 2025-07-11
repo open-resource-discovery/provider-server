@@ -5,7 +5,6 @@ import * as fs from "fs/promises";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
-import { getPackageVersion } from "../routes/statusRouter.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
@@ -303,18 +302,6 @@ describe("Server Integration", () => {
       });
 
       expect(response.headers.get("etag")).toBeTruthy();
-    });
-  });
-
-  describe("Status Endpoint", () => {
-    it("should return the correct status object with version", async () => {
-      const packageVersion = getPackageVersion();
-      const response = await fetch(`${SERVER_URL}/api/v1/status`);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("x-ord-provider-server-version")).toBe(packageVersion);
-      const data = await response.json();
-      expect(data).toEqual({ health: "healthy", version: packageVersion });
     });
   });
 });

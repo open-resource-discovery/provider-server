@@ -187,17 +187,20 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
             button.disabled = true;
             button.textContent = 'Scheduling...';
 
-            fetch('/webhook/github', {
+            fetch('/api/v1/webhook/github', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Manual-Trigger': 'true'
                 },
-                body: JSON.stringify({
-                    ref: 'refs/heads/main',
-                    repository: { full_name: 'manual/trigger' }
-                })
+                body: JSON.stringify({})
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to trigger update');
+                }
+                return response.json();
+            })
             .then(data => {
                 button.textContent = 'Update Scheduled';
                 setTimeout(() => {
@@ -205,6 +208,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
                 }, 2000);
             })
             .catch(error => {
+                console.error('Update trigger failed:', error);
                 button.textContent = 'Error - Try Again';
                 button.disabled = false;
             });

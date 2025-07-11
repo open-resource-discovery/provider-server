@@ -5,6 +5,7 @@ import { log } from "../util/logger.js";
 
 export interface FileSystemManagerConfig {
   dataDir: string;
+  documentsSubDirectory: string;
 }
 
 export class FileSystemManager {
@@ -12,6 +13,7 @@ export class FileSystemManager {
   private readonly currentDir: string;
   private readonly tempDir: string;
   private readonly metadataFile: string;
+  private readonly documentsSubDirectory: string;
   private readonly isWindows: boolean = process.platform === "win32";
 
   public constructor(config: FileSystemManagerConfig) {
@@ -19,6 +21,7 @@ export class FileSystemManager {
     this.currentDir = path.join(this.dataDir, "current");
     this.tempDir = path.join(this.dataDir, "temp");
     this.metadataFile = path.join(this.dataDir, ".metadata.json");
+    this.documentsSubDirectory = config.documentsSubDirectory;
   }
 
   public async initialize(): Promise<void> {
@@ -163,7 +166,7 @@ export class FileSystemManager {
       }
 
       // Check for required documents directory
-      const documentsPath = path.join(directory, "documents");
+      const documentsPath = path.join(directory, this.documentsSubDirectory);
       const documentsStats = await fs.stat(documentsPath);
 
       return documentsStats.isDirectory();

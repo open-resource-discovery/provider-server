@@ -12,6 +12,7 @@ describe("FileSystemManager", () => {
 
     fsManager = new FileSystemManager({
       dataDir: testDataDir,
+      documentsSubDirectory: "documents",
     });
   });
 

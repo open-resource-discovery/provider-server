@@ -55,6 +55,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   // Initialize file system manager
   fileSystemManager = new FileSystemManager({
     dataDir: opts.dataDir,
+    documentsSubDirectory: opts.ordDocumentsSubDirectory,
   });
   await fileSystemManager.initialize();
 
