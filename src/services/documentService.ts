@@ -1,4 +1,10 @@
-import { ORDConfiguration, ORDDocument, APIResource, EventResource } from "@open-resource-discovery/specification";
+import {
+  ORDConfiguration,
+  ORDDocument,
+  APIResource,
+  EventResource,
+  ORDV1DocumentDescription,
+} from "@open-resource-discovery/specification";
 import { DocumentService as DocumentServiceInterface } from "./interfaces/documentService.js";
 import { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
 import { CacheService } from "./interfaces/cacheService.js";
@@ -10,6 +16,7 @@ import { ordIdToPathSegment, joinUrlPaths } from "../util/pathUtils.js";
 import path from "path";
 import { PATH_CONSTANTS } from "../constant.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
+import { getDocumentPerspective, Perspective } from "../model/perspective.js";
 
 export class DocumentService implements DocumentServiceInterface {
   // Method to ensure data (config, docs, FQN map) is loaded and cached
@@ -34,10 +41,17 @@ export class DocumentService implements DocumentServiceInterface {
         processedDocsForFqn.push(processedDoc);
 
         const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
-        ordConfig.openResourceDiscoveryV1.documents?.push({
+        const perspective = getDocumentPerspective(document);
+
+        // Create the document entry with perspective
+        const documentEntry: ORDV1DocumentDescription = {
           url: documentUrl,
           accessStrategies,
-        });
+          perspective,
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ordConfig.openResourceDiscoveryV1.documents?.push(documentEntry as any);
       } catch (error) {
         log.warn(`Error processing document ${relativePath}: ${error}`);
       }
@@ -94,8 +108,8 @@ export class DocumentService implements DocumentServiceInterface {
     return processedDoc;
   }
 
-  public async getOrdConfiguration(): Promise<ORDConfiguration> {
-    log.debug(`Getting ORD configuration`);
+  public async getOrdConfiguration(perspective?: Perspective): Promise<ORDConfiguration> {
+    log.debug(`Getting ORD configuration${perspective ? ` with perspective filter: ${perspective}` : ""}`);
     const currentDirHash = await this.repository.getDirectoryHash(this.documentsDirectoryPath);
 
     if (!currentDirHash) {
@@ -111,7 +125,25 @@ export class DocumentService implements DocumentServiceInterface {
       log.error(`Failed to retrieve cached config for hash ${currentDirHash} after loading.`);
       throw new Error("Failed to load ORD configuration.");
     }
-    return config;
+
+    // If no perspective filter, return the full config
+    if (!perspective) {
+      return config;
+    }
+
+    // Filter documents by perspective
+    const filteredConfig: ORDConfiguration = {
+      ...config,
+      openResourceDiscoveryV1: {
+        ...config.openResourceDiscoveryV1,
+        documents:
+          config.openResourceDiscoveryV1.documents?.filter((doc) => {
+            return doc.perspective === perspective;
+          }) || [],
+      },
+    };
+
+    return filteredConfig;
   }
 
   public async getFileContent(relativePath: string): Promise<string | Buffer> {
@@ -149,6 +181,7 @@ export class DocumentService implements DocumentServiceInterface {
 
     return {
       ...document,
+      perspective: getDocumentPerspective(document),
       describedSystemInstance: {
         ...document.describedSystemInstance,
         baseUrl: this.processingContext.baseUrl,
