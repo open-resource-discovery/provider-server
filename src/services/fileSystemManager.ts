@@ -1,6 +1,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { ContentMetadata } from "./interfaces/contentFetcher.js";
+import { log } from "../util/logger.js";
 
 export interface FileSystemManagerConfig {
   dataDir: string;
@@ -11,6 +12,7 @@ export class FileSystemManager {
   private readonly currentDir: string;
   private readonly tempDir: string;
   private readonly metadataFile: string;
+  private readonly isWindows: boolean = process.platform === "win32";
 
   public constructor(config: FileSystemManagerConfig) {
     this.dataDir = config.dataDir;
@@ -45,63 +47,112 @@ export class FileSystemManager {
     // Clean temp directory first
     await this.cleanupTempDirectory();
 
-    // Create a unique temp subdirectory for this update
-    const tempUpdateDir = path.join(this.tempDir, `update_${Date.now()}`);
-    await fs.mkdir(tempUpdateDir, { recursive: true });
-    return tempUpdateDir;
+    // Ensure temp directory exists
+    await fs.mkdir(this.tempDir, { recursive: true });
+
+    // Return the temp directory itself, not a subdirectory
+    return this.tempDir;
+  }
+
+  private async copyDirectory(src: string, dest: string): Promise<void> {
+    await fs.mkdir(dest, { recursive: true });
+
+    const entries = await fs.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        await this.copyDirectory(srcPath, destPath);
+      } else {
+        await fs.copyFile(srcPath, destPath);
+      }
+    }
   }
 
   public async swapDirectories(tempDir: string): Promise<void> {
-    // Create a backup directory name
-    const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
+    log.info(`Starting directory swap: ${tempDir} -> ${this.currentDir}`);
 
     try {
-      // Move current to backup (if it exists and has content)
-      if (await this.hasCurrentContent()) {
-        await fs.rename(this.currentDir, backupDir);
-      }
+      // On Windows, use copy approach to avoid EPERM errors
+      if (this.isWindows) {
+        log.debug("Using copy approach for Windows");
 
-      // Move temp to current
-      await fs.rename(tempDir, this.currentDir);
+        // Backup current directory if it exists
+        const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
+        if (await this.hasCurrentContent()) {
+          log.info("Creating backup of current directory");
+          await this.copyDirectory(this.currentDir, backupDir);
+        }
 
-      // Remove backup after successful swap
-      if (
-        await fs
-          .access(backupDir)
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        await fs.rm(backupDir, { recursive: true, force: true });
-      }
-    } catch (error) {
-      // If swap failed, try to restore backup
-      if (
-        await fs
-          .access(backupDir)
-          .then(() => true)
-          .catch(() => false)
-      ) {
         try {
-          await fs.rename(backupDir, this.currentDir);
-        } catch (restoreError) {
-          throw new Error(`Failed to swap directories and restore backup: ${restoreError}`);
+          // Remove current directory
+          if (await this.hasCurrentContent()) {
+            await fs.rm(this.currentDir, { recursive: true, force: true });
+          }
+
+          // Copy temp to current
+          log.info("Copying temp directory to current");
+          await this.copyDirectory(tempDir, this.currentDir);
+
+          // Clean up temp directory
+          await fs.rm(tempDir, { recursive: true, force: true });
+
+          // Clean up backup if it exists
+          try {
+            await fs.access(backupDir);
+            await fs.rm(backupDir, { recursive: true, force: true });
+          } catch {
+            // Backup doesn't exist, that's fine
+          }
+        } catch (error) {
+          // Try to restore backup
+          try {
+            await fs.access(backupDir);
+            log.error("Copy failed, restoring backup");
+            await fs.rm(this.currentDir, { recursive: true, force: true }).catch(() => {});
+            await this.copyDirectory(backupDir, this.currentDir);
+          } catch (restoreError) {
+            log.error(`Failed to restore backup: ${restoreError}`);
+          }
+          throw error;
+        }
+      } else {
+        // On non-Windows systems, use rename for atomic operation
+        const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
+
+        if (await this.hasCurrentContent()) {
+          await fs.rename(this.currentDir, backupDir);
+        }
+
+        await fs.rename(tempDir, this.currentDir);
+
+        try {
+          await fs.access(backupDir);
+          await fs.rm(backupDir, { recursive: true, force: true });
+        } catch {
+          // No backup to clean
         }
       }
+
+      log.info("Directory swap completed successfully");
+    } catch (error) {
+      log.error(`Directory swap failed: ${error}`);
       throw error;
     }
   }
 
   public async cleanupTempDirectory(): Promise<void> {
     try {
-      const tempContents = await fs.readdir(this.tempDir);
-
-      for (const item of tempContents) {
-        const itemPath = path.join(this.tempDir, item);
-        await fs.rm(itemPath, { recursive: true, force: true });
-      }
+      // Remove the entire temp directory and recreate it
+      await fs.rm(this.tempDir, { recursive: true, force: true });
     } catch {
-      // Ignore errors during cleanup
+      // Ignore errors during cleanup - directory might not exist
     }
+
+    // Ensure temp directory exists
+    await fs.mkdir(this.tempDir, { recursive: true });
   }
 
   public async validateContent(directory: string): Promise<boolean> {

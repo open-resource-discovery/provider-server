@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import * as crypto from "crypto";
 import { UpdateScheduler } from "../services/updateScheduler.js";
 import { Logger } from "pino";
+import { Webhooks } from "@octokit/webhooks";
 
 interface WebhookConfig {
   secret?: string;
@@ -25,17 +25,24 @@ export class WebhookRouter {
   private readonly updateScheduler: UpdateScheduler;
   private readonly config: WebhookConfig;
   private readonly logger: Logger;
+  private readonly webhooks: Webhooks;
 
   public constructor(updateScheduler: UpdateScheduler, config: WebhookConfig, logger: Logger) {
     this.updateScheduler = updateScheduler;
     this.config = config;
     this.logger = logger;
+    this.webhooks = new Webhooks({
+      secret: config.secret || "",
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public register(fastify: any): void {
     fastify.post("/webhook/github", {
-      preHandler: (request: FastifyRequest, reply: FastifyReply) => {
+      config: {
+        rawBody: true,
+      },
+      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
         // Validate webhook signature if secret is configured
         if (this.config.secret) {
           const signature = request.headers["x-hub-signature-256"] as string;
@@ -44,13 +51,9 @@ export class WebhookRouter {
             return;
           }
 
-          const payload = JSON.stringify(request.body);
-          const expectedSignature = `sha256=${crypto
-            .createHmac("sha256", this.config.secret)
-            .update(payload)
-            .digest("hex")}`;
-
-          if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+          this.logger.debug("Webhook signature verification:");
+          this.logger.debug("  Received signature:", signature);
+          if (!(await this.webhooks.verify(request.rawBody as string, signature))) {
             reply.code(401).send({ error: "Invalid signature" });
             return;
           }

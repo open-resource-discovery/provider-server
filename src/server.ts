@@ -1,5 +1,6 @@
 import fastifyETag from "@fastify/etag";
 import fastify from "fastify";
+import fastifyRawBody from "fastify-raw-body";
 import fs from "node:fs";
 import path from "node:path";
 import statusRouter from "./routes/statusRouter.js";
@@ -136,6 +137,12 @@ async function performWarmup(opts: ProviderServerOptions): Promise<void> {
 
 async function setupServer(server: FastifyInstanceType): Promise<void> {
   server.setErrorHandler(errorHandler);
+
+  await server.register(fastifyRawBody, {
+    field: "rawBody",
+    global: false,
+    encoding: "utf8",
+  });
   await server.register(fastifyETag);
 
   // Register status router with enhanced functionality
