@@ -131,13 +131,11 @@ This structure applies to both source types:
 #### Important Notes:
 
 1. **ORD Documents Location**
-
    - All ORD Documents must be placed in the documents directory (configurable via `--documents-subdirectory`, default is `documents/`)
    - ORD Documents can be placed in nested folders within the documents directory
    - Supported format: `.json`
 
 2. **Resource References**
-
    - Resources referenced in the ORD Documents can be placed anywhere within the `-d` directory
    - The URLs in the ORD Document's `resourceDefinitions` must match the relative paths from the `-d` directory
    - Example resource definition in an ORD Document:

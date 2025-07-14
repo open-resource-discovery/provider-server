@@ -1,4 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
 import { getDocumentPerspective, hasPerspecive, DEFAULT_PERSPECTIVE } from "../perspective.js";
 import { ORDDocument } from "@open-resource-discovery/specification";
 
