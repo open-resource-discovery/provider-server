@@ -1,4 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
 import { InternalServerError } from "src/model/error/InternalServerError.js";
 import { NotFoundError } from "src/model/error/NotFoundError.js";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
