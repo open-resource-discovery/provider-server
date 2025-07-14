@@ -1,4 +1,3 @@
-import { describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
 import path from "path";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
