@@ -176,7 +176,7 @@ curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=syste
 curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-independent
 ```
 
-> [!NOTE] 
+> [!NOTE]
 > ORD documents without an explicit `perspective` property default to `system-instance`.
 
 ### Authentication
