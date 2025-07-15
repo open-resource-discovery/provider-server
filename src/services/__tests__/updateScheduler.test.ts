@@ -49,6 +49,10 @@ class MockContentFetcher implements ContentFetcher {
   public abortFetch(): void {
     this.abortFetchCalled = true;
   }
+
+  public async getLatestCommitSha(): Promise<string> {
+    return await "";
+  }
 }
 
 class MockFileSystemManager {
