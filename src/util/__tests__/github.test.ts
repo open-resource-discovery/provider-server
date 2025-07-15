@@ -1,4 +1,3 @@
-import { describe, it, expect, jest, beforeAll, afterAll, beforeEach } from "@jest/globals";
 import { fetchGitHubFile, GitHubContentItem } from "src/util/github.js";
 import { GitHubInstance } from "src/model/github.js";
 import { GitHubFileNotFoundError, GitHubNetworkError, GitHubAccessError } from "src/model/error/GithubErrors.js";
@@ -45,7 +44,7 @@ describe("GitHub Util", () => {
     const mockFetchResponse: Partial<Response> = {
       ok: true,
       status: 200,
-      json: jest.fn<() => Promise<unknown>>().mockResolvedValue(mockMetadataResponse),
+      json: jest.fn().mockResolvedValue(mockMetadataResponse),
     };
 
     const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
@@ -78,12 +77,12 @@ describe("GitHub Util", () => {
     const mockFetchMetadataResponse: Partial<Response> = {
       ok: true,
       status: 200,
-      json: jest.fn<() => Promise<unknown>>().mockResolvedValue(mockMetadataResponse),
+      json: jest.fn().mockResolvedValue(mockMetadataResponse),
     };
     const mockFetchBlobResponse: Partial<Response> = {
       ok: true,
       status: 200,
-      json: jest.fn<() => Promise<unknown>>().mockResolvedValue(mockBlobResponseData),
+      json: jest.fn().mockResolvedValue(mockBlobResponseData),
     };
 
     const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
@@ -134,7 +133,7 @@ describe("GitHub Util", () => {
       ok: true,
       status: 200,
       statusText: "OK",
-      json: jest.fn<() => Promise<unknown>>().mockRejectedValue(new SyntaxError("Invalid JSON")),
+      json: jest.fn().mockRejectedValue(new SyntaxError("Invalid JSON")),
     };
     const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
@@ -149,7 +148,7 @@ describe("GitHub Util", () => {
       ok: true,
       status: 200,
       statusText: "OK",
-      json: jest.fn<() => Promise<unknown>>().mockResolvedValue(null),
+      json: jest.fn().mockResolvedValue(null),
     };
     const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
