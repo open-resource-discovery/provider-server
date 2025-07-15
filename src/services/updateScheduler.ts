@@ -4,8 +4,7 @@ import { FileSystemManager } from "./fileSystemManager.js";
 import { Logger } from "pino";
 
 export interface UpdateSchedulerConfig {
-  updateDelay: number; // milliseconds
-  updateInterval: number; // milliseconds
+  updateDelay: number; // milliseconds - also used as webhook cooldown
 }
 
 export interface UpdateStatus {
@@ -30,9 +29,6 @@ export class UpdateScheduler extends EventEmitter {
   private failedUpdates = 0;
   private webhookCooldownTimeout: NodeJS.Timeout | null = null;
 
-  // 5 second cooldown for webhook-triggered updates
-  private static readonly WEBHOOK_COOLDOWN = 5000;
-
   public constructor(
     config: UpdateSchedulerConfig,
     contentFetcher: ContentFetcher,
@@ -56,18 +52,7 @@ export class UpdateScheduler extends EventEmitter {
   }
 
   public scheduleUpdate(delay?: number): void {
-    let effectiveDelay = delay ?? this.config.updateDelay;
-
-    // Check if we're within the throttle interval
-    if (this.lastUpdateTime) {
-      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime.getTime();
-      if (timeSinceLastUpdate < this.config.updateInterval) {
-        const remainingTime = this.config.updateInterval - timeSinceLastUpdate;
-        this.logger.info(`Update throttled. Next update allowed in ${Math.ceil(remainingTime / 1000)}s`);
-        // Use the remaining time instead of passing it recursively
-        effectiveDelay = Math.max(effectiveDelay, remainingTime);
-      }
-    }
+    const effectiveDelay = delay ?? this.config.updateDelay;
 
     // Cancel any existing scheduled update
     if (this.updateTimeout) {
@@ -119,8 +104,8 @@ export class UpdateScheduler extends EventEmitter {
     // Check webhook cooldown
     if (this.lastWebhookUpdateTime) {
       const timeSinceLastWebhook = Date.now() - this.lastWebhookUpdateTime.getTime();
-      if (timeSinceLastWebhook < UpdateScheduler.WEBHOOK_COOLDOWN) {
-        const remainingTime = UpdateScheduler.WEBHOOK_COOLDOWN - timeSinceLastWebhook;
+      if (timeSinceLastWebhook < this.config.updateDelay) {
+        const remainingTime = this.config.updateDelay - timeSinceLastWebhook;
         this.logger.info(
           `Webhook update throttled. Will process latest request in ${Math.ceil(remainingTime / 1000)}s`,
         );

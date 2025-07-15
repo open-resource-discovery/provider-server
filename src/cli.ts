@@ -52,11 +52,10 @@ program
   .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
   .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
   .option("--webhook-secret <webhookSecret>", "GitHub webhook secret", process.env.WEBHOOK_SECRET)
-  .option("--update-delay <updateDelay>", "Delay before processing webhook (seconds)", process.env.UPDATE_DELAY || "30")
   .option(
-    "--update-interval <updateInterval>",
-    "Minimum time between updates (minutes)",
-    process.env.UPDATE_INTERVAL || "5",
+    "--update-delay <updateDelay>",
+    "Cooldown between webhook-triggered updates (seconds)",
+    process.env.UPDATE_DELAY || "5",
   );
 
 program.version(packageJson.version);

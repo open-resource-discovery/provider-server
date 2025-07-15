@@ -43,7 +43,6 @@ describe("Server Integration", () => {
       },
       dataDir: "./test-data",
       updateDelay: 30000,
-      updateInterval: 300000,
     };
 
     shutdownServer = await startProviderServer(options);
@@ -234,7 +233,6 @@ describe("Server Integration", () => {
         },
         dataDir: "./test-data-2",
         updateDelay: 30000,
-        updateInterval: 300000,
       };
 
       shutdownServer = await startProviderServer(options);

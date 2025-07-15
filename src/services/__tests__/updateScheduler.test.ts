@@ -134,7 +134,6 @@ describe("UpdateScheduler", () => {
     scheduler = new UpdateScheduler(
       {
         updateDelay: 100,
-        updateInterval: 1000,
       },
       mockContentFetcher,
       mockFileSystemManager as unknown as FileSystemManager,
@@ -198,17 +197,6 @@ describe("UpdateScheduler", () => {
       const status2 = scheduler.getStatus();
       expect(status2.scheduledUpdateTime).not.toBeNull();
       expect(status2.scheduledUpdateTime?.getTime()).toBeGreaterThan(status1.scheduledUpdateTime!.getTime());
-    });
-
-    it("should respect throttle interval", async () => {
-      // Perform an update
-      await scheduler.forceUpdate();
-
-      // Try to schedule immediately after
-      scheduler.scheduleUpdate();
-
-      // Should be throttled
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("Update throttled"));
     });
 
     it("should abort running update when new one is scheduled", () => {
@@ -317,7 +305,6 @@ describe("UpdateScheduler", () => {
       const freshScheduler = new UpdateScheduler(
         {
           updateDelay: 100,
-          updateInterval: 1000,
         },
         mockContentFetcher,
         mockFileSystemManager as unknown as FileSystemManager,
@@ -351,7 +338,6 @@ describe("UpdateScheduler", () => {
       const freshScheduler = new UpdateScheduler(
         {
           updateDelay: 100,
-          updateInterval: 1000,
         },
         freshContentFetcher,
         freshFileSystemManager as unknown as FileSystemManager,
@@ -419,7 +405,6 @@ describe("UpdateScheduler", () => {
       const freshScheduler = new UpdateScheduler(
         {
           updateDelay: 100,
-          updateInterval: 1000,
         },
         freshContentFetcher,
         freshFileSystemManager as unknown as FileSystemManager,
@@ -480,7 +465,6 @@ describe("UpdateScheduler", () => {
       const testScheduler = new UpdateScheduler(
         {
           updateDelay: 100,
-          updateInterval: 1000,
         },
         testFetcher,
         testFileSystemManager as unknown as FileSystemManager,

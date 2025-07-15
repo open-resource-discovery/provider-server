@@ -108,7 +108,6 @@ async function performWarmup(opts: ProviderServerOptions): Promise<void> {
   updateScheduler = new UpdateScheduler(
     {
       updateDelay: opts.updateDelay,
-      updateInterval: opts.updateInterval,
     },
     contentFetcher,
     fileSystemManager!,
@@ -189,8 +188,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   log.info(`>> GitHub Branch: ${opts.githubBranch || "-"}`);
   log.info(`>> GitHub Token: ${opts.githubToken?.slice(-4).padStart(opts.githubToken.length, "*") || "-"}`);
   log.info(`>> Data Directory: ${opts.dataDir}`);
-  log.info(`>> Update Delay: ${opts.updateDelay / 1000}s`);
-  log.info(`>> Update Interval: ${opts.updateInterval / 60000}m`);
+  log.info(`>> Update Delay (Webhook Cooldown): ${opts.updateDelay / 1000}s`);
   if (opts.authentication?.methods) {
     log.info(`>> Authentication Methods: ${opts.authentication.methods.join(", ")}`);
   }
