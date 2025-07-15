@@ -38,11 +38,23 @@ export class WebhookRouter {
     const expectedSignature = `sha256=${hmac.digest("hex")}`;
 
     this.logger.debug("Signature verification details:");
+    this.logger.debug("  Payload length: %d", payload.length);
     this.logger.debug("  Expected: %s", expectedSignature);
     this.logger.debug("  Received: %s", signature);
 
     try {
-      return timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+      const expected = Buffer.from(expectedSignature);
+      const received = Buffer.from(signature);
+
+      // Check if buffers are same length before comparing
+      if (expected.length !== received.length) {
+        this.logger.debug("  Signature length mismatch - expected: %d, received: %d", expected.length, received.length);
+        return false;
+      }
+
+      const equal = timingSafeEqual(expected, received);
+      this.logger.debug("  Signatures match: %s", equal);
+      return equal;
     } catch (error) {
       this.logger.debug("Signature comparison error:", error);
       return false;
@@ -84,6 +96,7 @@ export class WebhookRouter {
             return reply.code(401).send({ error: "Invalid signature" });
           }
         }
+        done();
       },
       handler: async (request: FastifyRequest, reply: FastifyReply) => {
         // Check if this is a manual trigger
