@@ -132,7 +132,21 @@ async function performWarmup(opts: ProviderServerOptions): Promise<void> {
       throw error;
     }
   } else {
-    log.info(`Using existing version: ${currentVersion}`);
+    log.info(`Found existing version: ${currentVersion}`);
+
+    const needsUpdate = await updateScheduler.checkForUpdates();
+
+    if (needsUpdate) {
+      try {
+        await updateScheduler.forceUpdate();
+        log.info("Content update completed successfully");
+      } catch (error) {
+        log.error("Failed to update content from GitHub: %s", error);
+        log.warn("Continuing with existing cached content");
+      }
+    } else {
+      log.info("Local content is up to date with GitHub");
+    }
   }
 }
 

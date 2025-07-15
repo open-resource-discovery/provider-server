@@ -238,4 +238,30 @@ export class UpdateScheduler extends EventEmitter {
   public getLastUpdateTime(): Date | null {
     return this.lastUpdateTime;
   }
+
+  public async checkForUpdates(): Promise<boolean> {
+    try {
+      const metadata = await this.fileSystemManager.getMetadata();
+      if (!metadata) {
+        this.logger.info("No metadata found, update needed");
+        return true;
+      }
+
+      // Get latest commit SHA from GitHub
+      const latestSha = await this.contentFetcher.getLatestCommitSha();
+
+      const needsUpdate = metadata.commitHash !== latestSha;
+
+      if (needsUpdate) {
+        this.logger.info(`SHA mismatch detected. Current: ${metadata.commitHash}, Latest: ${latestSha}`);
+      } else {
+        this.logger.debug(`SHA match confirmed: ${latestSha}`);
+      }
+
+      return needsUpdate;
+    } catch (error) {
+      this.logger.error(`Failed to check for updates: ${error}`);
+      return false;
+    }
+  }
 }

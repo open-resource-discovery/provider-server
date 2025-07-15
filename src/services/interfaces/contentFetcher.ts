@@ -18,4 +18,5 @@ export interface ContentFetcher {
   fetchAllContent(targetDir: string, onProgress?: (progress: ContentFetchProgress) => void): Promise<ContentMetadata>;
   fetchLatestChanges(targetDir: string, since?: Date): Promise<ContentMetadata>;
   abortFetch(): void;
+  getLatestCommitSha(): Promise<string>;
 }

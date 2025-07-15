@@ -55,12 +55,13 @@ export class WebhookRouter {
       config: {
         rawBody: true,
       },
-      preHandler: (request: FastifyRequest, reply: FastifyReply) => {
+      preHandler: (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
         const isManualTrigger = request.headers["x-manual-trigger"] === "true";
 
         // Skip signature verification for manual triggers (they're already authenticated)
         if (isManualTrigger) {
           this.logger.debug("Manual trigger detected, skipping signature verification");
+          done();
           return;
         }
 

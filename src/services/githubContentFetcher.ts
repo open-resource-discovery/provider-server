@@ -77,6 +77,16 @@ export class GithubContentFetcher implements ContentFetcher {
     }
   }
 
+  public async getLatestCommitSha(): Promise<string> {
+    const { data } = await this.octokit.repos.getCommit({
+      owner: this.config.owner,
+      repo: this.config.repo,
+      ref: this.config.branch,
+    });
+
+    return data.sha;
+  }
+
   private async getCompleteTree(): Promise<{ path: string; sha: string; size: number; type: string }[]> {
     const { data } = await this.octokit.repos.getCommit({
       owner: this.config.owner,
