@@ -1,6 +1,6 @@
 {
   "name": "@open-resource-discovery/provider-server",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "A CLI application or server that takes multiple ORD documents and other metadata files and exposes them as a ORD Provider implementation (ORD Document API)",
   "engines": {
     "node": ">=22.8.0",
@@ -40,7 +40,7 @@
     "@fastify/basic-auth": "6.2.0",
     "@fastify/etag": "6.0.3",
     "@fastify/static": "8.2.0",
-    "@open-resource-discovery/specification": "1.12.0",
+    "@open-resource-discovery/specification": "^1.12.0",
     "bcryptjs": "3.0.2",
     "commander": "14.0.0",
     "dotenv": "17.2.0",

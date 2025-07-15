@@ -162,6 +162,23 @@ This structure applies to both source types:
      - Be set in the ORD Configuration
      - Override the existing baseUrl in the `describedSystemInstance` field of any ORD Documents
 
+### Perspective Filtering
+
+The ORD Configuration endpoint supports filtering documents by perspective using the `?perspective=` query parameter:
+
+```bash
+# Get all documents (default)
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery
+
+# Filter by perspective
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-version
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-instance
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-independent
+```
+
+> [!NOTE]
+> ORD documents without an explicit `perspective` property default to `system-instance`.
+
 ### Authentication
 
 By default, if no `--auth` parameter is specified, the server starts without authentication.
