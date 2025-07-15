@@ -1,4 +1,5 @@
 import fastifyETag from "@fastify/etag";
+import fastifyWebsocket from "@fastify/websocket";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import fs from "node:fs";
@@ -17,6 +18,7 @@ import { FileSystemManager } from "./services/fileSystemManager.js";
 import { GithubContentFetcher } from "./services/githubContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
+import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
 import { buildGithubConfig } from "./model/github.js";
 
 // Helper to get package.json version
@@ -159,10 +161,30 @@ async function setupServer(server: FastifyInstanceType): Promise<void> {
   });
   await server.register(fastifyETag);
 
+  await server.register(fastifyWebsocket);
+
   // Register status router with enhanced functionality
   await server.register(statusRouter, {
     fileSystemManager,
     updateScheduler,
+  });
+
+  const wsHandler = new StatusWebSocketHandler(updateScheduler, fileSystemManager, log);
+  // @ts-expect-error Type mismatch between Fastify instance types
+  wsHandler.register(server);
+
+  // Add root redirect to status page
+  server.get("/", (_request, reply) => {
+    reply.redirect("/status");
+  });
+
+  // Add health check endpoint
+  server.get("/health", (_request, _reply) => {
+    return {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      version,
+    };
   });
 
   // Add version header to all responses

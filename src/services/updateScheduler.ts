@@ -13,6 +13,7 @@ export interface UpdateStatus {
   updateInProgress: boolean;
   failedUpdates: number;
   currentVersion: string | null;
+  lastUpdateFailed: boolean;
 }
 
 export class UpdateScheduler extends EventEmitter {
@@ -28,6 +29,7 @@ export class UpdateScheduler extends EventEmitter {
   private scheduledUpdateTime: Date | null = null;
   private failedUpdates = 0;
   private webhookCooldownTimeout: NodeJS.Timeout | null = null;
+  private lastUpdateFailed = false;
 
   public constructor(
     config: UpdateSchedulerConfig,
@@ -182,12 +184,14 @@ export class UpdateScheduler extends EventEmitter {
 
       this.lastUpdateTime = metadata.fetchTime;
       this.failedUpdates = 0;
+      this.lastUpdateFailed = false;
 
       this.logger.info(`Successfully updated content to commit ${metadata.commitHash}`);
       this.emit("update-completed");
     } catch (error) {
       this.logger.error(`Update failed: ${error}`);
       this.failedUpdates++;
+      this.lastUpdateFailed = true;
 
       // Cleanup failed update
       try {
@@ -209,6 +213,7 @@ export class UpdateScheduler extends EventEmitter {
       updateInProgress: this.updateInProgress,
       failedUpdates: this.failedUpdates,
       currentVersion: null, // Will be set by fileSystemManager
+      lastUpdateFailed: this.lastUpdateFailed,
     };
   }
 

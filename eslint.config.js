@@ -13,4 +13,16 @@ export default withCustomConfig([
       },
     },
   },
+  {
+    files: ["src/client/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: "tsconfig.client.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+    },
+  },
 ]);

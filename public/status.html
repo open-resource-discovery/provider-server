@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ORD Provider Server Status</title>
+    <link rel="stylesheet" href="/css/status.css" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50' font-size='50'>📊</text></svg>" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <div class="title-group">
+            <h1>ORD Provider Server</h1>
+            <div class="connection-dot" id="connectionStatus" data-status="connecting" title="Connecting..."></div>
+          </div>
+          <div class="header-right">
+            <div class="status-badge" id="updateStatus" data-status="unknown">
+              <span class="status-text">LOADING</span>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+              <span class="theme-icon">☀️</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric">
+            <label>Server</label>
+            <value id="version">-</value>
+          </div>
+          <div class="metric">
+            <label>Updated</label>
+            <value id="lastUpdate">-</value>
+          </div>
+          <div class="metric metric-full">
+            <label>Content</label>
+            <value id="contentVersion">-</value>
+          </div>
+          <div class="metric" id="scheduledMetric" style="display: none">
+            <label>Scheduled</label>
+            <value id="scheduledTime">-</value>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="updateButton" onclick="window.statusClient.triggerUpdate()" disabled>
+            <span class="btn-text">Trigger Update</span>
+            <span class="btn-spinner" style="display: none">
+              <svg class="spinner" viewBox="0 0 24 24">
+                <circle class="spinner-path" cx="12" cy="12" r="10" fill="none" stroke-width="2"></circle>
+              </svg>
+            </span>
+          </button>
+          <a href="/.well-known/open-resource-discovery" class="btn secondary">
+            <span class="btn-text">View ORD</span>
+          </a>
+        </div>
+        <div class="hint" id="buttonHint"></div>
+
+        <div class="health">
+          <span class="health-item">
+            <label>Server:</label>
+            <value id="serverHealth" data-status="unknown">-</value>
+          </span>
+          <span class="health-separator">•</span>
+          <span class="health-item">
+            <label>Checked:</label>
+            <value id="lastHealthCheck">-</value>
+          </span>
+        </div>
+
+        <div class="footer-time" id="footerTime"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/js/status.js"></script>
+  </body>
+</html>

@@ -1,6 +1,8 @@
 **
 
 !src/**
+!public/**
 !package*.json
 !tsconfig.json
 !tsconfig.prod.json
+!tsconfig.client.json

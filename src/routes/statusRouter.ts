@@ -30,7 +30,7 @@ interface StatusResponse {
   content?: {
     lastFetchTime: string | null;
     currentVersion: string | null;
-    updateStatus: "idle" | "scheduled" | "in_progress";
+    updateStatus: "idle" | "scheduled" | "in_progress" | "failed";
     scheduledUpdateTime?: string | null;
     failedUpdates: number;
   };
@@ -41,6 +41,10 @@ interface StatusResponse {
 }
 
 function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done: (err?: Error) => void): void {
+  // Get paths to static files
+  const publicPath = path.join(process.cwd(), "public");
+  const distPath = path.join(process.cwd(), "dist", "src", "client");
+
   // JSON API endpoint
   fastify.get("/api/v1/status", async (_request: FastifyRequest, _reply: FastifyReply): Promise<StatusResponse> => {
     const response: StatusResponse = {
@@ -58,7 +62,9 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
           ? "in_progress"
           : updateStatus.scheduledUpdateTime
             ? "scheduled"
-            : "idle",
+            : updateStatus.lastUpdateFailed
+              ? "failed"
+              : "idle",
         scheduledUpdateTime: updateStatus.scheduledUpdateTime?.toISOString() || null,
         failedUpdates: updateStatus.failedUpdates,
       };
@@ -67,239 +73,66 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
     return response;
   });
 
-  // Web UI endpoint
-  fastify.get("/status", async (_request: FastifyRequest, reply: FastifyReply) => {
-    const status = await fastify.inject({
-      method: "GET",
-      url: "/api/v1/status",
-    });
+  // Web UI endpoint - serve HTML directly
+  fastify.get("/status", (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const htmlPath = path.join(publicPath, "status.html");
+      const html = fs.readFileSync(htmlPath, "utf-8");
+      reply.type("text/html").send(html);
+    } catch (error) {
+      log.error("Failed to serve status.html:", error);
+      reply.code(500).send("Failed to load status page");
+    }
+  });
 
-    const statusData = JSON.parse(status.body) as StatusResponse;
+  // Serve CSS
+  fastify.get("/css/status.css", (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const cssPath = path.join(publicPath, "css", "status.css");
+      const css = fs.readFileSync(cssPath, "utf-8");
+      reply.type("text/css").send(css);
+    } catch (error) {
+      log.error("Failed to serve status.css:", error);
+      reply.code(500).send("Failed to load styles");
+    }
+  });
 
-    const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORD Provider Server Status</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 30px;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-        }
-        .status-grid {
-            display: grid;
-            gap: 20px;
-        }
-        .status-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 15px;
-            background: #fafafa;
-        }
-        .status-label {
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        .status-value {
-            font-size: 1.1em;
-            color: #333;
-        }
-        .health-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-        .health-healthy {
-            background: #d4edda;
-            color: #155724;
-        }
-        .health-degraded {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .health-unhealthy {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        .update-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-        .update-idle {
-            background: #e3e3e3;
-            color: #666;
-        }
-        .update-scheduled {
-            background: #cfe2ff;
-            color: #084298;
-        }
-        .update-in_progress {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .update-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .update-button:hover:not(:disabled) {
-            background: #0056b3;
-        }
-        .update-button:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-        }
-        .no-content {
-            color: #666;
-            font-style: italic;
-        }
-    </style>
-    <script>
-        function triggerUpdate() {
-            const button = document.getElementById('updateButton');
-            button.disabled = true;
-            button.textContent = 'Scheduling...';
+  // Serve compiled JavaScript
+  fastify.get("/js/status.js", (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const jsPath = path.join(distPath, "status.js");
 
-            fetch('/api/v1/webhook/github', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Manual-Trigger': 'true'
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to trigger update');
-                }
-                return response.json();
-            })
-            .then(data => {
-                button.textContent = 'Update Scheduled';
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            })
-            .catch(error => {
-                console.error('Update trigger failed:', error);
-                button.textContent = 'Error - Try Again';
-                button.disabled = false;
-            });
-        }
+      // Check if file exists
+      if (!fs.existsSync(jsPath)) {
+        log.warn(
+          "Compiled status.js not found. Run 'npm run build' or 'npx tsc -p tsconfig.client.json' to compile client TypeScript.",
+        );
+        reply.code(404).send("Client JavaScript not compiled. Please run 'npm run build' first.");
+        return;
+      }
 
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
-            location.reload();
-        }, 30000);
-    </script>
-</head>
-<body>
-    <div class="container">
-        <h1>ORD Provider Server Status</h1>
+      const js = fs.readFileSync(jsPath, "utf-8");
+      reply.type("application/javascript").send(js);
+    } catch (error) {
+      log.error("Failed to serve status.js:", error);
+      reply.code(500).send("Failed to load script");
+    }
+  });
 
-        <div class="status-grid">
-            <div class="status-item">
-                <div class="status-label">Server Version</div>
-                <div class="status-value">${statusData.version}</div>
-            </div>
-
-            ${
-              statusData.content
-                ? `
-                <div class="status-item">
-                    <div class="status-label">Content Version</div>
-                    <div class="status-value">${statusData.content.currentVersion || "No version"}</div>
-                </div>
-
-                <div class="status-item">
-                    <div class="status-label">Last Update</div>
-                    <div class="status-value">${
-                      statusData.content.lastFetchTime
-                        ? new Date(statusData.content.lastFetchTime).toLocaleString()
-                        : "Never"
-                    }</div>
-                </div>
-
-                <div class="status-item">
-                    <div class="status-label">Update Status</div>
-                    <div class="status-value">
-                        <span class="update-badge update-${statusData.content.updateStatus}">
-                            ${statusData.content.updateStatus.toUpperCase().replace("_", " ")}
-                        </span>
-                        ${
-                          statusData.content.scheduledUpdateTime
-                            ? `<br><small>Scheduled for: ${new Date(statusData.content.scheduledUpdateTime).toLocaleString()}</small>`
-                            : ""
-                        }
-                    </div>
-                </div>
-
-                ${
-                  statusData.content.failedUpdates > 0
-                    ? `
-                <div class="status-item">
-                    <div class="status-label">Failed Updates</div>
-                    <div class="status-value" style="color: #dc3545;">${statusData.content.failedUpdates}</div>
-                </div>
-                `
-                    : ""
-                }
-
-                <button
-                    id="updateButton"
-                    class="update-button"
-                    onclick="triggerUpdate()"
-                    ${statusData.content.updateStatus !== "idle" ? "disabled" : ""}
-                >
-                    ${
-                      statusData.content.updateStatus === "idle"
-                        ? "Trigger Update"
-                        : statusData.content.updateStatus === "scheduled"
-                          ? "Update Scheduled"
-                          : "Update In Progress"
-                    }
-                </button>
-            `
-                : `
-                <div class="no-content">
-                    Static file serving is not configured for this instance.
-                </div>
-            `
-            }
-        </div>
-    </div>
-</body>
-</html>
-    `;
-
-    reply.type("text/html").send(html);
+  // Serve source map
+  fastify.get("/js/status.js.map", (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const mapPath = path.join(distPath, "status.js.map");
+      if (fs.existsSync(mapPath)) {
+        const map = fs.readFileSync(mapPath, "utf-8");
+        reply.type("application/json").send(map);
+      } else {
+        reply.code(404).send("Source map not found");
+      }
+    } catch (error) {
+      log.error("Failed to serve status.js.map:", error);
+      reply.code(500).send("Failed to load source map");
+    }
   });
 
   done();
