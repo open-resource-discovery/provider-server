@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "prebuild": "rimraf ./dist",
-    "build": "tsc -p tsconfig.client.json && tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
+    "build": "tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
     "prepublishOnly": "npm run build",
     "deploy": "npm run build && npm prune --production && cf login -a https://api.cf.sap.hana.ondemand.com -o CORE_CF -s open-discovery && cf push && npm install",
     "start": "node dist/src/cli.js",

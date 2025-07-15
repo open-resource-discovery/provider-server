@@ -1,67 +1,45 @@
-// Extend window interface
-interface StatusElements {
-  connectionStatus: HTMLElement;
-  updateStatus: HTMLElement;
-  version: HTMLElement;
-  contentVersion: HTMLElement;
-  lastUpdate: HTMLElement;
-  scheduledTime: HTMLElement;
-  scheduledMetric: HTMLElement;
-  updateButton: HTMLButtonElement;
-  buttonHint: HTMLElement;
-  serverHealth: HTMLElement;
-  lastHealthCheck: HTMLElement;
-  footerTime: HTMLElement;
-  themeToggle: HTMLElement;
-  themeIcon: HTMLElement;
-}
-
 class StatusClient {
-  private ws: WebSocket | null = null;
-  private reconnectInterval: ReturnType<typeof setInterval> | null = null;
-  private reconnectDelay = 1000;
-  private readonly maxReconnectDelay = 30000;
-  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
-  private lastHealthCheck = new Date();
-  private readonly elements: StatusElements;
-  private isManualTrigger = false;
+  constructor() {
+    this.ws = null;
+    this.reconnectInterval = null;
+    this.reconnectDelay = 1000;
+    this.maxReconnectDelay = 30000;
+    this.healthCheckInterval = null;
+    this.lastHealthCheck = new Date();
+    this.isManualTrigger = false;
 
-  public constructor() {
-    // DOM elements
     this.elements = {
-      connectionStatus: document.getElementById("connectionStatus")!,
-      updateStatus: document.getElementById("updateStatus")!,
-      version: document.getElementById("version")!,
-      contentVersion: document.getElementById("contentVersion")!,
-      lastUpdate: document.getElementById("lastUpdate")!,
-      scheduledTime: document.getElementById("scheduledTime")!,
-      scheduledMetric: document.getElementById("scheduledMetric")!,
-      updateButton: document.getElementById("updateButton")! as HTMLButtonElement,
-      buttonHint: document.getElementById("buttonHint")!,
-      serverHealth: document.getElementById("serverHealth")!,
-      lastHealthCheck: document.getElementById("lastHealthCheck")!,
-      footerTime: document.getElementById("footerTime")!,
-      themeToggle: document.getElementById("themeToggle")!,
-      themeIcon: document.querySelector("#themeToggle .theme-icon")!,
+      connectionStatus: document.getElementById("connectionStatus"),
+      updateStatus: document.getElementById("updateStatus"),
+      version: document.getElementById("version"),
+      contentVersion: document.getElementById("contentVersion"),
+      lastUpdate: document.getElementById("lastUpdate"),
+      scheduledTime: document.getElementById("scheduledTime"),
+      scheduledMetric: document.getElementById("scheduledMetric"),
+      updateButton: document.getElementById("updateButton"),
+      buttonHint: document.getElementById("buttonHint"),
+      serverHealth: document.getElementById("serverHealth"),
+      lastHealthCheck: document.getElementById("lastHealthCheck"),
+      footerTime: document.getElementById("footerTime"),
+      themeToggle: document.getElementById("themeToggle"),
+      themeIcon: document.querySelector("#themeToggle .theme-icon"),
     };
+
     this.connect();
     this.startHealthCheck();
     this.updateFooterTime();
-    setInterval((): void => this.updateFooterTime(), 1000);
+    setInterval(() => this.updateFooterTime(), 1000);
     this.initTheme();
   }
 
-  private initTheme(): void {
-    // Check for saved theme preference or default to dark mode
+  initTheme() {
     const savedTheme = localStorage.getItem("theme");
     const theme = savedTheme || "dark";
 
-    // Apply theme
     document.body.setAttribute("data-theme", theme);
     this.updateThemeIcon(theme);
 
-    // Add click handler
-    this.elements.themeToggle.addEventListener("click", (): void => {
+    this.elements.themeToggle.addEventListener("click", () => {
       const currentTheme = document.body.getAttribute("data-theme") || "light";
       const newTheme = currentTheme === "light" ? "dark" : "light";
 
@@ -71,27 +49,28 @@ class StatusClient {
     });
   }
 
-  private updateThemeIcon(theme: string): void {
+  updateThemeIcon(theme) {
     this.elements.themeIcon.textContent = theme === "light" ? "☀️" : "🌙";
   }
 
-  private connect(): void {
+  connect() {
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
       this.ws = new WebSocket(wsUrl);
 
-      this.ws.onopen = (): void => this.handleOpen();
-      this.ws.onmessage = (event): void => this.handleMessage(event);
-      this.ws.onerror = (error): void => this.handleError(error);
-      this.ws.onclose = (): void => this.handleClose();
-    } catch {
+      this.ws.onopen = () => this.handleOpen();
+      this.ws.onmessage = (event) => this.handleMessage(event);
+      this.ws.onerror = (error) => this.handleError(error);
+      this.ws.onclose = () => this.handleClose();
+    } catch (error) {
+      console.error("Failed to create WebSocket:", error);
       this.scheduleReconnect();
     }
   }
 
-  private handleOpen(): void {
+  handleOpen() {
     this.reconnectDelay = 1000;
     this.updateConnectionStatus("connected");
 
@@ -105,7 +84,7 @@ class StatusClient {
     this.sendMessage({ type: "status" });
   }
 
-  private handleMessage(event: MessageEvent): void {
+  handleMessage(event) {
     try {
       const data = JSON.parse(event.data);
 
@@ -126,33 +105,31 @@ class StatusClient {
           this.handleUpdateScheduled(data.scheduledTime);
           break;
         case "update-progress":
-          // Progress updates - could display progress in UI if desired
-          // For now, just acknowledge them silently
+          this.handleUpdateProgress(data.data);
           break;
         case "health":
           this.updateHealth(data.data);
           break;
         default:
-        // Unknown message type - ignore silently
       }
     } catch {
       // Failed to parse message - ignore silently
     }
   }
 
-  private handleError(_error: Event): void {
+  handleError(error) {
     this.updateConnectionStatus("disconnected");
   }
 
-  private handleClose(): void {
+  handleClose() {
     this.updateConnectionStatus("disconnected");
     this.scheduleReconnect();
   }
 
-  private scheduleReconnect(): void {
+  scheduleReconnect() {
     if (this.reconnectInterval) return;
 
-    this.reconnectInterval = setInterval((): void => {
+    this.reconnectInterval = setInterval(() => {
       this.connect();
     }, this.reconnectDelay);
 
@@ -160,40 +137,34 @@ class StatusClient {
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
   }
 
-  private sendMessage(message: Record<string, unknown>): void {
+  sendMessage(message) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     }
   }
 
-  private updateConnectionStatus(status: string): void {
+  updateConnectionStatus(status) {
     const indicator = this.elements.connectionStatus;
     indicator.setAttribute("data-status", status);
     indicator.title = status === "connected" ? "Connected" : "Disconnected";
   }
 
-  private updateStatus(data: Record<string, unknown>): void {
-    // Server version
+  updateStatus(data) {
     if (data.version) {
       this.elements.version.textContent = String(data.version);
     }
 
-    // Content data
-    const content = data.content as Record<string, unknown> | undefined;
+    const content = data.content;
     if (content) {
-      // Content version
       this.elements.contentVersion.textContent = String(content.currentVersion || "No version");
 
-      // Last update time
       this.elements.lastUpdate.textContent = content.lastFetchTime
         ? this.formatDate(new Date(String(content.lastFetchTime)))
         : "Never";
 
-      // Update status
       const updateStatus = String(content.updateStatus);
       this.updateStatusBadge(updateStatus);
 
-      // Scheduled time
       if (content.scheduledUpdateTime) {
         this.elements.scheduledMetric.style.display = "block";
         this.elements.scheduledTime.textContent = this.formatDate(new Date(String(content.scheduledUpdateTime)));
@@ -201,24 +172,21 @@ class StatusClient {
         this.elements.scheduledMetric.style.display = "none";
       }
 
-      // Update button state
       this.updateButtonState(updateStatus);
 
-      // Clear hint text if status is idle
       if (updateStatus === "idle") {
         this.elements.buttonHint.textContent = "";
       }
     }
 
-    // Update server health
     this.updateServerHealth(true);
   }
 
-  private updateStatusBadge(status: string): void {
+  updateStatusBadge(status) {
     const badge = this.elements.updateStatus;
     badge.setAttribute("data-status", status);
 
-    const statusText: { [key: string]: string } = {
+    const statusText = {
       idle: "IDLE",
       scheduled: "SCHEDULED",
       in_progress: "IN PROGRESS",
@@ -232,18 +200,16 @@ class StatusClient {
     }
   }
 
-  private updateButtonState(status: string): void {
+  updateButtonState(status) {
     const button = this.elements.updateButton;
-    const buttonText = button.querySelector<HTMLElement>(".btn-text");
-    const spinner = button.querySelector<HTMLElement>(".btn-spinner");
+    const buttonText = button.querySelector(".btn-text");
+    const spinner = button.querySelector(".btn-spinner");
 
-    // Don't update if manual trigger is in progress
     if (this.isManualTrigger) return;
 
     const isIdle = status === "idle" || status === "failed";
     button.disabled = !isIdle;
 
-    // Update button text
     if (buttonText) {
       if (status === "idle" || status === "failed") {
         buttonText.textContent = "Trigger Update";
@@ -253,21 +219,20 @@ class StatusClient {
         this.elements.buttonHint.textContent = "Update will start automatically";
       } else if (status === "in_progress") {
         buttonText.textContent = "Update In Progress";
-        this.elements.buttonHint.textContent = "Please wait...";
+        this.elements.buttonHint.textContent = "Starting update...";
       }
     }
 
-    // Show/hide spinner
     if (spinner && buttonText) {
       spinner.style.display = status === "in_progress" ? "block" : "none";
       buttonText.style.opacity = status === "in_progress" ? "0" : "1";
     }
   }
 
-  public async triggerUpdate(): Promise<void> {
+  async triggerUpdate() {
     const button = this.elements.updateButton;
-    const buttonText = button.querySelector<HTMLElement>(".btn-text");
-    const spinner = button.querySelector<HTMLElement>(".btn-spinner");
+    const buttonText = button.querySelector(".btn-text");
+    const spinner = button.querySelector(".btn-spinner");
 
     this.isManualTrigger = true;
     button.disabled = true;
@@ -303,7 +268,6 @@ class StatusClient {
         this.isManualTrigger = false;
       }, 5000);
 
-      // Failsafe: Reset button state if no update received within 10 seconds
       setTimeout(() => {
         // Check if spinner is still visible (meaning we're still waiting)
         if (spinner && spinner.style.display === "block") {
@@ -329,7 +293,7 @@ class StatusClient {
     }
   }
 
-  private handleUpdateStarted(): void {
+  handleUpdateStarted() {
     this.updateStatusBadge("in_progress");
     this.updateButtonState("in_progress");
     // Clear manual trigger flag when update starts
@@ -338,7 +302,7 @@ class StatusClient {
     this.elements.buttonHint.textContent = "";
   }
 
-  private handleUpdateCompleted(): void {
+  handleUpdateCompleted() {
     // Clear manual trigger flag so button updates properly
     this.isManualTrigger = false;
     // Clear hint text
@@ -347,36 +311,57 @@ class StatusClient {
     this.sendMessage({ type: "status" });
   }
 
-  private handleUpdateFailed(error: string): void {
-    // Clear manual trigger flag
+  handleUpdateFailed(error) {
     this.isManualTrigger = false;
     this.updateStatusBadge("failed");
     this.updateButtonState("failed");
     this.elements.buttonHint.textContent = error || "Update failed";
   }
 
-  private handleUpdateScheduled(scheduledTime: string): void {
+  handleUpdateScheduled(scheduledTime) {
     this.elements.scheduledMetric.style.display = "block";
     this.elements.scheduledTime.textContent = this.formatDate(new Date(scheduledTime));
     this.updateStatusBadge("scheduled");
     this.updateButtonState("scheduled");
-    // Clear manual trigger flag when update is scheduled
     this.isManualTrigger = false;
-    // Clear hint text
     this.elements.buttonHint.textContent = "";
   }
 
-  private startHealthCheck(): void {
-    // Initial health check
+  handleUpdateProgress(progress) {
+    if (progress) {
+      let progressText = "";
+
+      // Show file progress: TODO
+      if (progress.totalFiles && progress.fetchedFiles !== undefined) {
+        const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
+        progressText = `Fetching files: ${progress.fetchedFiles}/${progress.totalFiles} (${percentage}%)`;
+      }
+
+      // Show current file if available: TODO
+      if (progress.currentFile) {
+        const fileName = progress.currentFile.split('/').pop();
+        progressText += ` - ${fileName}`;
+      }
+
+      if (progress.errors && progress.errors.length > 0) {
+        progressText += ` [${progress.errors.length} errors]`;
+      }
+
+      if (progressText) {
+        this.elements.buttonHint.textContent = progressText;
+      }
+    }
+  }
+
+  startHealthCheck() {
     this.performHealthCheck();
 
-    // Schedule regular health checks
-    this.healthCheckInterval = setInterval((): void => {
+    this.healthCheckInterval = setInterval(() => {
       this.performHealthCheck();
     }, 5000);
   }
 
-  private async performHealthCheck(): Promise<void> {
+  async performHealthCheck() {
     try {
       const response = await fetch("/health", {
         method: "GET",
@@ -398,29 +383,28 @@ class StatusClient {
     this.updateLastHealthCheck();
   }
 
-  private updateHealth(data: Record<string, string>): void {
-    // Update server health based on response
+  updateHealth(data) {
     this.updateServerHealth(data.status === "ok");
   }
 
-  private updateServerHealth(isHealthy: boolean): void {
+  updateServerHealth(isHealthy) {
     const element = this.elements.serverHealth;
     element.setAttribute("data-status", isHealthy ? "healthy" : "unhealthy");
     element.textContent = isHealthy ? "Healthy" : "Unhealthy";
   }
 
-  private updateLastHealthCheck(): void {
+  updateLastHealthCheck() {
     this.elements.lastHealthCheck.textContent = this.formatRelativeTime(this.lastHealthCheck);
   }
 
-  private formatDate(date: Date): string {
+  formatDate(date) {
     return date.toLocaleString(undefined, {
       dateStyle: "short",
       timeStyle: "medium",
     });
   }
 
-  private formatRelativeTime(date: Date): string {
+  formatRelativeTime(date) {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
 
     if (seconds < 5) return "Just now";
@@ -435,17 +419,14 @@ class StatusClient {
     return this.formatDate(date);
   }
 
-  private updateFooterTime(): void {
+  updateFooterTime() {
     const now = new Date();
     this.elements.footerTime.textContent = now.toLocaleTimeString();
 
-    // Update relative times
     this.updateLastHealthCheck();
   }
 }
 
-// Initialize client when DOM is ready
-document.addEventListener("DOMContentLoaded", (): void => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).statusClient = new StatusClient();
+document.addEventListener("DOMContentLoaded", () => {
+  window.statusClient = new StatusClient();
 });

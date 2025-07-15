@@ -43,7 +43,6 @@ interface StatusResponse {
 function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done: (err?: Error) => void): void {
   // Get paths to static files
   const publicPath = path.join(process.cwd(), "public");
-  const distPath = path.join(process.cwd(), "dist", "src", "client");
 
   // JSON API endpoint
   fastify.get("/api/v1/status", async (_request: FastifyRequest, _reply: FastifyReply): Promise<StatusResponse> => {
@@ -97,41 +96,15 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
     }
   });
 
-  // Serve compiled JavaScript
+  // Serve JavaScript
   fastify.get("/js/status.js", (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const jsPath = path.join(distPath, "status.js");
-
-      // Check if file exists
-      if (!fs.existsSync(jsPath)) {
-        log.warn(
-          "Compiled status.js not found. Run 'npm run build' or 'npx tsc -p tsconfig.client.json' to compile client TypeScript.",
-        );
-        reply.code(404).send("Client JavaScript not compiled. Please run 'npm run build' first.");
-        return;
-      }
-
+      const jsPath = path.join(publicPath, "js", "status.js");
       const js = fs.readFileSync(jsPath, "utf-8");
       reply.type("application/javascript").send(js);
     } catch (error) {
       log.error("Failed to serve status.js:", error);
       reply.code(500).send("Failed to load script");
-    }
-  });
-
-  // Serve source map
-  fastify.get("/js/status.js.map", (_request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const mapPath = path.join(distPath, "status.js.map");
-      if (fs.existsSync(mapPath)) {
-        const map = fs.readFileSync(mapPath, "utf-8");
-        reply.type("application/json").send(map);
-      } else {
-        reply.code(404).send("Source map not found");
-      }
-    } catch (error) {
-      log.error("Failed to serve status.js.map:", error);
-      reply.code(500).send("Failed to load source map");
     }
   });
 
