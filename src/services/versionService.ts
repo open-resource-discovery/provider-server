@@ -106,7 +106,7 @@ export class VersionService {
 
   private findLatestVersion(tags: string[]): string {
     const versionTags = tags.filter((tag) => {
-      return /^v?\d+\.\d+\.\d+(-.*)?$/.test(tag);
+      return /^v?\d+\.\d+\.\d+$/.test(tag);
     });
 
     if (versionTags.length === 0) {
@@ -125,39 +125,20 @@ export class VersionService {
     if (clean2 === "latest") return 1;
     if (clean1 === clean2) return 0;
 
-    const parts1 = clean1.split(/[.-]/).map((p) => (isNaN(Number(p)) ? p : Number(p)));
-    const parts2 = clean2.split(/[.-]/).map((p) => (isNaN(Number(p)) ? p : Number(p)));
+    // Since we're only dealing with stable versions now (x.y.z), split by dots
+    const parts1 = clean1.split(".").map(Number);
+    const parts2 = clean2.split(".").map(Number);
 
     for (let i = 0; i < 3; i++) {
       const p1 = parts1[i] || 0;
       const p2 = parts2[i] || 0;
 
-      if (typeof p1 === "number" && typeof p2 === "number") {
-        if (p1 !== p2) return p1 - p2;
-      } else {
-        const str1 = String(p1);
-        const str2 = String(p2);
-        if (str1 !== str2) return str1.localeCompare(str2);
+      if (p1 !== p2) {
+        return p1 - p2;
       }
     }
 
-    if (parts1.length > 3 || parts2.length > 3) {
-      if (parts1.length === 3) return 1;
-      if (parts2.length === 3) return -1;
-
-      for (let i = 3; i < Math.max(parts1.length, parts2.length); i++) {
-        const p1 = parts1[i] || "";
-        const p2 = parts2[i] || "";
-
-        if (p1 !== p2) {
-          if (typeof p1 === "number" && typeof p2 === "number") {
-            return p1 - p2;
-          }
-          return String(p1).localeCompare(String(p2));
-        }
-      }
-    }
-
+    // Since we're filtering out pre-release versions, we should only have 3 parts
     return 0;
   }
 }
