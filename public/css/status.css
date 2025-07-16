@@ -38,8 +38,8 @@
 /* Base */
 body {
   font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--text);
   background: var(--bg);
   background-image:
@@ -65,9 +65,9 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 16px;
+  padding: 20px;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -92,7 +92,7 @@ body {
 }
 
 h1 {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -109,9 +109,9 @@ h1 {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 2px;
-  padding: 2px 6px;
+  padding: 4px 8px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 14px;
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
@@ -124,14 +124,14 @@ h1 {
 }
 
 .theme-icon {
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1;
 }
 
 /* Connection Dot */
 .connection-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--neutral);
 }
@@ -157,9 +157,9 @@ h1 {
 
 /* Status Badge */
 .status-badge {
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 600;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 2px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -196,23 +196,23 @@ h1 {
 }
 
 .metric {
-  padding: 6px 8px;
+  padding: 8px 10px;
   background: var(--bg);
   border-radius: 2px;
 }
 
 .metric label {
   display: block;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .metric value {
   display: block;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--text);
   white-space: nowrap;
@@ -230,11 +230,11 @@ h1 {
 
 .btn {
   position: relative;
-  padding: 8px 12px;
+  padding: 10px 16px;
   border: none;
   border-radius: 2px;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -285,8 +285,8 @@ h1 {
 
 /* Spinner */
 .spinner {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   animation: rotate 1s linear infinite;
 }
 
@@ -321,9 +321,9 @@ h1 {
 
 /* Hint */
 .hint {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
-  height: 12px;
+  height: 18px;
   margin-bottom: 8px;
 }
 
@@ -332,8 +332,8 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font-size: 9px;
+  gap: 6px;
+  font-size: 14px;
   color: var(--text-secondary);
   padding-top: 8px;
   border-top: 1px solid var(--border);
@@ -370,9 +370,9 @@ h1 {
 /* Footer Time */
 .footer-time {
   text-align: center;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 /* Responsive */
@@ -382,7 +382,7 @@ h1 {
   }
 
   .card {
-    padding: 12px;
+    padding: 16px;
   }
 
   .metrics-grid {
