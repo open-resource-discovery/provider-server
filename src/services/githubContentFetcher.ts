@@ -4,6 +4,7 @@ import { Octokit } from "@octokit/rest";
 import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "./interfaces/contentFetcher.js";
 import { GithubConfig } from "../model/github.js";
 import pLimit from "p-limit";
+import { log } from "../util/logger.js";
 
 export class GithubContentFetcher implements ContentFetcher {
   private readonly octokit: Octokit;
@@ -33,10 +34,15 @@ export class GithubContentFetcher implements ContentFetcher {
       errors: [],
     };
 
+    log.info(
+      `Starting GitHub content fetch from ${this.config.owner}/${this.config.repo} (branch: ${this.config.branch})`,
+    );
+
     try {
       // Get the tree of all files
       const tree = await this.getCompleteTree();
       progress.totalFiles = tree.length;
+      log.debug(`Found ${tree.length} files in repository`);
 
       // Create directory structure
       await this.createDirectoryStructure(targetDir, tree);
@@ -45,8 +51,14 @@ export class GithubContentFetcher implements ContentFetcher {
       await this.downloadFiles(targetDir, tree, progress, onProgress);
 
       if (progress.errors.length > 0) {
+        log.error(progress.errors, `Failed to fetch ${progress.errors.length} files.`);
         throw new Error(`Failed to fetch ${progress.errors.length} files`);
       }
+
+      const duration = (new Date().getTime() - progress.startTime.getTime()) / 1000;
+      log.debug(
+        `GitHub content fetch completed successfully in ${duration.toFixed(2)}s - ${progress.fetchedFiles} files downloaded`,
+      );
 
       // Return metadata
       return {
@@ -58,8 +70,10 @@ export class GithubContentFetcher implements ContentFetcher {
       };
     } catch (error) {
       if (this.abortController.signal.aborted) {
+        log.warn("GitHub content fetch was aborted");
         throw new Error("Fetch aborted");
       }
+      log.error(error, "GitHub content fetch failed:", error);
       throw error;
     } finally {
       this.abortController = null;
@@ -142,6 +156,9 @@ export class GithubContentFetcher implements ContentFetcher {
     progress: ContentFetchProgress,
     onProgress?: (progress: ContentFetchProgress) => void,
   ): Promise<void> {
+    let lastLogTime = Date.now();
+    const logInterval = 2000;
+
     const tasks = tree.map((item) =>
       this.limit(async () => {
         if (this.abortController?.signal.aborted) {
@@ -164,8 +181,20 @@ export class GithubContentFetcher implements ContentFetcher {
           await fs.writeFile(filePath, content);
 
           progress.fetchedFiles++;
+
+          // Log progress periodically
+          const now = Date.now();
+          if (now - lastLogTime > logInterval) {
+            const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
+            log.debug(
+              `Download progress: ${progress.fetchedFiles}/${progress.totalFiles} files (${percentage}%) - Current: ${item.path}`,
+            );
+            lastLogTime = now;
+          }
+
           onProgress?.(progress);
         } catch (error) {
+          log.warn(`Failed to fetch ${item.path}:`, error);
           progress.errors.push(`Failed to fetch ${item.path}: ${error}`);
         }
       }),

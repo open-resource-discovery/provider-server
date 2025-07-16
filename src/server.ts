@@ -185,7 +185,7 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   });
 
   // Add health check endpoint
-  server.get("/health", (_request, _reply) => {
+  server.get("/health", { logLevel: "error" }, (_request, _reply) => {
     return {
       status: "ok",
       timestamp: new Date().toISOString(),

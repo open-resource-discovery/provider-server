@@ -69,6 +69,8 @@ body {
   width: 100%;
   max-width: 600px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -192,6 +194,7 @@ h1 {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 12px;
+  overflow: hidden;
 }
 
 .metric.metric-full {
@@ -205,6 +208,7 @@ h1 {
   position: relative;
   transition: all 0.15s ease;
   border: 1px solid transparent;
+  min-width: 0; /* Allow flex items to shrink below content size */
 }
 
 .metric.copyable {
@@ -235,8 +239,17 @@ h1 {
   font-weight: 500;
   color: var(--text);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.metric value::-webkit-scrollbar {
+  display: none;
 }
 
 /* Actions */
@@ -344,6 +357,18 @@ h1 {
   color: var(--text-secondary);
   height: 18px;
   margin-bottom: 8px;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hint::-webkit-scrollbar {
+  display: none;
 }
 
 /* Health */
@@ -440,6 +465,7 @@ h1 {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 12px;
+  overflow: hidden;
 }
 
 .setting-item {
@@ -449,6 +475,7 @@ h1 {
   border: 1px solid var(--border);
   position: relative;
   transition: all 0.15s ease;
+  min-width: 0; /* Allow flex items to shrink below content size */
 }
 
 .setting-item.copyable {
@@ -509,9 +536,18 @@ h1 {
   font-size: 14px;
   font-weight: 500;
   color: var(--text);
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.setting-item value::-webkit-scrollbar {
+  display: none;
 }
 
 .github-actions {
