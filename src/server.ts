@@ -193,6 +193,11 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
     };
   });
 
+  // Add REST endpoint for status data
+  server.get("/api/status", async (_request, _reply) => {
+    return await wsHandler.getStatus();
+  });
+
   // Add version header to all responses
   server.addHook("onSend", (_request, reply, _, done) => {
     reply.header("x-ord-provider-server-version", version);

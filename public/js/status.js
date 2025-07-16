@@ -24,6 +24,8 @@ class StatusClient {
       themeToggle: document.getElementById("themeToggle"),
       themeIcon: document.querySelector("#themeToggle .theme-icon"),
       contentMetric: document.querySelector(".metric.metric-full.copyable"),
+      memoryUsage: document.getElementById("memoryUsage"),
+      diskUsage: document.getElementById("diskUsage"),
       // Settings elements
       settingsToggle: document.getElementById("settingsToggle"),
       settingsContent: document.getElementById("settingsContent"),
@@ -44,6 +46,10 @@ class StatusClient {
       githubRepoButton: document.getElementById("githubRepoButton"),
     };
 
+    // Fetch initial status via REST for fast initial load
+    this.fetchInitialStatus();
+
+    // Then establish WebSocket for real-time updates
     this.connect();
     this.startHealthCheck();
     this.updateFooterTime();
@@ -51,6 +57,18 @@ class StatusClient {
     this.initTheme();
     this.initSettingsToggle();
     this.initCopyButtons();
+  }
+
+  async fetchInitialStatus() {
+    try {
+      const response = await fetch("/api/status");
+      if (response.ok) {
+        const data = await response.json();
+        this.updateStatus(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch initial status:", error);
+    }
   }
 
   initTheme() {
@@ -255,8 +273,20 @@ class StatusClient {
   }
 
   updateStatus(data) {
+    // Handle partial updates - only update what's provided
     if (data.version) {
       this.elements.version.textContent = String(data.version);
+    }
+
+    if (data.versionInfo) {
+      if (data.versionInfo.isOutdated) {
+        const current = data.versionInfo.current;
+        const latest = data.versionInfo.latest;
+        const latestWithPrefix = latest.startsWith('v') ? latest : `v${latest}`;
+        this.elements.version.innerHTML = `${current} <span class="version-outdated">(Outdated, latest: ${latestWithPrefix})</span>`;
+      } else if (data.version || data.versionInfo.current) {
+        this.elements.version.textContent = String(data.versionInfo.current || data.version);
+      }
     }
 
     const content = data.content;
@@ -292,6 +322,10 @@ class StatusClient {
         this.serverSettings.commitHash = data.content.commitHash;
       }
       this.updateSettingsDisplay();
+    }
+
+    if (data.systemMetrics) {
+      this.updateSystemMetrics(data.systemMetrics);
     }
 
     this.updateServerHealth(true);
@@ -553,6 +587,34 @@ class StatusClient {
     this.elements.footerTime.textContent = `${hours}:${minutes}:${seconds}`;
 
     this.updateLastHealthCheck();
+  }
+
+  formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + sizes[i];
+  }
+
+  updateSystemMetrics(metrics) {
+    if (metrics.memory && metrics.memory.total > 0) {
+      const { used, total } = metrics.memory;
+      const percentage = (used / total) * 100;
+      const warningEmoji = percentage >= 80 ? '<span class="warning-emoji">⚠️</span>' : '';
+      this.elements.memoryUsage.innerHTML = `${this.formatBytes(used)}/${this.formatBytes(total)}${warningEmoji}`;
+    } else {
+      this.elements.memoryUsage.textContent = '-';
+    }
+
+    if (metrics.disk && metrics.disk.total > 0) {
+      const { used, total } = metrics.disk;
+      const percentage = (used / total) * 100;
+      const warningEmoji = percentage >= 80 ? '<span class="warning-emoji">⚠️</span>' : '';
+      this.elements.diskUsage.innerHTML = `${this.formatBytes(used)}/${this.formatBytes(total)}${warningEmoji}`;
+    } else {
+      this.elements.diskUsage.textContent = '-';
+    }
   }
 
   initCopyButtons() {

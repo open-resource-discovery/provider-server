@@ -7,6 +7,9 @@ import { getPackageVersion } from "../routes/statusRouter.js";
 import { ProviderServerOptions } from "../model/server.js";
 import { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
 import { OptSourceType } from "../model/cli.js";
+import { VersionService } from "../services/versionService.js";
+import * as os from "os";
+import { statfs } from "fs/promises";
 
 interface WebSocketMessage {
   type: string;
@@ -112,6 +115,9 @@ export class StatusWebSocketHandler {
 
     // Send initial status
     this.sendStatus(socket);
+
+    // After initial status, send full update with complete data
+    this.sendFullStatusDelayed(socket);
   }
 
   private async handleMessage(socket: WebSocket, message: WebSocketMessage): Promise<void> {
@@ -142,6 +148,37 @@ export class StatusWebSocketHandler {
     );
   }
 
+  private sendFullStatusDelayed(socket: WebSocket): void {
+    // Wait a bit then send full status with complete version info and metrics
+    setTimeout(async () => {
+      if (this.isOpen(socket)) {
+        try {
+          const versionService = VersionService.getInstance();
+          const [versionInfo, systemMetrics] = await Promise.all([
+            versionService.getVersionInfo(this.version),
+            this.getSystemMetrics(),
+          ]);
+
+          socket.send(
+            JSON.stringify({
+              type: "status",
+              data: {
+                versionInfo: {
+                  current: versionInfo.current,
+                  latest: versionInfo.latest,
+                  isOutdated: versionInfo.isOutdated,
+                },
+                systemMetrics,
+              },
+            }),
+          );
+        } catch (error) {
+          this.logger.warn("Failed to send delayed full status:", error);
+        }
+      }
+    }, 100);
+  }
+
   private sendHealth(socket: WebSocket): void {
     const health = {
       status: "ok",
@@ -155,9 +192,30 @@ export class StatusWebSocketHandler {
     );
   }
 
-  private async getStatus(): Promise<Record<string, unknown>> {
+  public async getStatus(): Promise<Record<string, unknown>> {
+    const versionService = VersionService.getInstance();
+    const versionInfoPromise = versionService.getVersionInfo(this.version);
+    const systemMetricsPromise = this.getSystemMetrics();
+
+    let versionInfo;
+    try {
+      versionInfo = await Promise.race([
+        versionInfoPromise,
+        new Promise<{ current: string; latest: string; isOutdated: boolean }>((resolve) =>
+          setTimeout(() => resolve({ current: this.version, latest: this.version, isOutdated: false }), 2000),
+        ),
+      ]);
+    } catch {
+      versionInfo = { current: this.version, latest: this.version, isOutdated: false };
+    }
+
     const response: Record<string, unknown> = {
       version: this.version,
+      versionInfo: {
+        current: versionInfo.current,
+        latest: versionInfo.latest,
+        isOutdated: versionInfo.isOutdated,
+      },
     };
 
     if (this.serverOptions.sourceType === OptSourceType.Local) {
@@ -183,6 +241,7 @@ export class StatusWebSocketHandler {
     } else if (this.fileSystemManager && this.updateScheduler) {
       // GitHub mode needs both fileSystemManager and updateScheduler
       const updateStatus = this.updateScheduler.getStatus();
+
       const currentVersion = await this.fileSystemManager.getCurrentVersion();
       const metadata = await this.fileSystemManager.getMetadata();
 
@@ -227,6 +286,25 @@ export class StatusWebSocketHandler {
       serverStartupTime: this.serverStartupTime.toISOString(),
     };
 
+    // Get system metrics with timeout
+    try {
+      response.systemMetrics = await Promise.race([
+        systemMetricsPromise,
+        new Promise<{ memory: { used: number; total: number }; disk: { used: number; total: number } }>((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                memory: { used: 0, total: 0 },
+                disk: { used: 0, total: 0 },
+              }),
+            1000,
+          ),
+        ),
+      ]);
+    } catch {
+      this.logger.warn("Failed to get system metrics");
+    }
+
     return response;
   }
 
@@ -250,5 +328,44 @@ export class StatusWebSocketHandler {
   private isOpen(ws: WebSocket): boolean {
     // @ts-expect-error WebSocket types may vary
     return ws.readyState === ws.OPEN || ws.readyState === 1;
+  }
+
+  private async getSystemMetrics(): Promise<{
+    memory: { used: number; total: number };
+    disk: { used: number; total: number };
+  }> {
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+
+    try {
+      const stats = await statfs("/");
+      const totalDisk = stats.blocks * stats.bsize;
+      const freeDisk = stats.bavail * stats.bsize;
+      const usedDisk = totalDisk - freeDisk;
+
+      return {
+        memory: {
+          used: usedMemory,
+          total: totalMemory,
+        },
+        disk: {
+          used: usedDisk,
+          total: totalDisk,
+        },
+      };
+    } catch (error) {
+      this.logger.error("Failed to get disk metrics:", error);
+      return {
+        memory: {
+          used: usedMemory,
+          total: totalMemory,
+        },
+        disk: {
+          used: 0,
+          total: 0,
+        },
+      };
+    }
   }
 }

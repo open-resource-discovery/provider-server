@@ -252,6 +252,13 @@ h1 {
   display: none;
 }
 
+/* Warning state for metrics */
+.metric value .warning-emoji {
+  color: var(--warning);
+  margin-left: 6px;
+  font-size: 14px;
+}
+
 /* Actions */
 .actions {
   display: flex;
@@ -555,6 +562,13 @@ h1 {
   margin-top: 12px;
   display: flex;
   justify-content: center;
+}
+
+/* Version Outdated Indicator */
+.version-outdated {
+  color: var(--warning);
+  font-size: 13px;
+  font-weight: normal;
 }
 
 /* Responsive */
