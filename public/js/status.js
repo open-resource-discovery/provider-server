@@ -23,6 +23,7 @@ class StatusClient {
       footerTime: document.getElementById("footerTime"),
       themeToggle: document.getElementById("themeToggle"),
       themeIcon: document.querySelector("#themeToggle .theme-icon"),
+      contentMetric: document.querySelector(".metric.metric-full.copyable"),
       // Settings elements
       settingsToggle: document.getElementById("settingsToggle"),
       settingsContent: document.getElementById("settingsContent"),
@@ -98,6 +99,12 @@ class StatusClient {
 
     // Show/hide GitHub-specific settings
     const isGithub = this.serverSettings.sourceType === "github";
+    const isLocal = this.serverSettings.sourceType === "local";
+    
+    // Hide Content card in local mode
+    if (this.elements.contentMetric) {
+      this.elements.contentMetric.style.display = isLocal ? "none" : "block";
+    }
     
     if (isGithub) {
       this.elements.githubUrlSetting.style.display = "block";
