@@ -112,10 +112,12 @@ h1 {
   padding: 4px 8px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 32px;
 }
 
 .theme-toggle:hover {
@@ -168,7 +170,7 @@ h1 {
 }
 
 .status-badge[data-status="idle"] {
-  background: var(--neutral);
+  background: var(--success);
 }
 
 .status-badge[data-status="scheduled"] {

@@ -203,10 +203,22 @@ export class StatusWebSocketHandler {
     }
 
     // Add CLI settings
+    let displayDirectory = this.serverOptions.ordDirectory + "/" + this.serverOptions.ordDocumentsSubDirectory;
+
+    // For local mode, show only the last two directory names with .../ prefix
+    if (this.serverOptions.sourceType === OptSourceType.Local) {
+      const parts = displayDirectory.split("/").filter((part) => part.length > 0);
+      if (parts.length > 1) {
+        displayDirectory = ".../" + parts[parts.length - 2] + "/" + parts[parts.length - 1];
+      } else if (parts.length === 1) {
+        displayDirectory = ".../" + parts[0];
+      }
+    }
+
     response.settings = {
       sourceType: this.serverOptions.sourceType,
       baseUrl: this.serverOptions.baseUrl || "",
-      directory: this.serverOptions.ordDirectory + "/" + this.serverOptions.ordDocumentsSubDirectory,
+      directory: displayDirectory,
       authMethods: this.serverOptions.authentication.methods.join(", "),
       githubUrl: this.serverOptions.githubApiUrl || "",
       githubBranch: this.serverOptions.githubBranch || "",

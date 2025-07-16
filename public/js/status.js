@@ -215,7 +215,7 @@ class StatusClient {
     }
   }
 
-  handleError(error) {
+  handleError() {
     this.updateConnectionStatus("disconnected");
   }
 
@@ -516,10 +516,14 @@ class StatusClient {
   }
 
   formatDate(date) {
-    return date.toLocaleString(undefined, {
-      dateStyle: "short",
-      timeStyle: "medium",
-    });
+    const day = date.getDate();
+    const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    
+    return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`;
   }
 
   formatRelativeTime(date) {
