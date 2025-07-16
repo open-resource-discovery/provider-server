@@ -23,6 +23,24 @@ class StatusClient {
       footerTime: document.getElementById("footerTime"),
       themeToggle: document.getElementById("themeToggle"),
       themeIcon: document.querySelector("#themeToggle .theme-icon"),
+      // Settings elements
+      settingsToggle: document.getElementById("settingsToggle"),
+      settingsContent: document.getElementById("settingsContent"),
+      toggleIcon: document.querySelector("#settingsToggle .toggle-icon"),
+      settingSourceType: document.getElementById("settingSourceType"),
+      settingBaseUrl: document.getElementById("settingBaseUrl"),
+      settingDirectory: document.getElementById("settingDirectory"),
+      settingAuth: document.getElementById("settingAuth"),
+      settingGithubUrl: document.getElementById("settingGithubUrl"),
+      settingGithubRepo: document.getElementById("settingGithubRepo"),
+      settingGithubBranch: document.getElementById("settingGithubBranch"),
+      settingUpdateDelay: document.getElementById("settingUpdateDelay"),
+      githubUrlSetting: document.getElementById("githubUrlSetting"),
+      githubRepoSetting: document.getElementById("githubRepoSetting"),
+      githubBranchSetting: document.getElementById("githubBranchSetting"),
+      updateDelaySetting: document.getElementById("updateDelaySetting"),
+      githubActions: document.getElementById("githubActions"),
+      githubRepoButton: document.getElementById("githubRepoButton"),
     };
 
     this.connect();
@@ -30,6 +48,8 @@ class StatusClient {
     this.updateFooterTime();
     setInterval(() => this.updateFooterTime(), 1000);
     this.initTheme();
+    this.initSettingsToggle();
+    this.initCopyButtons();
   }
 
   initTheme() {
@@ -51,6 +71,67 @@ class StatusClient {
 
   updateThemeIcon(theme) {
     this.elements.themeIcon.textContent = theme === "light" ? "☀️" : "🌙";
+  }
+
+  initSettingsToggle() {
+    this.elements.settingsToggle.addEventListener("click", () => {
+      const isOpen = this.elements.settingsContent.style.display !== "none";
+      
+      if (isOpen) {
+        this.elements.settingsContent.style.display = "none";
+        this.elements.toggleIcon.textContent = "▶";
+      } else {
+        this.elements.settingsContent.style.display = "block";
+        this.elements.toggleIcon.textContent = "▼";
+      }
+    });
+  }
+
+  updateSettingsDisplay() {
+    if (!this.serverSettings) return;
+
+    // Update basic settings
+    this.elements.settingSourceType.textContent = this.serverSettings.sourceType || "-";
+    this.elements.settingBaseUrl.textContent = this.serverSettings.baseUrl || "-";
+    this.elements.settingDirectory.textContent = this.serverSettings.directory || "-";
+    this.elements.settingAuth.textContent = this.serverSettings.authMethods || "-";
+
+    // Show/hide GitHub-specific settings
+    const isGithub = this.serverSettings.sourceType === "github";
+    
+    if (isGithub) {
+      this.elements.githubUrlSetting.style.display = "block";
+      this.elements.githubRepoSetting.style.display = "block";
+      this.elements.githubBranchSetting.style.display = "block";
+      this.elements.updateDelaySetting.style.display = "block";
+      this.elements.githubActions.style.display = "block";
+
+      this.elements.settingGithubUrl.textContent = this.serverSettings.githubUrl || "-";
+      this.elements.settingGithubRepo.textContent = this.serverSettings.githubRepository || "-";
+      this.elements.settingGithubBranch.textContent = this.serverSettings.githubBranch || "-";
+      this.elements.settingUpdateDelay.textContent = this.serverSettings.updateDelay ? `${this.serverSettings.updateDelay}s` : "-";
+
+      // Update GitHub repository button to point to commit
+      if (this.serverSettings.githubRepository) {
+        let url;
+        if (this.serverSettings.commitHash && this.serverSettings.commitHash !== "current") {
+          // Link to specific commit
+          url = `https://github.com/${this.serverSettings.githubRepository}/commit/${this.serverSettings.commitHash}`;
+          this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Commit";
+        } else {
+          // Fallback to repository with branch
+          url = `https://github.com/${this.serverSettings.githubRepository}/tree/${this.serverSettings.githubBranch || "main"}`;
+          this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Repository";
+        }
+        this.elements.githubRepoButton.href = url;
+      }
+    } else {
+      this.elements.githubUrlSetting.style.display = "none";
+      this.elements.githubRepoSetting.style.display = "none";
+      this.elements.githubBranchSetting.style.display = "none";
+      this.elements.updateDelaySetting.style.display = "none";
+      this.elements.githubActions.style.display = "none";
+    }
   }
 
   connect() {
@@ -179,6 +260,16 @@ class StatusClient {
       }
     }
 
+    // Store settings data for later use
+    if (data.settings) {
+      this.serverSettings = data.settings;
+      // Store commit hash from content if available
+      if (data.content && data.content.commitHash) {
+        this.serverSettings.commitHash = data.content.commitHash;
+      }
+      this.updateSettingsDisplay();
+    }
+
     this.updateServerHealth(true);
   }
 
@@ -187,7 +278,7 @@ class StatusClient {
     badge.setAttribute("data-status", status);
 
     const statusText = {
-      idle: "IDLE",
+      idle: "SYNCED",
       scheduled: "SCHEDULED",
       in_progress: "IN PROGRESS",
       failed: "FAILED",
@@ -206,6 +297,16 @@ class StatusClient {
     const spinner = button.querySelector(".btn-spinner");
 
     if (this.isManualTrigger) return;
+
+    // Disable button in local mode
+    const isLocalMode = this.serverSettings && this.serverSettings.sourceType === "local";
+    if (isLocalMode) {
+      button.disabled = true;
+      if (buttonText) {
+        buttonText.textContent = "N/A - Local Mode";
+      }
+      return;
+    }
 
     const isIdle = status === "idle" || status === "failed";
     button.disabled = !isIdle;
@@ -424,6 +525,59 @@ class StatusClient {
     this.elements.footerTime.textContent = now.toLocaleTimeString();
 
     this.updateLastHealthCheck();
+  }
+
+  initCopyButtons() {
+    // Use event delegation for copy functionality
+    document.addEventListener("click", async (e) => {
+      let targetElement = null;
+      let copyButton = null;
+      
+      // Check if clicked on copy button
+      if (e.target.classList.contains("copy-button")) {
+        copyButton = e.target;
+        const targetId = copyButton.getAttribute("data-copy-target");
+        targetElement = document.getElementById(targetId);
+      }
+      // Check if clicked on copyable setting item or metric
+      else if (e.target.closest(".setting-item.copyable") || e.target.closest(".metric.copyable")) {
+        const copyableItem = e.target.closest(".setting-item.copyable") || e.target.closest(".metric.copyable");
+        targetElement = copyableItem.querySelector("value");
+        copyButton = copyableItem.querySelector(".copy-button");
+      }
+      
+      if (targetElement && targetElement.textContent !== "-") {
+        const textToCopy = targetElement.textContent;
+        
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          
+          // Show success feedback on button if available
+          if (copyButton) {
+            const originalText = copyButton.textContent;
+            copyButton.textContent = "Copied!";
+            copyButton.classList.add("copied");
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+              copyButton.textContent = originalText;
+              copyButton.classList.remove("copied");
+            }, 2000);
+          }
+          
+          // Also show brief flash effect on the item
+          const item = targetElement.closest(".setting-item") || targetElement.closest(".metric");
+          if (item) {
+            item.style.background = "rgba(29, 191, 176, 0.1)";
+            setTimeout(() => {
+              item.style.background = "";
+            }, 300);
+          }
+        } catch (err) {
+          console.error("Failed to copy text:", err);
+        }
+      }
+    });
   }
 }
 

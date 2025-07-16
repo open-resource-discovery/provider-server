@@ -37,9 +37,10 @@
             <label>Updated</label>
             <value id="lastUpdate">-</value>
           </div>
-          <div class="metric metric-full">
+          <div class="metric metric-full copyable">
             <label>Content</label>
             <value id="contentVersion">-</value>
+            <button class="copy-button" data-copy-target="contentVersion">Copy</button>
           </div>
           <div class="metric" id="scheduledMetric" style="display: none">
             <label>Scheduled</label>
@@ -61,6 +62,59 @@
           </a>
         </div>
         <div class="hint" id="buttonHint"></div>
+
+        <div class="settings-section">
+          <button class="settings-toggle" id="settingsToggle">
+            <span class="toggle-icon">▶</span>
+            <span>CLI Settings</span>
+          </button>
+          <div class="settings-content" id="settingsContent" style="display: none;">
+            <div class="settings-grid">
+              <div class="setting-item">
+                <label>Source Type</label>
+                <value id="settingSourceType">-</value>
+              </div>
+              <div class="setting-item copyable">
+                <label>Base URL</label>
+                <value id="settingBaseUrl">-</value>
+                <button class="copy-button" data-copy-target="settingBaseUrl">Copy</button>
+              </div>
+              <div class="setting-item copyable">
+                <label>Directory</label>
+                <value id="settingDirectory">-</value>
+                <button class="copy-button" data-copy-target="settingDirectory">Copy</button>
+              </div>
+              <div class="setting-item">
+                <label>Authentication</label>
+                <value id="settingAuth">-</value>
+              </div>
+              <div class="setting-item copyable" id="githubUrlSetting" style="display: none;">
+                <label>GitHub API URL</label>
+                <value id="settingGithubUrl">-</value>
+                <button class="copy-button" data-copy-target="settingGithubUrl">Copy</button>
+              </div>
+              <div class="setting-item copyable" id="githubRepoSetting" style="display: none;">
+                <label>Repository</label>
+                <value id="settingGithubRepo">-</value>
+                <button class="copy-button" data-copy-target="settingGithubRepo">Copy</button>
+              </div>
+              <div class="setting-item copyable" id="githubBranchSetting" style="display: none;">
+                <label>Branch</label>
+                <value id="settingGithubBranch">-</value>
+                <button class="copy-button" data-copy-target="settingGithubBranch">Copy</button>
+              </div>
+              <div class="setting-item" id="updateDelaySetting" style="display: none;">
+                <label>Update Delay</label>
+                <value id="settingUpdateDelay">-</value>
+              </div>
+            </div>
+            <div class="github-actions" id="githubActions" style="display: none;">
+              <a href="#" class="btn secondary" id="githubRepoButton" target="_blank">
+                <span class="btn-text">View Repository</span>
+              </a>
+            </div>
+          </div>
+        </div>
 
         <div class="health">
           <span class="health-item">

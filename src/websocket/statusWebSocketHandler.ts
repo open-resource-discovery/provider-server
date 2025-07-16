@@ -4,6 +4,9 @@ import { UpdateScheduler } from "../services/updateScheduler.js";
 import { FileSystemManager } from "../services/fileSystemManager.js";
 import { Logger } from "pino";
 import { getPackageVersion } from "../routes/statusRouter.js";
+import { ProviderServerOptions } from "../model/server.js";
+import { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
+import { OptSourceType } from "../model/cli.js";
 
 interface WebSocketMessage {
   type: string;
@@ -18,16 +21,24 @@ export class StatusWebSocketHandler {
   private readonly fileSystemManager: FileSystemManager | null;
   private readonly logger: Logger;
   private readonly version: string;
+  private readonly serverOptions: ProviderServerOptions;
+  private readonly serverStartupTime: Date;
+  private readonly localRepository: LocalDocumentRepository | null;
 
   public constructor(
     updateScheduler: UpdateScheduler | null,
     fileSystemManager: FileSystemManager | null,
     logger: Logger,
+    serverOptions: ProviderServerOptions,
+    localRepository: LocalDocumentRepository | null = null,
   ) {
     this.updateScheduler = updateScheduler;
     this.fileSystemManager = fileSystemManager;
     this.logger = logger;
+    this.serverOptions = serverOptions;
+    this.localRepository = localRepository;
     this.version = getPackageVersion();
+    this.serverStartupTime = new Date();
 
     // Subscribe to update events
     if (this.updateScheduler) {
@@ -109,7 +120,7 @@ export class StatusWebSocketHandler {
         await this.sendStatus(socket);
         break;
       case "health":
-        await this.sendHealth(socket);
+        this.sendHealth(socket);
         break;
       default:
         socket.send(
@@ -149,9 +160,31 @@ export class StatusWebSocketHandler {
       version: this.version,
     };
 
-    if (this.fileSystemManager && this.updateScheduler) {
+    if (this.serverOptions.sourceType === OptSourceType.Local) {
+      let currentVersion = "current";
+
+      // Get directory hash for local mode
+      if (this.localRepository) {
+        const directoryPath = this.serverOptions.ordDocumentsSubDirectory || "";
+        const hash = await this.localRepository.getDirectoryHash(directoryPath);
+        if (hash) {
+          currentVersion = hash.substring(0, 7); // Use first 7 chars like git short hash
+        }
+      }
+
+      response.content = {
+        lastFetchTime: this.serverStartupTime.toISOString(),
+        currentVersion: currentVersion,
+        updateStatus: "idle",
+        scheduledUpdateTime: null,
+        failedUpdates: 0,
+        commitHash: null,
+      };
+    } else if (this.fileSystemManager && this.updateScheduler) {
+      // GitHub mode needs both fileSystemManager and updateScheduler
       const updateStatus = this.updateScheduler.getStatus();
       const currentVersion = await this.fileSystemManager.getCurrentVersion();
+      const metadata = await this.fileSystemManager.getMetadata();
 
       response.content = {
         lastFetchTime: updateStatus.lastUpdateTime?.toISOString() || null,
@@ -165,8 +198,22 @@ export class StatusWebSocketHandler {
               : "idle",
         scheduledUpdateTime: updateStatus.scheduledUpdateTime?.toISOString() || null,
         failedUpdates: updateStatus.failedUpdates,
+        commitHash: metadata?.commitHash || null,
       };
     }
+
+    // Add CLI settings
+    response.settings = {
+      sourceType: this.serverOptions.sourceType,
+      baseUrl: this.serverOptions.baseUrl || "",
+      directory: this.serverOptions.ordDirectory + "/" + this.serverOptions.ordDocumentsSubDirectory,
+      authMethods: this.serverOptions.authentication.methods.join(", "),
+      githubUrl: this.serverOptions.githubApiUrl || "",
+      githubBranch: this.serverOptions.githubBranch || "",
+      githubRepository: this.serverOptions.githubRepository || "",
+      updateDelay: this.serverOptions.updateDelay / 1000, // Convert back to seconds
+      serverStartupTime: this.serverStartupTime.toISOString(),
+    };
 
     return response;
   }

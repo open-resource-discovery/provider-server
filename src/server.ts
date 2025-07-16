@@ -20,6 +20,7 @@ import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
 import { buildGithubConfig } from "./model/github.js";
+import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 
 // Helper to get package.json version
 function getPackageVersion(): string {
@@ -67,7 +68,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   }
 
   // Basic server setup
-  await setupServer(server);
+  await setupServer(server, opts);
 
   // Setup authentication
   await setupAuthentication(server, {
@@ -151,7 +152,7 @@ async function performWarmup(opts: ProviderServerOptions): Promise<void> {
   }
 }
 
-async function setupServer(server: FastifyInstanceType): Promise<void> {
+async function setupServer(server: FastifyInstanceType, opts: ProviderServerOptions): Promise<void> {
   server.setErrorHandler(errorHandler);
 
   await server.register(fastifyRawBody, {
@@ -169,7 +170,12 @@ async function setupServer(server: FastifyInstanceType): Promise<void> {
     updateScheduler,
   });
 
-  const wsHandler = new StatusWebSocketHandler(updateScheduler, fileSystemManager, log);
+  let localRepository: LocalDocumentRepository | null = null;
+  if (opts.sourceType === OptSourceType.Local) {
+    localRepository = new LocalDocumentRepository(opts.ordDirectory);
+  }
+
+  const wsHandler = new StatusWebSocketHandler(updateScheduler, fileSystemManager, log, opts, localRepository);
   // @ts-expect-error Type mismatch between Fastify instance types
   wsHandler.register(server);
 

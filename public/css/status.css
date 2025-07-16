@@ -67,7 +67,7 @@ body {
   border-radius: 4px;
   padding: 20px;
   width: 100%;
-  max-width: 480px;
+  max-width: 600px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -199,6 +199,21 @@ h1 {
   padding: 8px 10px;
   background: var(--bg);
   border-radius: 2px;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.metric.copyable {
+  cursor: pointer;
+}
+
+.metric.copyable * {
+  cursor: pointer;
+}
+
+.metric.copyable:hover {
+  background: rgba(29, 191, 176, 0.03);
+  box-shadow: 0 0 0 1px rgba(29, 191, 176, 0.3);
 }
 
 .metric label {
@@ -375,6 +390,131 @@ h1 {
   margin-top: 6px;
 }
 
+/* Settings Section */
+.settings-section {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.settings-toggle {
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.settings-toggle:hover {
+  background: var(--bg);
+  border-color: var(--primary);
+}
+
+.toggle-icon {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.settings-content {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.setting-item {
+  padding: 8px 10px;
+  background: var(--card-bg);
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.setting-item.copyable {
+  cursor: pointer;
+}
+
+.setting-item.copyable * {
+  cursor: pointer;
+}
+
+.setting-item.copyable:hover {
+  border-color: rgba(29, 191, 176, 0.3);
+  background: rgba(29, 191, 176, 0.03);
+}
+
+.copy-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 4px 8px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.setting-item:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background: var(--primary-dark);
+}
+
+.copy-button.copied {
+  background: var(--success);
+}
+
+.setting-item label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.setting-item value {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.github-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .container {
@@ -386,6 +526,10 @@ h1 {
   }
 
   .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
     grid-template-columns: 1fr;
   }
 }
