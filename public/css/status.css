@@ -254,8 +254,7 @@ h1 {
 
 /* Actions */
 .actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
   margin-bottom: 4px;
 }
@@ -277,6 +276,8 @@ h1 {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  text-align: center;
+  flex: 1 0;
 }
 
 .btn.primary {
