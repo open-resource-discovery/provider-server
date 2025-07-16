@@ -77,7 +77,7 @@ class StatusClient {
   initSettingsToggle() {
     this.elements.settingsToggle.addEventListener("click", () => {
       const isOpen = this.elements.settingsContent.style.display !== "none";
-      
+
       if (isOpen) {
         this.elements.settingsContent.style.display = "none";
         this.elements.toggleIcon.textContent = "▶";
@@ -100,12 +100,12 @@ class StatusClient {
     // Show/hide GitHub-specific settings
     const isGithub = this.serverSettings.sourceType === "github";
     const isLocal = this.serverSettings.sourceType === "local";
-    
+
     // Hide Content card in local mode
     if (this.elements.contentMetric) {
       this.elements.contentMetric.style.display = isLocal ? "none" : "block";
     }
-    
+
     if (isGithub) {
       this.elements.githubUrlSetting.style.display = "block";
       this.elements.githubRepoSetting.style.display = "block";
@@ -137,7 +137,7 @@ class StatusClient {
             baseUrl = apiUrl.replace(/\/api$/, "");
           }
         }
-        
+
         if (this.serverSettings.commitHash && this.serverSettings.commitHash !== "current") {
           // Link to specific commit
           url = `${baseUrl}/${this.serverSettings.githubRepository}/commit/${this.serverSettings.commitHash}`;
@@ -325,10 +325,7 @@ class StatusClient {
     // Disable button in local mode
     const isLocalMode = this.serverSettings && this.serverSettings.sourceType === "local";
     if (isLocalMode) {
-      button.disabled = true;
-      if (buttonText) {
-        buttonText.textContent = "N/A - Local Mode";
-      }
+      button.style.display = "none";
       return;
     }
 
@@ -529,7 +526,7 @@ class StatusClient {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const seconds = date.getSeconds().toString().padStart(2, '0');
-    
+
     return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`;
   }
 
@@ -563,7 +560,7 @@ class StatusClient {
     document.addEventListener("click", async (e) => {
       let targetElement = null;
       let copyButton = null;
-      
+
       // Check if clicked on copy button
       if (e.target.classList.contains("copy-button")) {
         copyButton = e.target;
@@ -576,26 +573,26 @@ class StatusClient {
         targetElement = copyableItem.querySelector("value");
         copyButton = copyableItem.querySelector(".copy-button");
       }
-      
+
       if (targetElement && targetElement.textContent !== "-") {
         const textToCopy = targetElement.textContent;
-        
+
         try {
           await navigator.clipboard.writeText(textToCopy);
-          
+
           // Show success feedback on button if available
           if (copyButton) {
             const originalText = copyButton.textContent;
             copyButton.textContent = "Copied!";
             copyButton.classList.add("copied");
-            
+
             // Reset after 2 seconds
             setTimeout(() => {
               copyButton.textContent = originalText;
               copyButton.classList.remove("copied");
             }, 2000);
           }
-          
+
           // Also show brief flash effect on the item
           const item = targetElement.closest(".setting-item") || targetElement.closest(".metric");
           if (item) {
