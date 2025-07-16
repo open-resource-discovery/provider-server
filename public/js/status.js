@@ -114,13 +114,30 @@ class StatusClient {
       // Update GitHub repository button to point to commit
       if (this.serverSettings.githubRepository) {
         let url;
+        // Derive base URL from API URL
+        let baseUrl = "https://github.com";
+        if (this.serverSettings.githubUrl && this.serverSettings.githubUrl !== "https://api.github.com") {
+          // For GitHub Enterprise, convert API URL to web URL
+          // e.g., https://api.github.enterprise.com -> https://github.enterprise.com
+          // or https://github.enterprise.com/api/v3 -> https://github.enterprise.com
+          const apiUrl = this.serverSettings.githubUrl;
+          if (apiUrl.includes("/api/v3")) {
+            baseUrl = apiUrl.replace("/api/v3", "");
+          } else if (apiUrl.includes("api.")) {
+            baseUrl = apiUrl.replace("api.", "");
+          } else {
+            // Fallback: remove /api if present
+            baseUrl = apiUrl.replace(/\/api$/, "");
+          }
+        }
+        
         if (this.serverSettings.commitHash && this.serverSettings.commitHash !== "current") {
           // Link to specific commit
-          url = `https://github.com/${this.serverSettings.githubRepository}/commit/${this.serverSettings.commitHash}`;
+          url = `${baseUrl}/${this.serverSettings.githubRepository}/commit/${this.serverSettings.commitHash}`;
           this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Commit";
         } else {
           // Fallback to repository with branch
-          url = `https://github.com/${this.serverSettings.githubRepository}/tree/${this.serverSettings.githubBranch || "main"}`;
+          url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${this.serverSettings.githubBranch || "main"}`;
           this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Repository";
         }
         this.elements.githubRepoButton.href = url;
