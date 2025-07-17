@@ -8,7 +8,6 @@ import { ProviderServerOptions } from "../model/server.js";
 import { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
 import { OptSourceType } from "../model/cli.js";
 import { VersionService } from "../services/versionService.js";
-import * as os from "os";
 import { statfs } from "fs/promises";
 
 interface WebSocketMessage {
@@ -334,9 +333,9 @@ export class StatusWebSocketHandler {
     memory: { used: number; total: number };
     disk: { used: number; total: number };
   }> {
-    const totalMemory = os.totalmem();
-    const freeMemory = os.freemem();
-    const usedMemory = totalMemory - freeMemory;
+    const mem = process.memoryUsage();
+    const usedMemory = mem.heapUsed;
+    const totalMemory = mem.heapTotal;
 
     try {
       const stats = await statfs("/");

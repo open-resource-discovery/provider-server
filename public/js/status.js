@@ -158,7 +158,7 @@ class StatusClient {
 
         if (this.serverSettings.commitHash && this.serverSettings.commitHash !== "current") {
           // Link to specific commit
-          url = `${baseUrl}/${this.serverSettings.githubRepository}/commit/${this.serverSettings.commitHash}`;
+          url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${this.serverSettings.commitHash}/data`;
           this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Commit";
         } else {
           // Fallback to repository with branch
