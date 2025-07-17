@@ -298,6 +298,7 @@ h1 {
   border: 1px solid var(--primary);
 }
 
+
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
@@ -569,6 +570,70 @@ h1 {
   color: var(--warning);
   font-size: 13px;
   font-weight: normal;
+}
+
+.version-link {
+  color: var(--primary);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.version-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Commit Link Icon */
+.commit-link {
+  margin-left: 3px;
+  padding-bottom: 2px;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  position: relative;
+  top: -2px;
+}
+
+.commit-link:hover {
+  color: var(--primary);
+}
+
+/* Failed Update Card */
+.failed-update-card {
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.failed-update-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.failed-update-icon {
+  font-size: 20px;
+}
+
+.failed-update-title {
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.failed-update-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.commit-hash {
+  font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
 /* Responsive */

@@ -14,6 +14,7 @@ export interface UpdateStatus {
   failedUpdates: number;
   currentVersion: string | null;
   lastUpdateFailed: boolean;
+  failedCommitHash: string | null;
 }
 
 export class UpdateScheduler extends EventEmitter {
@@ -30,6 +31,9 @@ export class UpdateScheduler extends EventEmitter {
   private failedUpdates = 0;
   private webhookCooldownTimeout: NodeJS.Timeout | null = null;
   private lastUpdateFailed = false;
+  private failedCommitHash: string | null = null;
+  private periodicCheckInterval: NodeJS.Timeout | null = null;
+  private readonly PERIODIC_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
 
   public constructor(
     config: UpdateSchedulerConfig,
@@ -51,6 +55,8 @@ export class UpdateScheduler extends EventEmitter {
       this.lastUpdateTime = metadata.fetchTime;
       this.logger.info(`Loaded last update time from metadata: ${this.lastUpdateTime.toISOString()}`);
     }
+
+    this.startPeriodicCheck();
   }
 
   public scheduleUpdate(delay?: number): void {
@@ -97,14 +103,14 @@ export class UpdateScheduler extends EventEmitter {
     await this.performUpdate();
   }
 
-  public async scheduleImmediateUpdate(): Promise<void> {
+  public async scheduleImmediateUpdate(isManualTrigger: boolean = false): Promise<void> {
     if (this.webhookCooldownTimeout) {
       clearTimeout(this.webhookCooldownTimeout);
       this.webhookCooldownTimeout = null;
     }
 
-    // Check webhook cooldown
-    if (this.lastWebhookUpdateTime) {
+    // Check webhook cooldown (only for actual webhooks, not manual triggers)
+    if (!isManualTrigger && this.lastWebhookUpdateTime) {
       const timeSinceLastWebhook = Date.now() - this.lastWebhookUpdateTime.getTime();
       if (timeSinceLastWebhook < this.config.updateDelay) {
         const remainingTime = this.config.updateDelay - timeSinceLastWebhook;
@@ -115,7 +121,7 @@ export class UpdateScheduler extends EventEmitter {
         // Schedule to process the latest webhook after cooldown
         this.webhookCooldownTimeout = setTimeout(() => {
           this.webhookCooldownTimeout = null;
-          this.scheduleImmediateUpdate().catch((error) => {
+          this.scheduleImmediateUpdate(false).catch((error) => {
             this.logger.error("Webhook update after cooldown failed:", error);
           });
         }, remainingTime);
@@ -138,13 +144,18 @@ export class UpdateScheduler extends EventEmitter {
       this.scheduledUpdateTime = null;
     }
 
-    this.lastWebhookUpdateTime = new Date();
-    this.logger.info("Starting immediate webhook-triggered update");
+    // Only update webhook time for actual webhooks, not manual triggers
+    if (!isManualTrigger) {
+      this.lastWebhookUpdateTime = new Date();
+      this.logger.info("Starting immediate webhook-triggered update");
+    } else {
+      this.logger.info("Starting immediate manual-triggered update");
+    }
 
     try {
       await this.performUpdate();
     } catch (error) {
-      this.logger.error("Webhook update failed:", error);
+      this.logger.error(`${isManualTrigger ? "Manual" : "Webhook"} update failed:`, error);
       this.emit("update-failed", error);
       throw error;
     }
@@ -185,6 +196,7 @@ export class UpdateScheduler extends EventEmitter {
       this.lastUpdateTime = metadata.fetchTime;
       this.failedUpdates = 0;
       this.lastUpdateFailed = false;
+      this.failedCommitHash = null;
 
       this.logger.info(`Successfully updated content to commit ${metadata.commitHash}`);
       this.emit("update-completed");
@@ -192,6 +204,14 @@ export class UpdateScheduler extends EventEmitter {
       this.logger.error(`Update failed: ${error}`);
       this.failedUpdates++;
       this.lastUpdateFailed = true;
+
+      // Try to get the commit hash that failed
+      try {
+        const latestSha = await this.contentFetcher.getLatestCommitSha();
+        this.failedCommitHash = latestSha;
+      } catch {
+        // If we can't get the SHA, leave it as null
+      }
 
       // Cleanup failed update
       try {
@@ -214,6 +234,7 @@ export class UpdateScheduler extends EventEmitter {
       failedUpdates: this.failedUpdates,
       currentVersion: null, // Will be set by fileSystemManager
       lastUpdateFailed: this.lastUpdateFailed,
+      failedCommitHash: this.failedCommitHash,
     };
   }
 
@@ -252,6 +273,62 @@ export class UpdateScheduler extends EventEmitter {
     } catch (error) {
       this.logger.error(`Failed to check for updates: ${error}`);
       return false;
+    }
+  }
+
+  public getLastWebhookTime(): Date | null {
+    return this.lastWebhookUpdateTime;
+  }
+
+  private startPeriodicCheck(): void {
+    if (this.periodicCheckInterval) {
+      clearInterval(this.periodicCheckInterval);
+    }
+
+    this.periodicCheckInterval = setInterval(() => {
+      this.checkForContentChanges();
+    }, this.PERIODIC_CHECK_INTERVAL);
+
+    this.logger.info("Started periodic content checking (every 2 hours)");
+  }
+
+  private async checkForContentChanges(): Promise<void> {
+    if (this.updateInProgress) {
+      this.logger.debug("Skipping periodic check - update already in progress");
+      return;
+    }
+
+    try {
+      this.logger.info("Performing periodic content check");
+
+      const hasChanged = await this.checkForUpdates();
+
+      if (hasChanged) {
+        this.logger.info("Content has changed, scheduling update");
+        this.scheduleUpdate(0);
+      } else {
+        this.logger.debug("No content changes detected");
+      }
+    } catch (error) {
+      this.logger.error("Error during periodic content check: %s", error);
+    }
+  }
+
+  public stop(): void {
+    // Clear all timeouts and intervals
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
+
+    if (this.webhookCooldownTimeout) {
+      clearTimeout(this.webhookCooldownTimeout);
+      this.webhookCooldownTimeout = null;
+    }
+
+    if (this.periodicCheckInterval) {
+      clearInterval(this.periodicCheckInterval);
+      this.periodicCheckInterval = null;
     }
   }
 }

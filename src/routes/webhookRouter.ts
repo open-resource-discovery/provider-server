@@ -106,7 +106,7 @@ export class WebhookRouter {
           // Skip all validation for manual triggers - just trigger the update
           this.logger.info("Manual update trigger received");
           try {
-            await this.updateScheduler.scheduleImmediateUpdate();
+            await this.updateScheduler.scheduleImmediateUpdate(true);
             return reply.code(200).send({
               status: "triggered",
               message: "Manual update triggered successfully",

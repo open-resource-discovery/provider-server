@@ -9,7 +9,7 @@ import { LocalDocumentRepository } from "../repositories/localDocumentRepository
 import { OptSourceType } from "../model/cli.js";
 import { VersionService } from "../services/versionService.js";
 import { statfs } from "fs/promises";
-
+import * as v8 from "v8";
 interface WebSocketMessage {
   type: string;
   data?: unknown;
@@ -84,7 +84,6 @@ export class StatusWebSocketHandler {
   }
 
   private handleConnection(socket: WebSocket): void {
-    this.logger.info("New WebSocket connection");
     this.clients.add(socket);
 
     socket.on("message", (data) => {
@@ -257,6 +256,8 @@ export class StatusWebSocketHandler {
         scheduledUpdateTime: updateStatus.scheduledUpdateTime?.toISOString() || null,
         failedUpdates: updateStatus.failedUpdates,
         commitHash: metadata?.commitHash || null,
+        failedCommitHash: updateStatus.failedCommitHash || null,
+        lastWebhookTime: this.updateScheduler.getLastWebhookTime()?.toISOString() || null,
       };
     }
 
@@ -334,8 +335,11 @@ export class StatusWebSocketHandler {
     disk: { used: number; total: number };
   }> {
     const mem = process.memoryUsage();
+    const heapStats = v8.getHeapStatistics();
+
+    // Use V8 heap memory as it's most relevant for Node.js processes
     const usedMemory = mem.heapUsed;
-    const totalMemory = mem.heapTotal;
+    const totalMemory = heapStats.heap_size_limit;
 
     try {
       const stats = await statfs("/");

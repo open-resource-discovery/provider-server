@@ -42,8 +42,12 @@ class StatusClient {
       githubRepoSetting: document.getElementById("githubRepoSetting"),
       githubBranchSetting: document.getElementById("githubBranchSetting"),
       updateDelaySetting: document.getElementById("updateDelaySetting"),
-      githubActions: document.getElementById("githubActions"),
-      githubRepoButton: document.getElementById("githubRepoButton"),
+      commitLink: document.getElementById("commitLink"),
+      failedUpdateCard: document.getElementById("failedUpdateCard"),
+      failedCommitHash: document.getElementById("failedCommitHash"),
+      failedCommitLink: document.getElementById("failedCommitLink"),
+      webhookMetric: document.getElementById("webhookMetric"),
+      lastWebhook: document.getElementById("lastWebhook"),
     };
 
     // Fetch initial status via REST for fast initial load
@@ -129,16 +133,14 @@ class StatusClient {
       this.elements.githubRepoSetting.style.display = "block";
       this.elements.githubBranchSetting.style.display = "block";
       this.elements.updateDelaySetting.style.display = "block";
-      this.elements.githubActions.style.display = "block";
 
       this.elements.settingGithubUrl.textContent = this.serverSettings.githubUrl || "-";
       this.elements.settingGithubRepo.textContent = this.serverSettings.githubRepository || "-";
       this.elements.settingGithubBranch.textContent = this.serverSettings.githubBranch || "-";
       this.elements.settingUpdateDelay.textContent = this.serverSettings.updateDelay ? `${this.serverSettings.updateDelay}s` : "-";
 
-      // Update GitHub repository button to point to commit
+      // Update commit link icon
       if (this.serverSettings.githubRepository) {
-        let url;
         // Derive base URL from API URL
         let baseUrl = "https://github.com";
         if (this.serverSettings.githubUrl && this.serverSettings.githubUrl !== "https://api.github.com") {
@@ -158,21 +160,19 @@ class StatusClient {
 
         if (this.serverSettings.commitHash && this.serverSettings.commitHash !== "current") {
           // Link to specific commit
-          url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${this.serverSettings.commitHash}/data`;
-          this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Commit";
+          const url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${this.serverSettings.commitHash}/data`;
+
+          this.elements.commitLink.href = url;
+          this.elements.commitLink.style.display = "inline-block";
         } else {
-          // Fallback to repository with branch
-          url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${this.serverSettings.githubBranch || "main"}`;
-          this.elements.githubRepoButton.querySelector(".btn-text").textContent = "View Repository";
+          this.elements.commitLink.style.display = "none";
         }
-        this.elements.githubRepoButton.href = url;
       }
     } else {
       this.elements.githubUrlSetting.style.display = "none";
       this.elements.githubRepoSetting.style.display = "none";
       this.elements.githubBranchSetting.style.display = "none";
       this.elements.updateDelaySetting.style.display = "none";
-      this.elements.githubActions.style.display = "none";
     }
   }
 
@@ -283,7 +283,8 @@ class StatusClient {
         const current = data.versionInfo.current;
         const latest = data.versionInfo.latest;
         const latestWithPrefix = latest.startsWith('v') ? latest : `v${latest}`;
-        this.elements.version.innerHTML = `${current} <span class="version-outdated">(Outdated, latest: ${latestWithPrefix})</span>`;
+        const releasesUrl = 'https://github.com/open-resource-discovery/provider-server/releases';
+        this.elements.version.innerHTML = `${current} <span class="version-outdated">(New version: <a href="${releasesUrl}" target="_blank" rel="noopener noreferrer" class="version-link">${latestWithPrefix}</a>)</span>`;
       } else if (data.version || data.versionInfo.current) {
         this.elements.version.textContent = String(data.versionInfo.current || data.version);
       }
@@ -311,6 +312,39 @@ class StatusClient {
 
       if (updateStatus === "idle") {
         this.elements.buttonHint.textContent = "";
+      }
+
+      // Handle failed update card
+      if (content.failedCommitHash && updateStatus === "failed") {
+        this.elements.failedUpdateCard.style.display = "block";
+        this.elements.failedCommitHash.textContent = content.failedCommitHash.substring(0, 7);
+
+        // Set failed commit link
+        if (this.serverSettings && this.serverSettings.githubRepository) {
+          let baseUrl = "https://github.com";
+          if (this.serverSettings.githubUrl && this.serverSettings.githubUrl !== "https://api.github.com") {
+            const apiUrl = this.serverSettings.githubUrl;
+            if (apiUrl.includes("/api/v3")) {
+              baseUrl = apiUrl.replace("/api/v3", "");
+            } else if (apiUrl.includes("api.")) {
+              baseUrl = apiUrl.replace("api.", "");
+            } else {
+              baseUrl = apiUrl.replace(/\/api$/, "");
+            }
+          }
+          const url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${content.failedCommitHash}/data`;
+          this.elements.failedCommitLink.href = url;
+        }
+      } else {
+        this.elements.failedUpdateCard.style.display = "none";
+      }
+
+      // Handle webhook timestamp
+      if (content.lastWebhookTime) {
+        this.elements.webhookMetric.style.display = "block";
+        this.elements.lastWebhook.textContent = this.formatDate(new Date(String(content.lastWebhookTime)));
+      } else {
+        this.elements.webhookMetric.style.display = "none";
       }
     }
 
@@ -600,7 +634,7 @@ class StatusClient {
 
     const value = bytes / Math.pow(k, i);
 
-    const decimals = i === 0 ? 0 : 1;
+    const decimals = 0;
 
     return value.toFixed(decimals) + ' ' + sizes[i];
   }
