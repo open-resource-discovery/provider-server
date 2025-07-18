@@ -18,7 +18,7 @@ const program = new Command();
 program
   .name("ord-provider-server")
   .addOption(
-    new Option("--base-url <baseUrl>", "Base URL without /.well-known/open-resource-discovery path")
+    new Option("--base-url <baseUrl>", `Base URL without ${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT} path`)
       .default(process.env.ORD_BASE_URL || getBaseUrlFromVcapEnv(process.env.VCAP_APPLICATION))
       .makeOptionMandatory(),
   )
@@ -56,6 +56,11 @@ program
     "--update-delay <updateDelay>",
     "Cooldown between webhook-triggered updates (seconds)",
     process.env.UPDATE_DELAY || "5",
+  )
+  .option(
+    "--status-dashboard-enabled <statusDashboardEnabled>",
+    "Enable/disable status dashboard (true/false)",
+    process.env.STATUS_DASHBOARD_ENABLED || "true",
   );
 
 program.version(packageJson.version);

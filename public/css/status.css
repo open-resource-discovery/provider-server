@@ -221,7 +221,7 @@ h1 {
 
 .metric.copyable:hover {
   background: rgba(29, 191, 176, 0.03);
-  box-shadow: 0 0 0 1px rgba(29, 191, 176, 0.3);
+  border-color: rgba(29, 191, 176, 0.5);
 }
 
 .metric label {
@@ -257,6 +257,13 @@ h1 {
   color: var(--warning);
   margin-left: 6px;
   font-size: 14px;
+  position: relative;
+  top: -2px;
+}
+
+.metric value .warning-emoji.error {
+  color: var(--danger);
+  font-weight: 600;
 }
 
 /* Actions */
@@ -420,12 +427,29 @@ h1 {
   opacity: 0.5;
 }
 
-/* Footer Time */
-.footer-time {
+/* Footer */
+.footer {
   text-align: center;
+  margin-top: 6px;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   color: var(--text-muted);
-  margin-top: 6px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: var(--primary);
+}
+
+.footer-link svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Settings Section */

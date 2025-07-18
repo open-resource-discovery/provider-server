@@ -12,6 +12,7 @@ export class GithubContentFetcher implements ContentFetcher {
   private abortController: AbortController | null = null;
   private readonly limit = pLimit(5); // Limit concurrent requests to avoid rate limiting
   private currentCommitHash: string | null = null;
+  private currentDirectoryTreeSha: string | null = null;
 
   public constructor(config: GithubConfig) {
     this.config = config;
@@ -63,6 +64,7 @@ export class GithubContentFetcher implements ContentFetcher {
       // Return metadata
       return {
         commitHash: this.currentCommitHash!,
+        directoryTreeSha: this.currentDirectoryTreeSha || undefined,
         fetchTime: new Date(),
         branch: this.config.branch,
         repository: `${this.config.owner}/${this.config.repo}`,
@@ -73,6 +75,20 @@ export class GithubContentFetcher implements ContentFetcher {
         log.warn("GitHub content fetch was aborted");
         throw new Error("Fetch aborted");
       }
+
+      // Check for network/connection errors
+      if (
+        error instanceof Error &&
+        (error.message.includes("ECONNREFUSED") ||
+          error.message.includes("ENOTFOUND") ||
+          error.message.includes("ETIMEDOUT") ||
+          error.message.includes("getaddrinfo") ||
+          error.message.includes("network"))
+      ) {
+        log.error(error, "No connection to GitHub API");
+        throw new Error("No connection to GitHub API. Please check your network connection and GitHub API settings.");
+      }
+
       log.error(error, "GitHub content fetch failed:", error);
       throw error;
     } finally {
@@ -101,6 +117,50 @@ export class GithubContentFetcher implements ContentFetcher {
     return data.sha;
   }
 
+  public async getDirectoryTreeSha(commitSha?: string): Promise<string | null> {
+    try {
+      // If no commit SHA provided, get the latest
+      let commitToUse = commitSha;
+      if (!commitToUse) {
+        commitToUse = await this.getLatestCommitSha();
+      }
+
+      // Get the commit details to get the root tree SHA
+      const { data: commitData } = await this.octokit.git.getCommit({
+        owner: this.config.owner,
+        repo: this.config.repo,
+        commit_sha: commitToUse,
+      });
+
+      // If rootDirectory is ".", return the root tree SHA
+      if (this.config.rootDirectory === ".") {
+        return commitData.tree.sha;
+      }
+
+      // Get the full tree to find our specific directory
+      const { data: treeData } = await this.octokit.git.getTree({
+        owner: this.config.owner,
+        repo: this.config.repo,
+        tree_sha: commitData.tree.sha,
+        recursive: "true",
+      });
+
+      // Find the tree entry for our root directory
+      const normalizedPath = this.config.rootDirectory.replace(/\/$/, ""); // Remove trailing slash
+      const directoryEntry = treeData.tree.find((item) => item.path === normalizedPath && item.type === "tree");
+
+      if (!directoryEntry) {
+        log.warn(`Directory ${this.config.rootDirectory} not found in repository tree`);
+        return null;
+      }
+
+      return directoryEntry.sha!;
+    } catch (error) {
+      log.error(`Failed to get directory tree SHA: ${error}`);
+      throw error;
+    }
+  }
+
   private async getCompleteTree(): Promise<{ path: string; sha: string; size: number; type: string }[]> {
     const { data } = await this.octokit.repos.getCommit({
       owner: this.config.owner,
@@ -110,6 +170,9 @@ export class GithubContentFetcher implements ContentFetcher {
 
     // Store the commit hash for metadata
     this.currentCommitHash = data.sha;
+
+    // Get the directory tree SHA for the root directory
+    this.currentDirectoryTreeSha = await this.getDirectoryTreeSha(data.sha);
 
     const treeSha = data.commit.tree.sha;
 
@@ -121,13 +184,21 @@ export class GithubContentFetcher implements ContentFetcher {
     });
 
     // Filter to only include files within the rootDirectory
+    const normalizedRootDir = this.config.rootDirectory.replace(/\/$/, "");
+    const rootDirWithSeparator = normalizedRootDir === "." ? "" : normalizedRootDir + "/";
+
     return (
       treeData.tree
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((item: any) => item.type === "blob" && item.path?.startsWith(this.config.rootDirectory))
+        .filter((item: any) => {
+          if (item.type !== "blob") return false;
+          if (normalizedRootDir === ".") return true;
+          // Check exact match or with path separator
+          return item.path === normalizedRootDir || item.path?.startsWith(rootDirWithSeparator);
+        })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((item: any) => ({
-          path: item.path!.substring(this.config.rootDirectory.length).replace(/^\//, ""),
+          path: normalizedRootDir === "." ? item.path! : item.path!.substring(rootDirWithSeparator.length),
           sha: item.sha!,
           size: item.size || 0,
           type: item.type!,

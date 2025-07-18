@@ -20,12 +20,12 @@ class StatusClient {
       buttonHint: document.getElementById("buttonHint"),
       serverHealth: document.getElementById("serverHealth"),
       lastHealthCheck: document.getElementById("lastHealthCheck"),
-      footerTime: document.getElementById("footerTime"),
       themeToggle: document.getElementById("themeToggle"),
       themeIcon: document.querySelector("#themeToggle .theme-icon"),
-      contentMetric: document.querySelector(".metric.metric-full.copyable"),
+      contentMetric: document.querySelector(".metric.copyable"),
       memoryUsage: document.getElementById("memoryUsage"),
       diskUsage: document.getElementById("diskUsage"),
+      lastWebhook: document.getElementById("lastWebhook"),
       // Settings elements
       settingsToggle: document.getElementById("settingsToggle"),
       settingsContent: document.getElementById("settingsContent"),
@@ -341,10 +341,7 @@ class StatusClient {
 
       // Handle webhook timestamp
       if (content.lastWebhookTime) {
-        this.elements.webhookMetric.style.display = "block";
         this.elements.lastWebhook.textContent = this.formatDate(new Date(String(content.lastWebhookTime)));
-      } else {
-        this.elements.webhookMetric.style.display = "none";
       }
     }
 
@@ -473,12 +470,12 @@ class StatusClient {
       }, 10000);
     } catch {
       if (buttonText && spinner) {
-        buttonText.textContent = "Error - Try Again";
+        buttonText.textContent = "Trigger Update";
         spinner.style.display = "none";
         buttonText.style.opacity = "1";
       }
       button.disabled = false;
-      this.elements.buttonHint.textContent = "Failed to schedule update";
+      this.elements.buttonHint.textContent = "Failed to update. Try again later or check server logs.";
       this.isManualTrigger = false;
     }
   }
@@ -614,12 +611,6 @@ class StatusClient {
   }
 
   updateFooterTime() {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const seconds = now.getSeconds().toString().padStart(2, '0');
-    this.elements.footerTime.textContent = `${hours}:${minutes}:${seconds}`;
-
     this.updateLastHealthCheck();
   }
 
@@ -643,7 +634,12 @@ class StatusClient {
     if (metrics.memory && metrics.memory.total > 0) {
       const { used, total } = metrics.memory;
       const percentage = (used / total) * 100;
-      const warningEmoji = percentage >= 80 ? '<span class="warning-emoji">⚠️</span>' : '';
+      let warningEmoji = '';
+      if (percentage >= 99) {
+        warningEmoji = '<span class="warning-emoji error">🚨</span>';
+      } else if (percentage >= 80) {
+        warningEmoji = '<span class="warning-emoji">⚠️</span>';
+      }
       this.elements.memoryUsage.innerHTML = `${this.formatBytes(used)}/${this.formatBytes(total)}${warningEmoji}`;
     } else {
       this.elements.memoryUsage.textContent = '-';
@@ -652,7 +648,12 @@ class StatusClient {
     if (metrics.disk && metrics.disk.total > 0) {
       const { used, total } = metrics.disk;
       const percentage = (used / total) * 100;
-      const warningEmoji = percentage >= 80 ? '<span class="warning-emoji">⚠️</span>' : '';
+      let warningEmoji = '';
+      if (percentage >= 99) {
+        warningEmoji = '<span class="warning-emoji error">🚨</span>';
+      } else if (percentage >= 80) {
+        warningEmoji = '<span class="warning-emoji">⚠️</span>';
+      }
       this.elements.diskUsage.innerHTML = `${this.formatBytes(used)}/${this.formatBytes(total)}${warningEmoji}`;
     } else {
       this.elements.diskUsage.textContent = '-';

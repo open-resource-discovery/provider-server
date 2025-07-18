@@ -51,7 +51,11 @@ class MockContentFetcher implements ContentFetcher {
   }
 
   public async getLatestCommitSha(): Promise<string> {
-    return await "";
+    return await "latest123commit";
+  }
+
+  public async getDirectoryTreeSha(): Promise<string | null> {
+    return await "directorySha789";
   }
 }
 
@@ -63,7 +67,7 @@ class MockFileSystemManager {
   public saveMetadataCalled = false;
   public getMetadataCalled = false;
   public shouldValidateFail = false;
-  private savedMetadata: ContentMetadata | null = null;
+  public savedMetadata: ContentMetadata | null = null;
 
   public async getTempDirectory(): Promise<string> {
     this.getTempDirectoryCalled = true;
@@ -500,6 +504,41 @@ describe("UpdateScheduler", () => {
 
       scheduler.forceUpdate();
       return progressPromise;
+    });
+  });
+
+  describe("checkForUpdates", () => {
+    it("should return true when no metadata exists", async () => {
+      mockFileSystemManager.savedMetadata = null;
+
+      const needsUpdate = await scheduler.checkForUpdates();
+      expect(needsUpdate).toBe(true);
+    });
+
+    it("should return false when directory SHA matches", async () => {
+      mockFileSystemManager.savedMetadata = {
+        commitHash: "oldCommit123",
+        directoryTreeSha: "directorySha789",
+        fetchTime: new Date(),
+        branch: "main",
+        repository: "owner/repo",
+        totalFiles: 10,
+      };
+
+      const needsUpdate = await scheduler.checkForUpdates();
+
+      expect(needsUpdate).toBe(false);
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining("Directory SHA match confirmed"));
+    });
+
+    it("should handle errors gracefully", async () => {
+      // Make getMetadata throw an error
+      mockFileSystemManager.getMetadata = jest.fn().mockRejectedValue(new Error("Read error"));
+
+      const needsUpdate = await scheduler.checkForUpdates();
+
+      expect(needsUpdate).toBe(false);
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to check for updates"));
     });
   });
 });

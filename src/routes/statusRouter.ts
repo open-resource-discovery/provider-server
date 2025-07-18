@@ -5,6 +5,7 @@ import path from "node:path";
 import { log } from "../util/logger.js";
 import { FileSystemManager } from "../services/fileSystemManager.js";
 import { UpdateScheduler } from "../services/updateScheduler.js";
+import { PATH_CONSTANTS } from "../constant.js";
 
 export function getPackageVersion(): string {
   try {
@@ -23,6 +24,7 @@ const version = getPackageVersion();
 interface StatusRouterOptions extends FastifyPluginOptions {
   fileSystemManager?: FileSystemManager | null;
   updateScheduler?: UpdateScheduler | null;
+  statusDashboardEnabled?: boolean;
 }
 
 interface StatusResponse {
@@ -74,6 +76,12 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
 
   // Web UI endpoint - serve HTML directly
   fastify.get("/status", (_request: FastifyRequest, reply: FastifyReply) => {
+    // If status dashboard is disabled, redirect to ORD endpoint
+    if (opts.statusDashboardEnabled === false) {
+      reply.redirect(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT);
+      return;
+    }
+
     try {
       const htmlPath = path.join(publicPath, "status.html");
       const html = fs.readFileSync(htmlPath, "utf-8");

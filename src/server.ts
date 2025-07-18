@@ -168,6 +168,7 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   await server.register(statusRouter, {
     fileSystemManager,
     updateScheduler,
+    statusDashboardEnabled: opts.statusDashboardEnabled,
   });
 
   let localRepository: LocalDocumentRepository | null = null;
@@ -179,9 +180,13 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   // @ts-expect-error Type mismatch between Fastify instance types
   wsHandler.register(server);
 
-  // Add root redirect to status page
+  // Add root redirect based on status dashboard setting
   server.get("/", (_request, reply) => {
-    reply.redirect("/status");
+    if (opts.statusDashboardEnabled) {
+      reply.redirect("/status");
+    } else {
+      reply.redirect("/.well-known/open-resource-discovery");
+    }
   });
 
   // Add health check endpoint

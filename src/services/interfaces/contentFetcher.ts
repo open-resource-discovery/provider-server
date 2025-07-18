@@ -8,6 +8,7 @@ export interface ContentFetchProgress {
 
 export interface ContentMetadata {
   commitHash: string;
+  directoryTreeSha?: string;
   fetchTime: Date;
   branch: string;
   repository: string;
@@ -19,4 +20,5 @@ export interface ContentFetcher {
   fetchLatestChanges(targetDir: string, since?: Date): Promise<ContentMetadata>;
   abortFetch(): void;
   getLatestCommitSha(): Promise<string>;
+  getDirectoryTreeSha(commitSha?: string): Promise<string | null>;
 }

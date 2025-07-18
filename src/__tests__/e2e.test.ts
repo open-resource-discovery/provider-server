@@ -41,6 +41,7 @@ describe("End-to-End Testing", () => {
       },
       dataDir: "./test-data",
       updateDelay: 30000,
+      statusDashboardEnabled: false,
     });
   });
 

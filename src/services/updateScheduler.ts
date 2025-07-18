@@ -250,7 +250,7 @@ export class UpdateScheduler extends EventEmitter {
     return this.lastUpdateTime;
   }
 
-  public async checkForUpdates(): Promise<boolean> {
+  public async checkForUpdates(): Promise<boolean | undefined> {
     try {
       const metadata = await this.fileSystemManager.getMetadata();
       if (!metadata) {
@@ -258,18 +258,21 @@ export class UpdateScheduler extends EventEmitter {
         return true;
       }
 
-      // Get latest commit SHA from GitHub
-      const latestSha = await this.contentFetcher.getLatestCommitSha();
+      const latestDirectorySha = await this.contentFetcher.getDirectoryTreeSha();
 
-      const needsUpdate = metadata.commitHash !== latestSha;
+      if (latestDirectorySha) {
+        const needsUpdate = metadata.directoryTreeSha !== latestDirectorySha;
 
-      if (needsUpdate) {
-        this.logger.info(`SHA mismatch detected. Current: ${metadata.commitHash}, Latest: ${latestSha}`);
-      } else {
-        this.logger.debug(`SHA match confirmed: ${latestSha}`);
+        if (needsUpdate) {
+          this.logger.debug(
+            `Directory SHA mismatch detected. Current: ${metadata.directoryTreeSha}, Latest: ${latestDirectorySha}`,
+          );
+        } else {
+          this.logger.debug(`Directory SHA match confirmed: ${latestDirectorySha}`);
+        }
+
+        return needsUpdate;
       }
-
-      return needsUpdate;
     } catch (error) {
       this.logger.error(`Failed to check for updates: ${error}`);
       return false;

@@ -25,6 +25,7 @@ export interface ProviderServerOptions {
   dataDir: string;
   webhookSecret?: string;
   updateDelay: number;
+  statusDashboardEnabled: boolean;
 }
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
@@ -64,5 +65,6 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     dataDir: options.dataDir || "./data",
     webhookSecret: options.webhookSecret,
     updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
+    statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
   };
 }

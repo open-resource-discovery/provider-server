@@ -51,4 +51,5 @@ export interface CommandLineOptions {
   dataDir?: string;
   webhookSecret?: string;
   updateDelay?: string;
+  statusDashboardEnabled?: string;
 }
