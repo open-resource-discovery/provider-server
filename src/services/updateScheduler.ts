@@ -2,6 +2,8 @@ import { EventEmitter } from "events";
 import { ContentFetcher, ContentFetchProgress } from "./interfaces/contentFetcher.js";
 import { FileSystemManager } from "./fileSystemManager.js";
 import { Logger } from "pino";
+import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
+import { GitHubNetworkError } from "../model/error/GithubErrors.js";
 
 export interface UpdateSchedulerConfig {
   updateDelay: number; // milliseconds - also used as webhook cooldown
@@ -208,26 +210,15 @@ export class UpdateScheduler extends EventEmitter {
       this.failedUpdates++;
       this.lastUpdateFailed = true;
 
-      if (error instanceof Error) {
-        // Only show specific categorized errors to the frontend
-        if (error.message.includes("ENOSPC")) {
-          this.lastError = "No disk space available";
-        } else if (error.message.includes("ENOMEM")) {
-          this.lastError = "Insufficient memory available";
-        } else if (
-          error.message.includes("ECONNREFUSED") ||
-          error.message.includes("ENOTFOUND") ||
-          error.message.includes("ETIMEDOUT") ||
-          error.message.includes("getaddrinfo") ||
-          error.message.includes("network") ||
-          error.message.includes("No connection to GitHub API")
-        ) {
-          this.lastError = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
-        } else {
-          // For other errors, don't expose the internal error message
-          this.lastError = null;
-        }
+      // Check for specific error types and set user-friendly messages
+      if (error instanceof DiskSpaceError) {
+        this.lastError = "No disk space available";
+      } else if (error instanceof MemoryError) {
+        this.lastError = "Insufficient memory available";
+      } else if (error instanceof GitHubNetworkError) {
+        this.lastError = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
       } else {
+        // For other errors, don't expose the internal error message
         this.lastError = null;
       }
 

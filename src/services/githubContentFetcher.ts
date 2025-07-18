@@ -5,6 +5,8 @@ import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "./interfa
 import { GithubConfig } from "../model/github.js";
 import pLimit from "p-limit";
 import { log } from "../util/logger.js";
+import { GitHubNetworkError } from "../model/error/GithubErrors.js";
+import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
 
 export class GithubContentFetcher implements ContentFetcher {
   private readonly octokit: Octokit;
@@ -89,7 +91,7 @@ export class GithubContentFetcher implements ContentFetcher {
           error.message.includes("network"))
       ) {
         log.error(error, "No connection to GitHub API");
-        throw new Error("No connection to GitHub API. Please check your network connection and GitHub API settings.");
+        throw GitHubNetworkError.fromError(error, this.config.apiUrl);
       }
 
       log.error(error, "GitHub content fetch failed:", error);
@@ -252,7 +254,20 @@ export class GithubContentFetcher implements ContentFetcher {
           const content = Buffer.from(data.content, data.encoding as BufferEncoding);
           const filePath = path.join(targetDir, item.path);
 
-          await fs.writeFile(filePath, content);
+          try {
+            await fs.writeFile(filePath, content);
+          } catch (writeError) {
+            // Check for specific system errors and rethrow with custom errors
+            if (writeError instanceof Error) {
+              if (writeError.message.includes("ENOSPC") || (writeError as NodeJS.ErrnoException).code === "ENOSPC") {
+                throw DiskSpaceError.fromError(writeError, filePath);
+              }
+              if (writeError.message.includes("ENOMEM") || (writeError as NodeJS.ErrnoException).code === "ENOMEM") {
+                throw MemoryError.fromError(writeError, filePath);
+              }
+            }
+            throw writeError;
+          }
 
           progress.fetchedFiles++;
 
