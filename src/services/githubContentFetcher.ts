@@ -285,7 +285,11 @@ export class GithubContentFetcher implements ContentFetcher {
         } catch (error) {
           log.warn(`Failed to fetch ${item.path}:`, error);
           progress.errors.push(`Failed to fetch ${item.path}: ${error}`);
-          if (error instanceof DiskSpaceError || error instanceof MemoryError) {
+          if (
+            error instanceof DiskSpaceError ||
+            error instanceof MemoryError ||
+            error instanceof GithubContentFetcher
+          ) {
             throw error;
           }
         }
