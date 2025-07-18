@@ -209,13 +209,26 @@ export class UpdateScheduler extends EventEmitter {
       this.lastUpdateFailed = true;
 
       if (error instanceof Error) {
-        this.lastError = error.message;
-        // Check for disk space errors
+        // Only show specific categorized errors to the frontend
         if (error.message.includes("ENOSPC")) {
           this.lastError = "No disk space available";
+        } else if (error.message.includes("ENOMEM")) {
+          this.lastError = "Insufficient memory available";
+        } else if (
+          error.message.includes("ECONNREFUSED") ||
+          error.message.includes("ENOTFOUND") ||
+          error.message.includes("ETIMEDOUT") ||
+          error.message.includes("getaddrinfo") ||
+          error.message.includes("network") ||
+          error.message.includes("No connection to GitHub API")
+        ) {
+          this.lastError = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+        } else {
+          // For other errors, don't expose the internal error message
+          this.lastError = null;
         }
       } else {
-        this.lastError = String(error);
+        this.lastError = null;
       }
 
       // Try to get the commit hash that failed
