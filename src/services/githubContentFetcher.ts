@@ -52,7 +52,10 @@ export class GithubContentFetcher implements ContentFetcher {
       await this.downloadFiles(targetDir, tree, progress, onProgress);
 
       if (progress.errors.length > 0) {
-        log.error(progress.errors, `Failed to fetch ${progress.errors.length} files.`);
+        log.error(`Failed to fetch ${progress.errors.length} files:`);
+        progress.errors.forEach((error, index) => {
+          log.error(`  ${index + 1}. ${error}`);
+        });
         throw new Error(`Failed to fetch ${progress.errors.length} files`);
       }
 

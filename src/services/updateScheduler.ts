@@ -15,6 +15,7 @@ export interface UpdateStatus {
   currentVersion: string | null;
   lastUpdateFailed: boolean;
   failedCommitHash: string | null;
+  lastError: string | null;
 }
 
 export class UpdateScheduler extends EventEmitter {
@@ -33,6 +34,7 @@ export class UpdateScheduler extends EventEmitter {
   private lastUpdateFailed = false;
   private failedCommitHash: string | null = null;
   private periodicCheckInterval: NodeJS.Timeout | null = null;
+  private lastError: string | null = null;
   private readonly PERIODIC_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
 
   public constructor(
@@ -197,6 +199,7 @@ export class UpdateScheduler extends EventEmitter {
       this.failedUpdates = 0;
       this.lastUpdateFailed = false;
       this.failedCommitHash = null;
+      this.lastError = null;
 
       this.logger.info(`Successfully updated content to commit ${metadata.commitHash}`);
       this.emit("update-completed");
@@ -204,6 +207,16 @@ export class UpdateScheduler extends EventEmitter {
       this.logger.error(`Update failed: ${error}`);
       this.failedUpdates++;
       this.lastUpdateFailed = true;
+
+      if (error instanceof Error) {
+        this.lastError = error.message;
+        // Check for disk space errors
+        if (error.message.includes("ENOSPC")) {
+          this.lastError = "No disk space available";
+        }
+      } else {
+        this.lastError = String(error);
+      }
 
       // Try to get the commit hash that failed
       try {
@@ -235,6 +248,7 @@ export class UpdateScheduler extends EventEmitter {
       currentVersion: null, // Will be set by fileSystemManager
       lastUpdateFailed: this.lastUpdateFailed,
       failedCommitHash: this.failedCommitHash,
+      lastError: this.lastError,
     };
   }
 

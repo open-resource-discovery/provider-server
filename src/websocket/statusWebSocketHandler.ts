@@ -258,6 +258,7 @@ export class StatusWebSocketHandler {
         commitHash: metadata?.commitHash || null,
         failedCommitHash: updateStatus.failedCommitHash || null,
         lastWebhookTime: this.updateScheduler.getLastWebhookTime()?.toISOString() || null,
+        lastError: updateStatus.lastError,
       };
     }
 

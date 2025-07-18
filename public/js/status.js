@@ -48,6 +48,8 @@ class StatusClient {
       failedCommitLink: document.getElementById("failedCommitLink"),
       webhookMetric: document.getElementById("webhookMetric"),
       lastWebhook: document.getElementById("lastWebhook"),
+      failedUpdateError: document.getElementById("failedUpdateError"),
+      failedErrorMessage: document.getElementById("failedErrorMessage"),
     };
 
     // Fetch initial status via REST for fast initial load
@@ -335,6 +337,14 @@ class StatusClient {
           const url = `${baseUrl}/${this.serverSettings.githubRepository}/tree/${content.failedCommitHash}/data`;
           this.elements.failedCommitLink.href = url;
         }
+
+        // Display error message if available
+        if (content.lastError) {
+          this.elements.failedUpdateError.style.display = "block";
+          this.elements.failedErrorMessage.textContent = content.lastError;
+        } else {
+          this.elements.failedUpdateError.style.display = "none";
+        }
       } else {
         this.elements.failedUpdateCard.style.display = "none";
       }
@@ -615,7 +625,7 @@ class StatusClient {
   }
 
   formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return '0B';
 
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -627,7 +637,7 @@ class StatusClient {
 
     const decimals = 0;
 
-    return value.toFixed(decimals) + ' ' + sizes[i];
+    return value.toFixed(decimals) + sizes[i];
   }
 
   updateSystemMetrics(metrics) {
@@ -640,7 +650,7 @@ class StatusClient {
       } else if (percentage >= 80) {
         warningEmoji = '<span class="warning-emoji">⚠️</span>';
       }
-      this.elements.memoryUsage.innerHTML = `${this.formatBytes(used)}/${this.formatBytes(total)}${warningEmoji}`;
+      this.elements.memoryUsage.innerHTML = `${this.formatBytes(used)} / ${this.formatBytes(total)}${warningEmoji}`;
     } else {
       this.elements.memoryUsage.textContent = '-';
     }
@@ -654,7 +664,7 @@ class StatusClient {
       } else if (percentage >= 80) {
         warningEmoji = '<span class="warning-emoji">⚠️</span>';
       }
-      this.elements.diskUsage.innerHTML = `${this.formatBytes(used)}/${this.formatBytes(total)}${warningEmoji}`;
+      this.elements.diskUsage.innerHTML = `${this.formatBytes(used)} / ${this.formatBytes(total)}${warningEmoji}`;
     } else {
       this.elements.diskUsage.textContent = '-';
     }
