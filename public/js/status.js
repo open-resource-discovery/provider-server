@@ -513,6 +513,8 @@ class StatusClient {
     this.updateStatusBadge("failed");
     this.updateButtonState("failed");
     this.elements.buttonHint.textContent = error || "Update failed";
+    // Request fresh status to show the failed update card with error details
+    this.sendMessage({ type: "status" });
   }
 
   handleUpdateScheduled(scheduledTime) {
