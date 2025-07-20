@@ -86,6 +86,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       {
         secret: opts.webhookSecret,
         branch: opts.githubBranch!,
+        repository: opts.githubRepository!,
       },
       log,
     );

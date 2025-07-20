@@ -6,6 +6,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 interface WebhookConfig {
   secret?: string;
   branch: string;
+  repository: string;
 }
 
 interface GithubWebhookPayload {
@@ -125,6 +126,18 @@ export class WebhookRouter {
         const expectedRef = `refs/heads/${this.config.branch}`;
         if (payload.ref !== expectedRef) {
           return reply.code(200).send({ status: "ignored", reason: "different branch" });
+        }
+
+        if (payload.repository.full_name.toLowerCase() !== this.config.repository.toLowerCase()) {
+          this.logger.warn(
+            "Webhook rejected: repository mismatch - expected %s, got %s",
+            this.config.repository,
+            payload.repository.full_name,
+          );
+          return reply.code(200).send({
+            status: "ignored",
+            reason: "different repository",
+          });
         }
 
         // Schedule immediate update
