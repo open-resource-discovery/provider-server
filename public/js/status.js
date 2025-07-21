@@ -46,9 +46,9 @@ class StatusClient {
       failedUpdateCard: document.getElementById("failedUpdateCard"),
       failedCommitHash: document.getElementById("failedCommitHash"),
       failedCommitLink: document.getElementById("failedCommitLink"),
-      webhookMetric: document.getElementById("webhookMetric"),
       failedUpdateError: document.getElementById("failedUpdateError"),
       failedErrorMessage: document.getElementById("failedErrorMessage"),
+      webhookMetric: document.getElementById("webhookMetric"),
     };
 
     // Fetch initial status via REST for fast initial load
@@ -128,6 +128,11 @@ class StatusClient {
     // Hide Content card in local mode
     if (this.elements.contentMetric) {
       this.elements.contentMetric.style.display = isLocal ? "none" : "block";
+    }
+
+    // Hide Last Webhook card in local mode
+    if (this.elements.webhookMetric) {
+      this.elements.webhookMetric.style.display = isLocal ? "none" : "block";
     }
 
     if (isGithub) {
