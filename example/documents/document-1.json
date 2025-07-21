@@ -1,6 +1,7 @@
 {
-  "openResourceDiscovery": "1.6",
+  "openResourceDiscovery": "1.12",
   "description": "This is an example ORD document which is unprotected and openly accessible.",
+  "perspective": "system-version",
   "describedSystemInstance": {
     "baseUrl": "https://ord-reference-application.cfapps.sap.hana.ondemand.com"
   },

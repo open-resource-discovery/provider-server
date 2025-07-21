@@ -1,4 +1,3 @@
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@open-resource-discovery/specification";
 import path from "path";
 import { PATH_CONSTANTS } from "src/constant.js";
@@ -64,6 +63,31 @@ describe("Server Integration", () => {
         expect(doc).toHaveProperty("url");
         expect(doc).toHaveProperty("accessStrategies");
       });
+    });
+
+    it("should support perspective query parameter for filtering documents", async () => {
+      // Filter by system-version perspective
+      const versionResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-version`,
+      );
+      expect(versionResponse.status).toBe(200);
+      const versionData = (await versionResponse.json()) as ORDConfiguration;
+
+      expect(versionData.openResourceDiscoveryV1.documents?.length).toBe(0);
+
+      const instanceResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-instance`,
+      );
+      expect(instanceResponse.status).toBe(200);
+      const instanceData = (await instanceResponse.json()) as ORDConfiguration;
+      expect(instanceData.openResourceDiscoveryV1.documents?.length).toBe(2);
+
+      const independentResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-independent`,
+      );
+      expect(independentResponse.status).toBe(200);
+      const independentData = (await independentResponse.json()) as ORDConfiguration;
+      expect(independentData.openResourceDiscoveryV1.documents?.length).toBe(0);
     });
   });
 

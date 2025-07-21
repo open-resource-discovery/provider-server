@@ -131,13 +131,11 @@ This structure applies to both source types:
 #### Important Notes:
 
 1. **ORD Documents Location**
-
    - All ORD Documents must be placed in the documents directory (configurable via `--documents-subdirectory`, default is `documents/`)
    - ORD Documents can be placed in nested folders within the documents directory
    - Supported format: `.json`
 
 2. **Resource References**
-
    - Resources referenced in the ORD Documents can be placed anywhere within the `-d` directory
    - The URLs in the ORD Document's `resourceDefinitions` must match the relative paths from the `-d` directory
    - Example resource definition in an ORD Document:
@@ -163,6 +161,23 @@ This structure applies to both source types:
    - This `baseUrl` value will:
      - Be set in the ORD Configuration
      - Override the existing baseUrl in the `describedSystemInstance` field of any ORD Documents
+
+### Perspective Filtering
+
+The ORD Configuration endpoint supports filtering documents by perspective using the `?perspective=` query parameter:
+
+```bash
+# Get all documents (default)
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery
+
+# Filter by perspective
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-version
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-instance
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-independent
+```
+
+> [!NOTE]
+> ORD documents without an explicit `perspective` property default to `system-instance`.
 
 ### Authentication
 
