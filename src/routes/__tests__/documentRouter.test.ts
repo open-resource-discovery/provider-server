@@ -5,6 +5,15 @@ import { OptAuthMethod } from "../../model/cli.js";
 import { PATH_CONSTANTS } from "../../constant.js";
 import { FastifyInstanceType } from "../../model/fastify.js";
 
+// Mock dependencies
+jest.mock("../../util/logger.js", () => ({
+  log: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+  },
+}));
+
 jest.mock("../../util/fqnHelpers.js", () => ({
   ...jest.requireActual("../../util/fqnHelpers.js"),
   isOrdId: jest.fn(),
@@ -79,6 +88,10 @@ describe("DocumentRouter", () => {
       const calls = mockFastify.get.mock.calls;
       const resourceCall = calls.find((call: unknown[]) => typeof call[0] === "string" && call[0].includes(":ordId/*"));
       resourceHandler = resourceCall?.[1] as unknown as (...args: unknown[]) => unknown;
+
+      if (!resourceHandler) {
+        throw new Error("Resource handler not found in mock calls");
+      }
     });
 
     it("should use ordIdToPathSegment when ordId is a valid ORD ID", async () => {
@@ -213,6 +226,8 @@ describe("DocumentRouter", () => {
 
     it("should handle errors properly", async () => {
       const { isOrdId } = jest.requireMock("../../util/fqnHelpers.js");
+      const { ordIdToPathSegment, joinFilePaths } = jest.requireMock("../../util/pathUtils.js");
+
       isOrdId.mockReturnValue(true);
       const error = new Error("File not found");
       mockDocumentService.getFileContent.mockRejectedValue(error);
@@ -230,7 +245,12 @@ describe("DocumentRouter", () => {
         callNotFound: jest.fn(),
       };
 
-      await resourceHandler(mockRequest, mockReply);
+      await expect(resourceHandler(mockRequest, mockReply)).resolves.not.toThrow();
+
+      expect(isOrdId).toHaveBeenCalledWith("urn:apiResource:example:v1");
+      expect(ordIdToPathSegment).toHaveBeenCalledWith("urn:apiResource:example:v1");
+      expect(joinFilePaths).toHaveBeenCalledWith("urn_apiResource_example_v1", "missing.json");
+      expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("urn_apiResource_example_v1/missing.json");
 
       expect(mockReply.code).toHaveBeenCalledWith(500);
       expect(mockReply.send).toHaveBeenCalledWith(
