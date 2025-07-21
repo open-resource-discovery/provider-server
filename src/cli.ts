@@ -51,7 +51,6 @@ program
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
   .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
   .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
-  .option("--webhook-secret <webhookSecret>", "GitHub webhook secret", process.env.WEBHOOK_SECRET)
   .option(
     "--update-delay <updateDelay>",
     "Cooldown between webhook-triggered updates (seconds)",

@@ -60,7 +60,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
     dataDir: options.dataDir || "./data",
-    webhookSecret: options.webhookSecret,
+    webhookSecret: process.env.WEBHOOK_SECRET,
     updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
     statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
   };

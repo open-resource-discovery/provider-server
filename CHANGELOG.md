@@ -4,6 +4,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.9.0] - 2025-07-21
+
+### Added
+
+- `/status` serves now an interactive dashboard
+- Live dashboard updates served by websockets
+- Github Webhook event integration
+
+### Changed
+
+- Retrieve Github data by fetching the given directory and serve from disk
+
 ## [0.8.2] - 2025-04-16
 
 ### Added

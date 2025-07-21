@@ -95,9 +95,17 @@ npx @open-resource-discovery/provider-server --help
 | `--github-branch <branch>`             | `main`                   | Yes (for github) | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
 | `--github-repository <repo>`           | -                        | Yes (for github) | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
 | `--github-token <token>`               | -                        | Yes (for github) | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
-| `--webhook-secret <secret>`            | -                        | No               | `WEBHOOK_SECRET`             | GitHub webhook secret for signature validation                                                                                                        |
 | `--update-delay <seconds>`             | `5`                      | No               | `UPDATE_DELAY`               | Cooldown between webhook-triggered updates (seconds)                                                                                                  |
 | `--status-dashboard-enabled <boolean>` | `true`                   | No               | `STATUS_DASHBOARD_ENABLED`   | Enable/disable status dashboard (true/false)                                                                                                          |
+
+### Environment-Only Variables
+
+Some configuration options are only available as environment variables for security reasons:
+
+| Environment Variable | Description                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET`     | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
+| `BASIC_AUTH`         | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
 
 ### Required Structure
 
@@ -361,7 +369,7 @@ When using the GitHub source type (`-s github`), you can configure webhooks to a
 3. Configure the webhook:
    - **Payload URL**: `https://your-server.com/api/v1/webhook/github`
    - **Content type**: `application/json`
-   - **Secret**: A secure random string (use the same value for `--webhook-secret`)
+   - **Secret**: A secure random string
    - **Events**: Select "Just the push event"
 
 ### Update Delay

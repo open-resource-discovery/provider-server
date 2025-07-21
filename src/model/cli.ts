@@ -49,7 +49,6 @@ export interface CommandLineOptions {
   githubRepository?: string;
   githubToken?: string;
   dataDir?: string;
-  webhookSecret?: string;
   updateDelay?: string;
   statusDashboardEnabled?: string;
 }
