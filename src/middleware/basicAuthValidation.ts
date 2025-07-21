@@ -11,15 +11,12 @@ export function createBasicAuthValidator(validUsers: Record<string, string>) {
     password: string,
     _req: FastifyRequest,
     _reply: FastifyReply,
-    done: (error?: Error) => void,
   ): Promise<void> {
     try {
       const storedPassword = validUsers[username];
       const isValid = await comparePassword(password, storedPassword);
 
-      if (isValid) {
-        done();
-      } else {
+      if (!isValid) {
         throw new UnauthorizedError("Unauthorized");
       }
     } catch (error) {
