@@ -3,9 +3,6 @@ import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath } from "src/util/pathUtils.js";
 import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
-import { config } from "dotenv";
-
-config();
 
 export interface ProviderServerOptions {
   ordDirectory: string;

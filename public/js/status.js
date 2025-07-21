@@ -47,7 +47,6 @@ class StatusClient {
       failedCommitHash: document.getElementById("failedCommitHash"),
       failedCommitLink: document.getElementById("failedCommitLink"),
       webhookMetric: document.getElementById("webhookMetric"),
-      lastWebhook: document.getElementById("lastWebhook"),
       failedUpdateError: document.getElementById("failedUpdateError"),
       failedErrorMessage: document.getElementById("failedErrorMessage"),
     };
@@ -67,12 +66,13 @@ class StatusClient {
 
   async fetchInitialStatus() {
     try {
-      const response = await fetch("/api/status");
+      const response = await fetch("/api/v1/status");
       if (response.ok) {
         const data = await response.json();
         this.updateStatus(data);
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to fetch initial status:", error);
     }
   }
@@ -139,7 +139,9 @@ class StatusClient {
       this.elements.settingGithubUrl.textContent = this.serverSettings.githubUrl || "-";
       this.elements.settingGithubRepo.textContent = this.serverSettings.githubRepository || "-";
       this.elements.settingGithubBranch.textContent = this.serverSettings.githubBranch || "-";
-      this.elements.settingUpdateDelay.textContent = this.serverSettings.updateDelay ? `${this.serverSettings.updateDelay}s` : "-";
+      this.elements.settingUpdateDelay.textContent = this.serverSettings.updateDelay
+        ? `${this.serverSettings.updateDelay}s`
+        : "-";
 
       // Update commit link icon
       if (this.serverSettings.githubRepository) {
@@ -181,7 +183,7 @@ class StatusClient {
   connect() {
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const wsUrl = `${protocol}//${window.location.host}/api/v1/ws`;
 
       this.ws = new WebSocket(wsUrl);
 
@@ -190,6 +192,7 @@ class StatusClient {
       this.ws.onerror = (error) => this.handleError(error);
       this.ws.onclose = () => this.handleClose();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to create WebSocket:", error);
       this.scheduleReconnect();
     }
@@ -284,8 +287,8 @@ class StatusClient {
       if (data.versionInfo.isOutdated) {
         const current = data.versionInfo.current;
         const latest = data.versionInfo.latest;
-        const latestWithPrefix = latest.startsWith('v') ? latest : `v${latest}`;
-        const releasesUrl = 'https://github.com/open-resource-discovery/provider-server/releases';
+        const latestWithPrefix = latest.startsWith("v") ? latest : `v${latest}`;
+        const releasesUrl = "https://github.com/open-resource-discovery/provider-server/releases";
         this.elements.version.innerHTML = `${current} <span class="version-outdated">(New version: <a href="${releasesUrl}" target="_blank" rel="noopener noreferrer" class="version-link">${latestWithPrefix}</a>)</span>`;
       } else if (data.version || data.versionInfo.current) {
         this.elements.version.textContent = String(data.versionInfo.current || data.version);
@@ -538,7 +541,7 @@ class StatusClient {
 
       // Show current file if available: TODO
       if (progress.currentFile) {
-        const fileName = progress.currentFile.split('/').pop();
+        const fileName = progress.currentFile.split("/").pop();
         progressText += ` - ${fileName}`;
       }
 
@@ -598,11 +601,11 @@ class StatusClient {
 
   formatDate(date) {
     const day = date.getDate();
-    const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+    const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
     const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
 
     return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`;
   }
@@ -627,10 +630,10 @@ class StatusClient {
   }
 
   formatBytes(bytes) {
-    if (bytes === 0) return '0B';
+    if (bytes === 0) return "0B";
 
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
 
     // Ensure we don't go out of bounds
     const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
@@ -646,7 +649,7 @@ class StatusClient {
     if (metrics.memory && metrics.memory.total > 0) {
       const { used, total } = metrics.memory;
       const percentage = (used / total) * 100;
-      let warningEmoji = '';
+      let warningEmoji = "";
       if (percentage >= 99) {
         warningEmoji = '<span class="warning-emoji error">🚨</span>';
       } else if (percentage >= 80) {
@@ -654,13 +657,13 @@ class StatusClient {
       }
       this.elements.memoryUsage.innerHTML = `${this.formatBytes(used)} / ${this.formatBytes(total)}${warningEmoji}`;
     } else {
-      this.elements.memoryUsage.textContent = '-';
+      this.elements.memoryUsage.textContent = "-";
     }
 
     if (metrics.disk && metrics.disk.total > 0) {
       const { used, total } = metrics.disk;
       const percentage = (used / total) * 100;
-      let warningEmoji = '';
+      let warningEmoji = "";
       if (percentage >= 99) {
         warningEmoji = '<span class="warning-emoji error">🚨</span>';
       } else if (percentage >= 80) {
@@ -668,7 +671,7 @@ class StatusClient {
       }
       this.elements.diskUsage.innerHTML = `${this.formatBytes(used)} / ${this.formatBytes(total)}${warningEmoji}`;
     } else {
-      this.elements.diskUsage.textContent = '-';
+      this.elements.diskUsage.textContent = "-";
     }
   }
 
@@ -719,6 +722,7 @@ class StatusClient {
             }, 300);
           }
         } catch (err) {
+          // eslint-disable-next-line no-console
           console.error("Failed to copy text:", err);
         }
       }

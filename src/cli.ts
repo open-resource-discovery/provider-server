@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { Command, Option } from "commander";
 import { config } from "dotenv";
+config();
+
+import { Command, Option } from "commander";
 import packageJson from "package.json" with { type: "json" };
 import { CommandLineOptions, OptAuthMethod, OptSourceType, parseAuthMethods, parseSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
@@ -10,8 +12,6 @@ import { validateAndParseOptions } from "src/util/optsValidation.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
 import { PATH_CONSTANTS } from "./constant.js";
-
-config();
 
 const program = new Command();
 

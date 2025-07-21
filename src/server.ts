@@ -2,8 +2,6 @@ import fastifyETag from "@fastify/etag";
 import fastifyWebsocket from "@fastify/websocket";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
-import fs from "node:fs";
-import path from "node:path";
 import statusRouter from "./routes/statusRouter.js";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
@@ -19,21 +17,10 @@ import { GithubContentFetcher } from "./services/githubContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
+import { StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
-
-// Helper to get package.json version
-function getPackageVersion(): string {
-  try {
-    const packageJsonPath = path.resolve(process.cwd(), "package.json");
-    const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
-    const packageJson = JSON.parse(packageJsonContent);
-    return packageJson.version || "unknown";
-  } catch (error) {
-    log.error("Failed to read package.json version:", error);
-    return "unknown";
-  }
-}
+import { getPackageVersion } from "./util/files.js";
 
 const version = getPackageVersion();
 
@@ -165,28 +152,30 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
 
   await server.register(fastifyWebsocket);
 
-  // Register status router with enhanced functionality
-  await server.register(statusRouter, {
-    fileSystemManager,
-    updateScheduler,
-    statusDashboardEnabled: opts.statusDashboardEnabled,
-  });
-
   let localRepository: LocalDocumentRepository | null = null;
   if (opts.sourceType === OptSourceType.Local) {
     localRepository = new LocalDocumentRepository(opts.ordDirectory);
   }
 
-  const wsHandler = new StatusWebSocketHandler(updateScheduler, fileSystemManager, log, opts, localRepository);
+  const statusService = new StatusService(updateScheduler, fileSystemManager, log, opts, localRepository);
+  const wsHandler = new StatusWebSocketHandler(statusService, updateScheduler, log);
   // @ts-expect-error Type mismatch between Fastify instance types
   wsHandler.register(server);
+
+  // Register status router with enhanced functionality
+  await server.register(statusRouter, {
+    fileSystemManager,
+    updateScheduler,
+    statusDashboardEnabled: opts.statusDashboardEnabled,
+    statusService,
+  });
 
   // Add root redirect based on status dashboard setting
   server.get("/", (_request, reply) => {
     if (opts.statusDashboardEnabled) {
       reply.redirect("/status");
     } else {
-      reply.redirect("/.well-known/open-resource-discovery");
+      reply.redirect(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT);
     }
   });
 
@@ -197,11 +186,6 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
       timestamp: new Date().toISOString(),
       version,
     };
-  });
-
-  // Add REST endpoint for status data
-  server.get("/api/status", async (_request, _reply) => {
-    return await wsHandler.getStatus();
   });
 
   // Add version header to all responses

@@ -6,80 +6,29 @@ import { log } from "../util/logger.js";
 import { FileSystemManager } from "../services/fileSystemManager.js";
 import { UpdateScheduler } from "../services/updateScheduler.js";
 import { PATH_CONSTANTS } from "../constant.js";
-
-export function getPackageVersion(): string {
-  try {
-    const packageJsonPath = path.resolve(process.cwd(), "package.json");
-    const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
-    const packageJson = JSON.parse(packageJsonContent);
-    return packageJson.version || "unknown";
-  } catch (error) {
-    log.error("Failed to read package.json version:", error);
-    return "unknown";
-  }
-}
-
-const version = getPackageVersion();
+import { StatusService } from "../services/statusService.js";
 
 interface StatusRouterOptions extends FastifyPluginOptions {
+  statusService: StatusService;
   fileSystemManager?: FileSystemManager | null;
   updateScheduler?: UpdateScheduler | null;
   statusDashboardEnabled?: boolean;
 }
 
-interface StatusResponse {
-  version: string;
-  content?: {
-    lastFetchTime: string | null;
-    currentVersion: string | null;
-    updateStatus: "idle" | "scheduled" | "in_progress" | "failed";
-    scheduledUpdateTime?: string | null;
-    failedUpdates: number;
-  };
-  github?: {
-    repository?: string;
-    branch?: string;
-  };
-}
-
-function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done: (err?: Error) => void): void {
+function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done: () => void): void {
   // Get paths to static files
   const publicPath = path.join(process.cwd(), "public");
 
-  // JSON API endpoint
-  fastify.get("/api/v1/status", async (_request: FastifyRequest, _reply: FastifyReply): Promise<StatusResponse> => {
-    const response: StatusResponse = {
-      version,
-    };
-
-    if (opts.fileSystemManager && opts.updateScheduler) {
-      const updateStatus = opts.updateScheduler.getStatus();
-      const currentVersion = await opts.fileSystemManager.getCurrentVersion();
-
-      response.content = {
-        lastFetchTime: updateStatus.lastUpdateTime?.toISOString() || null,
-        currentVersion: currentVersion,
-        updateStatus: updateStatus.updateInProgress
-          ? "in_progress"
-          : updateStatus.scheduledUpdateTime
-            ? "scheduled"
-            : updateStatus.lastUpdateFailed
-              ? "failed"
-              : "idle",
-        scheduledUpdateTime: updateStatus.scheduledUpdateTime?.toISOString() || null,
-        failedUpdates: updateStatus.failedUpdates,
-      };
-    }
-
-    return response;
+  // Add REST endpoint for status data
+  fastify.get("/api/v1/status", async (_request, _reply) => {
+    return await opts.statusService.getStatus();
   });
 
   // Web UI endpoint - serve HTML directly
-  fastify.get("/status", (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get("/status", { logLevel: "error" }, (_request: FastifyRequest, reply: FastifyReply) => {
     // If status dashboard is disabled, redirect to ORD endpoint
     if (opts.statusDashboardEnabled === false) {
-      reply.redirect(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT);
-      return;
+      return reply.redirect(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT);
     }
 
     try {
@@ -93,7 +42,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
   });
 
   // Serve CSS
-  fastify.get("/css/status.css", (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get("/css/status.css", { logLevel: "error" }, (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const cssPath = path.join(publicPath, "css", "status.css");
       const css = fs.readFileSync(cssPath, "utf-8");
@@ -105,7 +54,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
   });
 
   // Serve JavaScript
-  fastify.get("/js/status.js", (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get("/js/status.js", { logLevel: "error" }, (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const jsPath = path.join(publicPath, "js", "status.js");
       const js = fs.readFileSync(jsPath, "utf-8");
@@ -116,7 +65,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
     }
   });
 
-  done();
+  return done();
 }
 
 export default fp(statusRouter, {
