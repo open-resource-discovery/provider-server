@@ -81,6 +81,31 @@ describe("Server Integration", () => {
         expect(doc).toHaveProperty("accessStrategies");
       });
     });
+
+    it("should support perspective query parameter for filtering documents", async () => {
+      // Filter by system-version perspective
+      const versionResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-version`,
+      );
+      expect(versionResponse.status).toBe(200);
+      const versionData = (await versionResponse.json()) as ORDConfiguration;
+
+      expect(versionData.openResourceDiscoveryV1.documents?.length).toBe(0);
+
+      const instanceResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-instance`,
+      );
+      expect(instanceResponse.status).toBe(200);
+      const instanceData = (await instanceResponse.json()) as ORDConfiguration;
+      expect(instanceData.openResourceDiscoveryV1.documents?.length).toBe(2);
+
+      const independentResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-independent`,
+      );
+      expect(independentResponse.status).toBe(200);
+      const independentData = (await independentResponse.json()) as ORDConfiguration;
+      expect(independentData.openResourceDiscoveryV1.documents?.length).toBe(0);
+    });
   });
 
   describe("ORD Documents Endpoint", () => {
@@ -177,6 +202,50 @@ describe("Server Integration", () => {
     it("should return 401 for static files without authentication", async () => {
       const response = await fetch(`${SERVER_URL}/astronomy/v1/openapi/oas3.json`);
       expect(response.status).toBe(401);
+    });
+  });
+
+  describe("ORD ID Resource Routing", () => {
+    it("should handle resources with valid ORD IDs by converting colons to underscores", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      // This tests the isOrdId check - when ordId is a valid ORD ID, it should convert colons to underscores
+      const response = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/urn:apiResource:example:v1/openapi.json`,
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should handle resources with non-ORD ID paths without conversion", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/astronomy/v1/openapi/oas3.json`, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toHaveProperty("openapi", "3.0.0");
+    });
+
+    it("should handle event resource ORD IDs correctly", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/urn:eventResource:example:v1/schema.json`,
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
     });
   });
 
