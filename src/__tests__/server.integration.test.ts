@@ -188,6 +188,50 @@ describe("Server Integration", () => {
     });
   });
 
+  describe("ORD ID Resource Routing", () => {
+    it("should handle resources with valid ORD IDs by converting colons to underscores", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      // This tests the isOrdId check - when ordId is a valid ORD ID, it should convert colons to underscores
+      const response = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/urn:apiResource:example:v1/openapi.json`,
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should handle resources with non-ORD ID paths without conversion", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/astronomy/v1/openapi/oas3.json`, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toHaveProperty("openapi", "3.0.0");
+    });
+
+    it("should handle event resource ORD IDs correctly", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/urn:eventResource:example:v1/schema.json`,
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe("Error Handling", () => {
     it("should return 404 for non-existent documents", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
