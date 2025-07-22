@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.9.2] - 2025-07-22
+
+### Changed
+
+- Respond successfully to the GitHub `ping` event
+
 ## [0.9.1] - 2025-07-22
 
 ### Changed

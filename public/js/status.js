@@ -423,7 +423,7 @@ class StatusClient {
         buttonText.textContent = "Update Scheduled";
         this.elements.buttonHint.textContent = "Update will start automatically";
       } else if (status === "in_progress") {
-        buttonText.textContent = "Update In Progress";
+        buttonText.textContent = "Fetching...";
         this.elements.buttonHint.textContent = "Starting update...";
       }
     }
@@ -462,7 +462,7 @@ class StatusClient {
 
       // Don't update the button state here - let the WebSocket update handle it
       if (buttonText && spinner) {
-        buttonText.textContent = "Scheduling...";
+        buttonText.textContent = "Updating...";
         spinner.style.display = "block";
         buttonText.style.opacity = "0";
       }
@@ -500,7 +500,20 @@ class StatusClient {
 
   handleUpdateStarted() {
     this.updateStatusBadge("in_progress");
-    this.updateButtonState("in_progress");
+
+    const button = this.elements.updateButton;
+    const buttonText = button.querySelector(".btn-text");
+    const spinner = button.querySelector(".btn-spinner");
+
+    if (buttonText) {
+      buttonText.textContent = "Fetching...";
+    }
+    if (spinner && buttonText) {
+      spinner.style.display = "block";
+      buttonText.style.opacity = "0";
+    }
+    button.disabled = true;
+
     // Clear manual trigger flag when update starts
     this.isManualTrigger = false;
     // Clear hint text
