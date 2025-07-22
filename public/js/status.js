@@ -462,7 +462,7 @@ class StatusClient {
 
       // Don't update the button state here - let the WebSocket update handle it
       if (buttonText && spinner) {
-        buttonText.textContent = "Scheduling...";
+        buttonText.textContent = "Updating...";
         spinner.style.display = "block";
         buttonText.style.opacity = "0";
       }

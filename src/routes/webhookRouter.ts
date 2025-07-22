@@ -122,6 +122,16 @@ export class WebhookRouter {
           }
         }
 
+        // Check if this is a ping event from GitHub
+        const githubEvent = request.headers["x-github-event"];
+        if (githubEvent === "ping") {
+          this.logger.debug("GitHub ping event received - webhook is properly configured");
+          return reply.code(200).send({
+            status: "ok",
+            message: "Webhook ping received successfully",
+          });
+        }
+
         // Normal webhook processing - check branch
         const payload = request.body as GithubWebhookPayload;
         if (payload.repository.full_name.toLowerCase() !== this.config.repository.toLowerCase()) {
