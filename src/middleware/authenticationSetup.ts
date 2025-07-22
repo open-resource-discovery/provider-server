@@ -35,8 +35,7 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
       function (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction): void {
         if (
           request.url.startsWith(PATH_CONSTANTS.WEBHOOK_ENDPOINT) ||
-          request.url.startsWith(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT) ||
-          request.url.startsWith(PATH_CONSTANTS.STATUS_ENDPOINT)
+          request.url.startsWith(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT)
         ) {
           done();
         } else {
