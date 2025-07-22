@@ -609,7 +609,7 @@ h1 {
 
 /* Commit Link Icon */
 .commit-link {
-  margin-left: 3px;
+  margin-left: 0;
   padding-bottom: 2px;
   color: var(--text-secondary);
   transition: color 0.2s;

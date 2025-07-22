@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { UpdateScheduler } from "../services/updateScheduler.js";
 import { Logger } from "pino";
 import { createHmac, timingSafeEqual } from "crypto";
+import { PATH_CONSTANTS } from "../constant.js";
 
 interface WebhookConfig {
   secret?: string;
@@ -64,7 +65,7 @@ export class WebhookRouter {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public register(fastify: any): void {
-    fastify.post("/api/v1/webhook/github", {
+    fastify.post(PATH_CONSTANTS.WEBHOOK_ENDPOINT, {
       config: {
         rawBody: true,
       },
