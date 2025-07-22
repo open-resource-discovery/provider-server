@@ -35,3 +35,30 @@ export interface GithubOpts {
   githubToken?: string;
   customDirectory?: string;
 }
+
+export interface GithubConfig {
+  apiUrl: string;
+  owner: string;
+  repo: string;
+  branch: string;
+  token?: string;
+  rootDirectory: string;
+}
+
+export function buildGithubConfig(opts: {
+  apiUrl: string;
+  repository: string;
+  branch: string;
+  token?: string;
+  rootDirectory?: string;
+}): GithubConfig {
+  const [owner, repo] = opts.repository.split("/");
+  return {
+    apiUrl: opts.apiUrl,
+    owner,
+    repo,
+    branch: opts.branch,
+    token: opts.token,
+    rootDirectory: opts.rootDirectory || ".",
+  };
+}

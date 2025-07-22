@@ -34,6 +34,10 @@ docker run -p 8080:8080 -v "$(pwd)/path-to-your-metadata:/app/data" \
 ```bash
 docker run -p 8080:8080 \
   -e GITHUB_TOKEN="<your-token>" \
+  -e WEBHOOK_SECRET="<your-webhook-secret>" \
+  -e UPDATE_DELAY="30" \
+  -e STATUS_DASHBOARD_ENABLED="true" \
+  -e LOG_LEVEL="info" \
   ghcr.io/open-resource-discovery/provider-server:latest \
   -s github \
   --github-api-url "https://api.github.com" \
@@ -91,6 +95,17 @@ npx @open-resource-discovery/provider-server --help
 | `--github-branch <branch>`             | `main`                   | Yes (for github) | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
 | `--github-repository <repo>`           | -                        | Yes (for github) | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
 | `--github-token <token>`               | -                        | Yes (for github) | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
+| `--update-delay <seconds>`             | `5`                      | No               | `UPDATE_DELAY`               | Cooldown between webhook-triggered updates (seconds)                                                                                                  |
+| `--status-dashboard-enabled <boolean>` | `true`                   | No               | `STATUS_DASHBOARD_ENABLED`   | Enable/disable status dashboard (true/false)                                                                                                          |
+
+### Environment-Only Variables
+
+Some configuration options are only available as environment variables for security reasons:
+
+| Environment Variable | Description                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET`     | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
+| `BASIC_AUTH`         | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
 
 ### Required Structure
 
@@ -342,6 +357,31 @@ For **Tokens (classic)**:
 - **Repository Access**:
   - `repo` access for private repositories
   - `public_repo` scope for public repositories only
+
+## GitHub Webhooks
+
+When using the GitHub source type (`-s github`), you can configure webhooks to automatically update content when changes are pushed to your repository.
+
+### Setting up GitHub Webhooks
+
+1. Go to your GitHub repository → Settings → Webhooks
+2. Click "Add webhook"
+3. Configure the webhook:
+   - **Payload URL**: `https://your-server.com/api/v1/webhook/github`
+   - **Content type**: `application/json`
+   - **Secret**: A secure random string
+   - **Events**: Select "Just the push event"
+
+### Update Delay
+
+The `--update-delay` parameter sets a cooldown period between webhook-triggered updates. This prevents excessive updates when multiple commits are pushed in quick succession. During the cooldown period, only the latest push event will be processed after the delay expires.
+
+## Status Dashboard
+
+The provider server includes a built-in status dashboard accessible at `/status` that provides real-time monitoring of your ORD provider.
+Navigate to `http://127.0.0.1:8080/status` in your browser.
+
+When disabled, `/status` will redirect to the ORD endpoint.
 
 ## License
 

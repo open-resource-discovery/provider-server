@@ -1,9 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 import { comparePassword } from "src/util/passwordHash.js";
-import { config } from "dotenv";
 import { log } from "../util/logger.js";
-config();
 
 export function createBasicAuthValidator(validUsers: Record<string, string>) {
   return async function validateBasicAuth(

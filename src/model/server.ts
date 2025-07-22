@@ -3,9 +3,6 @@ import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath } from "src/util/pathUtils.js";
 import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
-import { config } from "dotenv";
-
-config();
 
 export interface ProviderServerOptions {
   ordDirectory: string;
@@ -22,6 +19,10 @@ export interface ProviderServerOptions {
     methods: OptAuthMethod[];
     basicAuthUsers?: Record<string, string>;
   };
+  dataDir: string;
+  webhookSecret?: string;
+  updateDelay: number;
+  statusDashboardEnabled: boolean;
 }
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
@@ -58,5 +59,9 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       methods: options.auth,
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
+    dataDir: options.dataDir || "./data",
+    webhookSecret: process.env.WEBHOOK_SECRET,
+    updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
+    statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
   };
 }

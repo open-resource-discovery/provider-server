@@ -1,7 +1,3 @@
-import { config } from "dotenv";
-
-config();
-
 // URL path constants
 export const PATH_CONSTANTS = {
   // Base paths

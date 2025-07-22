@@ -13,6 +13,7 @@ COPY package*.json tsconfig*.json ./
 RUN npm ci
 
 COPY ./src ./src
+COPY ./public ./public
 
 RUN npm run build \
     && npm prune --production \
@@ -29,10 +30,14 @@ WORKDIR /app
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 
 # Set environment
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
+
+# Create data directory with proper permissions
+RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
 # Switch to non-root user
 USER nodejs
