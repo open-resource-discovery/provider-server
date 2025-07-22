@@ -1,5 +1,7 @@
 import fs from "fs";
 import { normalizePath, joinFilePaths } from "./pathUtils.js";
+import { log } from "./logger.js";
+import path from "path";
 
 /**
  * Lists all files recursively from the given directory
@@ -23,4 +25,17 @@ export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): strin
   });
 
   return arrayOfFiles;
+}
+
+// Helper to get package.json version
+export function getPackageVersion(): string {
+  try {
+    const packageJsonPath = path.resolve(process.cwd(), "package.json");
+    const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
+    const packageJson = JSON.parse(packageJsonContent);
+    return packageJson.version || "unknown";
+  } catch (error) {
+    log.error("Failed to read package.json version: %s", error);
+    return "unknown";
+  }
 }

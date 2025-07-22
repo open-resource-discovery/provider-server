@@ -1,4 +1,3 @@
-import { afterAll, beforeAll, beforeEach, describe, it, jest } from "@jest/globals";
 import { ordConfigurationSchema } from "@open-resource-discovery/specification";
 import fs from "fs";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
@@ -144,7 +143,7 @@ describe("Options Validation", () => {
         ok: true,
         status: 200,
         statusText: "OK",
-        json: jest.fn<() => Promise<unknown>>().mockResolvedValue([
+        json: jest.fn().mockResolvedValue([
           {
             name: "test.json",
             path: "documents/test.json",
@@ -157,7 +156,7 @@ describe("Options Validation", () => {
         ok: true,
         status: 200,
         statusText: "OK",
-        json: jest.fn<() => Promise<unknown>>().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({
           name: "test.json",
           path: "documents/test.json",
           type: "file",
@@ -212,7 +211,7 @@ describe("Options Validation", () => {
         ok: false,
         status: 404,
         statusText: "Not Found",
-        json: jest.fn<() => Promise<unknown>>().mockResolvedValue({ message: "Not Found" }),
+        json: jest.fn().mockResolvedValue({ message: "Not Found" }),
       };
 
       const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;

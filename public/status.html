@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ORD Provider Server Status</title>
+    <link rel="stylesheet" href="/css/status.css" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50' font-size='50'>📊</text></svg>" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <div class="title-group">
+            <h1>ORD Provider Server</h1>
+            <div class="connection-dot" id="connectionStatus" data-status="connecting" title="Connecting..."></div>
+          </div>
+          <div class="header-right">
+            <div class="status-badge" id="updateStatus" data-status="unknown">
+              <span class="status-text">LOADING</span>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+              <span class="theme-icon">☀️</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric">
+            <label>Server</label>
+            <value id="version">-</value>
+          </div>
+          <div class="metric">
+            <label>Updated</label>
+            <value id="lastUpdate">-</value>
+          </div>
+          <div class="metric copyable">
+            <label
+              >COMMIT HASH
+              <a
+                href="#"
+                id="commitLink"
+                class="commit-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="display: none">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle">
+                  <path
+                    d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z" />
+                </svg> </a
+            ></label>
+            <value id="contentVersion">-</value>
+            <button class="copy-button" data-copy-target="contentVersion">Copy</button>
+          </div>
+          <div class="metric" id="webhookMetric">
+            <label>Last Webhook</label>
+            <value id="lastWebhook">No events received yet</value>
+          </div>
+          <div class="metric" id="scheduledMetric" style="display: none">
+            <label>Scheduled</label>
+            <value id="scheduledTime">-</value>
+          </div>
+          <div class="metric">
+            <label>Memory</label>
+            <value id="memoryUsage">-</value>
+          </div>
+          <div class="metric">
+            <label>Disk</label>
+            <value id="diskUsage">-</value>
+          </div>
+        </div>
+
+        <div class="failed-update-card" id="failedUpdateCard" style="display: none">
+          <div class="failed-update-header">
+            <span class="failed-update-icon">⚠️</span>
+            <span class="failed-update-title">Update Failed</span>
+          </div>
+          <div class="failed-update-content">
+            <div class="failed-commit-line">
+              <span>Failed commit: </span>
+              <span id="failedCommitHash" class="commit-hash">-</span>
+              <a href="#" id="failedCommitLink" class="commit-link" target="_blank" rel="noopener noreferrer">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle">
+                  <path
+                    d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z" />
+                </svg>
+              </a>
+            </div>
+            <div class="failed-update-error" id="failedUpdateError" style="display: none">
+              <span id="failedErrorIcon" class="error-icon"></span>
+              <span id="failedErrorMessage" class="error-message">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a href="/.well-known/open-resource-discovery" class="btn primary">
+            <span class="btn-text">View ORD metadata</span>
+          </a>
+          <button class="btn secondary" id="updateButton" onclick="window.statusClient.triggerUpdate()" disabled>
+            <span class="btn-text">Trigger Update</span>
+            <span class="btn-spinner" style="display: none">
+              <svg class="spinner" viewBox="0 0 24 24">
+                <circle class="spinner-path" cx="12" cy="12" r="10" fill="none" stroke-width="2"></circle>
+              </svg>
+            </span>
+          </button>
+        </div>
+        <div class="hint" id="buttonHint"></div>
+
+        <div class="settings-section">
+          <button class="settings-toggle" id="settingsToggle">
+            <span class="toggle-icon">▶</span>
+            <span>Details</span>
+          </button>
+          <div class="settings-content" id="settingsContent" style="display: none">
+            <div class="settings-grid">
+              <div class="setting-item">
+                <label>Source Type</label>
+                <value id="settingSourceType">-</value>
+              </div>
+              <div class="setting-item copyable">
+                <label>Base URL</label>
+                <value id="settingBaseUrl">-</value>
+                <button class="copy-button" data-copy-target="settingBaseUrl">Copy</button>
+              </div>
+              <div class="setting-item copyable">
+                <label>Directory</label>
+                <value id="settingDirectory">-</value>
+                <button class="copy-button" data-copy-target="settingDirectory">Copy</button>
+              </div>
+              <div class="setting-item">
+                <label>Authentication</label>
+                <value id="settingAuth">-</value>
+              </div>
+              <div class="setting-item copyable" id="githubUrlSetting" style="display: none">
+                <label>GitHub API URL</label>
+                <value id="settingGithubUrl">-</value>
+                <button class="copy-button" data-copy-target="settingGithubUrl">Copy</button>
+              </div>
+              <div class="setting-item copyable" id="githubRepoSetting" style="display: none">
+                <label>Repository</label>
+                <value id="settingGithubRepo">-</value>
+                <button class="copy-button" data-copy-target="settingGithubRepo">Copy</button>
+              </div>
+              <div class="setting-item copyable" id="githubBranchSetting" style="display: none">
+                <label>Branch</label>
+                <value id="settingGithubBranch">-</value>
+                <button class="copy-button" data-copy-target="settingGithubBranch">Copy</button>
+              </div>
+              <div class="setting-item" id="updateDelaySetting" style="display: none">
+                <label>Update Delay</label>
+                <value id="settingUpdateDelay">-</value>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="health">
+          <span class="health-item">
+            <label>Server:</label>
+            <value id="serverHealth" data-status="unknown">-</value>
+          </span>
+          <span class="health-separator">•</span>
+          <span class="health-item">
+            <label>Checked:</label>
+            <value id="lastHealthCheck">-</value>
+          </span>
+        </div>
+
+        <div class="footer">
+          <a
+            href="https://github.com/open-resource-discovery/provider-server?tab=readme-ov-file#open-resource-discovery-provider-server"
+            class="footer-link"
+            target="_blank"
+            rel="noopener noreferrer">
+            <span>Documentation</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle">
+              <path
+                d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script src="/js/status.js"></script>
+  </body>
+</html>

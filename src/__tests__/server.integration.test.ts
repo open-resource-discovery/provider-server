@@ -1,15 +1,22 @@
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@open-resource-discovery/specification";
 import path from "path";
+import * as fs from "fs/promises";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
-import { getPackageVersion } from "../routes/statusRouter.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
   compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
   hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+}));
+
+// Mock p-limit to avoid ESM issues in tests
+jest.mock("p-limit", () => ({
+  default:
+    () =>
+    (fn: () => unknown): unknown =>
+      fn(),
 }));
 
 describe("Server Integration", () => {
@@ -34,6 +41,9 @@ describe("Server Integration", () => {
         methods: [OptAuthMethod.Basic],
         basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
       },
+      dataDir: "./test-data",
+      updateDelay: 30000,
+      statusDashboardEnabled: false,
     };
 
     shutdownServer = await startProviderServer(options);
@@ -41,6 +51,12 @@ describe("Server Integration", () => {
 
   afterAll(async () => {
     await shutdownServer();
+    // Clean up test data directory
+    try {
+      await fs.rm("./test-data", { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   describe("Well-Known Endpoint", () => {
@@ -64,6 +80,31 @@ describe("Server Integration", () => {
         expect(doc).toHaveProperty("url");
         expect(doc).toHaveProperty("accessStrategies");
       });
+    });
+
+    it("should support perspective query parameter for filtering documents", async () => {
+      // Filter by system-version perspective
+      const versionResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-version`,
+      );
+      expect(versionResponse.status).toBe(200);
+      const versionData = (await versionResponse.json()) as ORDConfiguration;
+
+      expect(versionData.openResourceDiscoveryV1.documents?.length).toBe(0);
+
+      const instanceResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-instance`,
+      );
+      expect(instanceResponse.status).toBe(200);
+      const instanceData = (await instanceResponse.json()) as ORDConfiguration;
+      expect(instanceData.openResourceDiscoveryV1.documents?.length).toBe(2);
+
+      const independentResponse = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-independent`,
+      );
+      expect(independentResponse.status).toBe(200);
+      const independentData = (await independentResponse.json()) as ORDConfiguration;
+      expect(independentData.openResourceDiscoveryV1.documents?.length).toBe(0);
     });
   });
 
@@ -164,6 +205,50 @@ describe("Server Integration", () => {
     });
   });
 
+  describe("ORD ID Resource Routing", () => {
+    it("should handle resources with valid ORD IDs by converting colons to underscores", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      // This tests the isOrdId check - when ordId is a valid ORD ID, it should convert colons to underscores
+      const response = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/urn:apiResource:example:v1/openapi.json`,
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should handle resources with non-ORD ID paths without conversion", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/astronomy/v1/openapi/oas3.json`, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toHaveProperty("openapi", "3.0.0");
+    });
+
+    it("should handle event resource ORD IDs correctly", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(
+        `${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/urn:eventResource:example:v1/schema.json`,
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+          },
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe("Error Handling", () => {
     it("should return 404 for non-existent documents", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
@@ -216,6 +301,9 @@ describe("Server Integration", () => {
           methods: [OptAuthMethod.Basic],
           basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
         },
+        dataDir: "./test-data-2",
+        updateDelay: 30000,
+        statusDashboardEnabled: false,
       };
 
       shutdownServer = await startProviderServer(options);
@@ -223,6 +311,12 @@ describe("Server Integration", () => {
 
     afterAll(async () => {
       await shutdownServer();
+      // Clean up test data directory
+      try {
+        await fs.rm("./test-data-2", { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     });
 
     it("should accept basic auth when multiple auth methods are configured", async () => {
@@ -276,18 +370,6 @@ describe("Server Integration", () => {
       });
 
       expect(response.headers.get("etag")).toBeTruthy();
-    });
-  });
-
-  describe("Status Endpoint", () => {
-    it("should return the correct status object with version", async () => {
-      const packageVersion = getPackageVersion();
-      const response = await fetch(`${SERVER_URL}/api/v1/status`);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("x-ord-provider-server-version")).toBe(packageVersion);
-      const data = await response.json();
-      expect(data).toEqual({ version: packageVersion });
     });
   });
 });

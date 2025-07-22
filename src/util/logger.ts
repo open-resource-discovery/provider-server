@@ -1,5 +1,17 @@
 import { pino, LoggerOptions } from "pino";
 
+const VALID_LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
+
+function getLogLevel(): string {
+  const envLogLevel = process.env.LOG_LEVEL?.toLowerCase();
+
+  if (envLogLevel && VALID_LOG_LEVELS.includes(envLogLevel)) {
+    return envLogLevel;
+  }
+
+  return process.env.NODE_ENV === "production" ? "info" : "debug";
+}
+
 export const envToLogger: { [environment: string]: LoggerOptions | boolean } = {
   development: {
     transport: {
@@ -21,6 +33,8 @@ export const envToLogger: { [environment: string]: LoggerOptions | boolean } = {
  */
 export let log = pino();
 
+const logLevel = getLogLevel();
+
 if (process.env.NODE_ENV !== "production") {
   log = pino({
     transport: {
@@ -32,6 +46,10 @@ if (process.env.NODE_ENV !== "production") {
       },
     },
     base: null, // avoid adding pid, hostname and name properties to each log.
-    level: "debug",
+    level: logLevel,
+  });
+} else {
+  log = pino({
+    level: logLevel,
   });
 }

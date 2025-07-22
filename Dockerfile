@@ -1,4 +1,4 @@
-FROM node:22.16.0-alpine AS builder
+FROM node:22.17.1-alpine AS builder
 
 ARG GIT_COMMIT_HASH=unknown
 ENV ORD_PROVIDER_SERVER_VERSION_HASH=${GIT_COMMIT_HASH}
@@ -13,12 +13,13 @@ COPY package*.json tsconfig*.json ./
 RUN npm ci
 
 COPY ./src ./src
+COPY ./public ./public
 
 RUN npm run build \
     && npm prune --production \
     && chown -R nodejs:nodejs /app
 
-FROM node:22.16.0-alpine
+FROM node:22.17.1-alpine
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
@@ -29,10 +30,14 @@ WORKDIR /app
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 
 # Set environment
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
+
+# Create data directory with proper permissions
+RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
 # Switch to non-root user
 USER nodejs

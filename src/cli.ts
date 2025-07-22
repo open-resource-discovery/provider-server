@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { Command, Option } from "commander";
 import { config } from "dotenv";
+config();
+
+import { Command, Option } from "commander";
 import packageJson from "package.json" with { type: "json" };
 import { CommandLineOptions, OptAuthMethod, OptSourceType, parseAuthMethods, parseSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
@@ -11,14 +13,12 @@ import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
 import { PATH_CONSTANTS } from "./constant.js";
 
-config();
-
 const program = new Command();
 
 program
   .name("ord-provider-server")
   .addOption(
-    new Option("--base-url <baseUrl>", "Base URL without /.well-known/open-resource-discovery path")
+    new Option("--base-url <baseUrl>", `Base URL without ${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT} path`)
       .default(process.env.ORD_BASE_URL || getBaseUrlFromVcapEnv(process.env.VCAP_APPLICATION))
       .makeOptionMandatory(),
   )
@@ -50,6 +50,17 @@ program
   .option("--github-branch <githubBranch>", "GitHub branch", process.env.GITHUB_BRANCH)
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
   .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
+  .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
+  .option(
+    "--update-delay <updateDelay>",
+    "Cooldown between webhook-triggered updates (seconds)",
+    process.env.UPDATE_DELAY || "5",
+  )
+  .option(
+    "--status-dashboard-enabled <statusDashboardEnabled>",
+    "Enable/disable status dashboard (true/false)",
+    process.env.STATUS_DASHBOARD_ENABLED || "true",
+  )
   .option(
     "--mtls-ca-path <path>",
     "Path to CA certificate for validating client certificates",

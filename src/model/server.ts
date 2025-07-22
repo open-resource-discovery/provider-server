@@ -39,6 +39,10 @@ export interface ProviderServerOptions {
     trustedIssuers?: string[];
     trustedSubjects?: string[];
   };
+  dataDir: string;
+  webhookSecret?: string;
+  updateDelay: number;
+  statusDashboardEnabled: boolean;
 }
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
@@ -75,6 +79,10 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
       methods: options.auth,
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
+    dataDir: options.dataDir || "./data",
+    webhookSecret: process.env.WEBHOOK_SECRET,
+    updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
+    statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
   };
 
   if (options.auth.includes(OptAuthMethod.MTLS)) {

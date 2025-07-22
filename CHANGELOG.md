@@ -24,6 +24,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Improved mTLS middleware to support both standard TLS socket validation and SAP CF header-based validation
 - Enhanced mTLS configuration flexibility with CLI options taking precedence over environment variables
 
+## [0.9.2] - 2025-07-22
+
+### Changed
+
+- Respond successfully to the GitHub `ping` event
+
+## [0.9.1] - 2025-07-22
+
+### Changed
+
+- Secured `/api/v1/status` endpoint with authentication
+- Opened `/api/v1/webhook/github` for external GitHub webhook events
+
+## [0.9.0] - 2025-07-21
+
+### Added
+
+- `/status` serves now an interactive dashboard
+- Live dashboard updates served by websockets
+- Github Webhook event integration
+
+### Changed
+
+- Retrieve Github data by fetching the given directory and serve from disk
+
 ## [0.8.2] - 2025-04-16
 
 ### Added

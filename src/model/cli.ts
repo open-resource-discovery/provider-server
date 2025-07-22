@@ -51,6 +51,9 @@ export interface CommandLineOptions {
   githubBranch?: string;
   githubRepository?: string;
   githubToken?: string;
+  dataDir?: string;
+  updateDelay?: string;
+  statusDashboardEnabled?: string;
   mtlsCaPath?: string;
   mtlsCertPath?: string;
   mtlsKeyPath?: string;

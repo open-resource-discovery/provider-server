@@ -34,6 +34,10 @@ docker run -p 8080:8080 -v "$(pwd)/path-to-your-metadata:/app/data" \
 ```bash
 docker run -p 8080:8080 \
   -e GITHUB_TOKEN="<your-token>" \
+  -e WEBHOOK_SECRET="<your-webhook-secret>" \
+  -e UPDATE_DELAY="30" \
+  -e STATUS_DASHBOARD_ENABLED="true" \
+  -e LOG_LEVEL="info" \
   ghcr.io/open-resource-discovery/provider-server:latest \
   -s github \
   --github-api-url "https://api.github.com" \
@@ -82,7 +86,7 @@ npx @open-resource-discovery/provider-server --help
 | -------------------------------------- | ------------------------ | ---------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-b, --base-url <type>`                | `local`                  | Yes                    | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
 | `-s, --source-type <type>`             | `local`                  | No                     | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
-| `-a, --auth <types>`                   | `open`                   | No                     | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`, `mtls`)                                                                                             |
+| `-a, --auth <types>`                   | `open`                   | No                     | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`)                                                                                                     |
 | `-d, --directory <path>`               | -                        | Yes (for local)        | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
 | `-ds, --documents-subdirectory <path>` | `documents`              | No                     | `ORD_DOCUMENTS_SUBDIRECTORY` | Directory containing the ORD Documents with at least one ORD document. Supports nested folder structures. Can also be applied to a GitHub Repository. |
 | `--host <host>`                        | `0.0.0.0`                | No                     | `SERVER_HOST`                | Host for server, without port                                                                                                                         |
@@ -91,6 +95,8 @@ npx @open-resource-discovery/provider-server --help
 | `--github-branch <branch>`             | `main`                   | Yes (for github)       | `GITHUB_BRANCH`              | GitHub branch to use                                                                                                                                  |
 | `--github-repository <repo>`           | -                        | Yes (for github)       | `GITHUB_REPOSITORY`          | GitHub repository in format `<OWNER>/<REPO>`                                                                                                          |
 | `--github-token <token>`               | -                        | Yes (for github)       | `GITHUB_TOKEN`               | GitHub token for authentication                                                                                                                       |
+| `--update-delay <seconds>`             | `5`                      | No                     | `UPDATE_DELAY`               | Cooldown between webhook-triggered updates (seconds)                                                                                                  |
+| `--status-dashboard-enabled <boolean>` | `true`                   | No                     | `STATUS_DASHBOARD_ENABLED`   | Enable/disable status dashboard (true/false)                                                                                                          |
 | `--mtls-ca-path <path>`                | -                        | Yes (for mtls)         | `MTLS_CA_PATH`               | Path to CA certificate for validating client certificates                                                                                             |
 | `--mtls-cert-path <path>`              | -                        | Yes (for mtls)         | `MTLS_CERT_PATH`             | Path to server certificate                                                                                                                            |
 | `--mtls-key-path <path>`               | -                        | Yes (for mtls)         | `MTLS_KEY_PATH`              | Path to server private key                                                                                                                            |
@@ -100,7 +106,14 @@ npx @open-resource-discovery/provider-server --help
 | `--mtls-trusted-subjects <subjects>`   | -                        | No\*                   | `MTLS_TRUSTED_SUBJECTS`      | Semicolon-separated list of trusted certificate subjects (DN format)                                                                                  |
 | `--mtls-config-endpoints <endpoints>`  | -                        | Yes (for sap:cmp-mtls) | `MTLS_CONFIG_ENDPOINTS`      | Semicolon-separated list of URLs to fetch certificate configuration from                                                                              |
 
-\* For `sap:cmp-mtls` mode, `MTLS_CONFIG_ENDPOINTS` is mandatory. Additionally, at least one trusted issuer or subject must be available (from environment variables or config endpoints).
+### Environment-Only Variables
+
+Some configuration options are only available as environment variables for security reasons:
+
+| Environment Variable | Description                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET`     | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
+| `BASIC_AUTH`         | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
 
 ### Required Structure
 
@@ -141,13 +154,11 @@ This structure applies to both source types:
 #### Important Notes:
 
 1. **ORD Documents Location**
-
    - All ORD Documents must be placed in the documents directory (configurable via `--documents-subdirectory`, default is `documents/`)
    - ORD Documents can be placed in nested folders within the documents directory
    - Supported format: `.json`
 
 2. **Resource References**
-
    - Resources referenced in the ORD Documents can be placed anywhere within the `-d` directory
    - The URLs in the ORD Document's `resourceDefinitions` must match the relative paths from the `-d` directory
    - Example resource definition in an ORD Document:
@@ -173,6 +184,23 @@ This structure applies to both source types:
    - This `baseUrl` value will:
      - Be set in the ORD Configuration
      - Override the existing baseUrl in the `describedSystemInstance` field of any ORD Documents
+
+### Perspective Filtering
+
+The ORD Configuration endpoint supports filtering documents by perspective using the `?perspective=` query parameter:
+
+```bash
+# Get all documents (default)
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery
+
+# Filter by perspective
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-version
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-instance
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-independent
+```
+
+> [!NOTE]
+> ORD documents without an explicit `perspective` property default to `system-instance`.
 
 ### Authentication
 
@@ -210,7 +238,6 @@ The server supports Mutual TLS (mTLS) authentication, which provides stronger se
 To use mTLS:
 
 1. **Generate Certificates**: You need:
-
    - A CA certificate for validating client certificates
    - A server certificate and private key
    - Client certificates signed by the CA
@@ -504,6 +531,31 @@ For **Tokens (classic)**:
 - **Repository Access**:
   - `repo` access for private repositories
   - `public_repo` scope for public repositories only
+
+## GitHub Webhooks
+
+When using the GitHub source type (`-s github`), you can configure webhooks to automatically update content when changes are pushed to your repository.
+
+### Setting up GitHub Webhooks
+
+1. Go to your GitHub repository → Settings → Webhooks
+2. Click "Add webhook"
+3. Configure the webhook:
+   - **Payload URL**: `https://your-server.com/api/v1/webhook/github`
+   - **Content type**: `application/json`
+   - **Secret**: A secure random string
+   - **Events**: Select "Just the push event"
+
+### Update Delay
+
+The `--update-delay` parameter sets a cooldown period between webhook-triggered updates. This prevents excessive updates when multiple commits are pushed in quick succession. During the cooldown period, only the latest push event will be processed after the delay expires.
+
+## Status Dashboard
+
+The provider server includes a built-in status dashboard accessible at `/status` that provides real-time monitoring of your ORD provider.
+Navigate to `http://127.0.0.1:8080/status` in your browser.
+
+When disabled, `/status` will redirect to the ORD endpoint.
 
 ## License
 
