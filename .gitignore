@@ -47,5 +47,6 @@ coverage/
 
 manifest.yaml
 
+certs_test
 # Data directory for static file serving
 data/
