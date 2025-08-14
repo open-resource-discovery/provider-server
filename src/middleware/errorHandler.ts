@@ -20,6 +20,7 @@ export function errorHandler(err: Error | FastifyError | any, req: FastifyReques
     castedError = err;
   } else if (
     !(err instanceof BackendError) &&
+    err &&
     err.statusCode === 401 &&
     err.code === "FST_BASIC_AUTH_MISSING_OR_BAD_AUTHORIZATION_HEADER"
   ) {
