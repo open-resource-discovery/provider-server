@@ -118,6 +118,7 @@ export class VersionService {
   }
 
   private compareVersions(v1: string, v2: string): number {
+    // Remove 'v' prefix if present
     const clean1 = v1.replace(/^v/, "");
     const clean2 = v2.replace(/^v/, "");
 
@@ -125,10 +126,15 @@ export class VersionService {
     if (clean2 === "latest") return 1;
     if (clean1 === clean2) return 0;
 
-    // Since we're only dealing with stable versions now (x.y.z), split by dots
-    const parts1 = clean1.split(".").map(Number);
-    const parts2 = clean2.split(".").map(Number);
+    // Extract base version (remove pre-release suffixes like -dev, -beta, etc.)
+    const baseVersion1 = clean1.replace(/-(dev|alpha|beta|rc|pre|preview|snapshot).*$/i, "");
+    const baseVersion2 = clean2.replace(/-(dev|alpha|beta|rc|pre|preview|snapshot).*$/i, "");
 
+    // Split into numeric parts
+    const parts1 = baseVersion1.split(".").map(Number);
+    const parts2 = baseVersion2.split(".").map(Number);
+
+    // Compare major.minor.patch
     for (let i = 0; i < 3; i++) {
       const p1 = parts1[i] || 0;
       const p2 = parts2[i] || 0;
@@ -138,7 +144,13 @@ export class VersionService {
       }
     }
 
-    // Since we're filtering out pre-release versions, we should only have 3 parts
+    // If base versions are equal, dev versions are considered newer than stable
+    const isDev1 = clean1.includes("-");
+    const isDev2 = clean2.includes("-");
+
+    if (isDev1 && !isDev2) return 1; // v1 is dev, v2 is stable -> v1 is newer
+    if (!isDev1 && isDev2) return -1; // v1 is stable, v2 is dev -> v2 is newer
+
     return 0;
   }
 }

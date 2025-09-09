@@ -1,4 +1,7 @@
+import { createRequire } from "module";
 import { Worker } from "worker_threads";
+
+const require = createRequire(import.meta.url);
 
 interface GitOperationData {
   url?: string;
@@ -37,13 +40,8 @@ export class GitWorkerManager {
 
   private ensureWorker(): Worker {
     if (!this.worker) {
-      // Get the absolute path to the worker file
-      const workerPath = import.meta.resolve("../workers/gitOperationsWorker.js");
-      this.worker = import.meta.filename.endsWith(".ts")
-        ? new Worker(`import('tsx/esm/api').then(({ register }) => { register(); import('${workerPath}') })`, {
-            eval: true,
-          })
-        : new Worker(workerPath);
+      const workerPath = require.resolve("../workers/gitOperationsWorker.js");
+      this.worker = new Worker(workerPath);
     }
     return this.worker;
   }

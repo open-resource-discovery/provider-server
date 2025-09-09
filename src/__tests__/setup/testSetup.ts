@@ -17,6 +17,10 @@ export function setupTestEnvironment(): void {
       ...logger,
     },
   }));
+
+  // Mock the gitWorkerManager to avoid worker thread issues in tests
+  jest.mock("src/services/gitWorkerManager.js");
+
   jest.resetModules();
 }
 
