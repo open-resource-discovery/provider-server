@@ -29,6 +29,10 @@ export class FileSystemManager {
     await fs.mkdir(this.dataDir, { recursive: true });
     await fs.mkdir(this.currentDir, { recursive: true });
     await fs.mkdir(this.tempDir, { recursive: true });
+
+    // Create documents subdirectory in current directory
+    const documentsPath = path.join(this.currentDir, this.documentsSubDirectory);
+    await fs.mkdir(documentsPath, { recursive: true });
   }
 
   public async hasCurrentContent(): Promise<boolean> {

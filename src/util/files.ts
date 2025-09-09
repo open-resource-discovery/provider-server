@@ -11,6 +11,12 @@ import path from "path";
  */
 export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
   const normalizedDirPath = normalizePath(dirPath);
+
+  // Check if directory exists before trying to read it
+  if (!fs.existsSync(normalizedDirPath)) {
+    return arrayOfFiles;
+  }
+
   const files = fs.readdirSync(normalizedDirPath);
 
   files.forEach((file) => {
