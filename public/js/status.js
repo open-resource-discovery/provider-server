@@ -551,13 +551,11 @@ class StatusClient {
     if (progress) {
       let progressText = "";
 
-      // Show file progress: TODO
       if (progress.totalFiles && progress.fetchedFiles !== undefined) {
         const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
         progressText = `Fetching files: ${progress.fetchedFiles}/${progress.totalFiles} (${percentage}%)`;
       }
 
-      // Show current file if available: TODO
       if (progress.currentFile) {
         const fileName = progress.currentFile.split("/").pop();
         progressText += ` - ${fileName}`;

@@ -351,5 +351,10 @@ export class UpdateScheduler extends EventEmitter {
       clearInterval(this.periodicCheckInterval);
       this.periodicCheckInterval = null;
     }
+
+    // Clean up the content fetcher if it has a destroy method
+    if ("destroy" in this.contentFetcher && typeof this.contentFetcher.destroy === "function") {
+      this.contentFetcher.destroy();
+    }
   }
 }

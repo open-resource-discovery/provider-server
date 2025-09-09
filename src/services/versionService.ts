@@ -35,7 +35,7 @@ export class VersionService {
         lastChecked: new Date(),
       };
     } catch (error) {
-      log.warn("Failed to fetch latest version from GHCR:", error);
+      log.warn(`Failed to fetch latest version from GHCR: ${error}`);
       return {
         current: currentVersion,
         latest: currentVersion,

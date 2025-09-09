@@ -14,6 +14,7 @@ import { RouterFactory } from "./factories/routerFactory.js";
 import { FqnDocumentMap } from "./util/fqnHelpers.js";
 import { FileSystemManager } from "./services/fileSystemManager.js";
 import { GithubContentFetcher } from "./services/githubContentFetcher.js";
+import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
@@ -92,9 +93,16 @@ async function performWarmup(opts: ProviderServerOptions): Promise<void> {
     branch: opts.githubBranch!,
     token: opts.githubToken,
     rootDirectory: opts.ordDirectory,
+    fetchStrategy: opts.fetchStrategy,
   });
 
-  const contentFetcher = new GithubContentFetcher(githubConfig);
+  // Choose fetcher based on strategy
+  const contentFetcher =
+    githubConfig.fetchStrategy === "clone"
+      ? new GitCloneContentFetcher(githubConfig)
+      : new GithubContentFetcher(githubConfig);
+
+  log.info(`Using fetch strategy: ${githubConfig.fetchStrategy || "clone"}`);
 
   updateScheduler = new UpdateScheduler(
     {
@@ -258,6 +266,12 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     // Return the shutdown function
     return async () => {
       try {
+        // Stop the update scheduler if it exists
+        if (updateScheduler) {
+          server.log.info("Stopping update scheduler...");
+          updateScheduler.stop();
+        }
+
         await server.close();
         server.log.info("Server shutdown complete");
       } catch (err) {
