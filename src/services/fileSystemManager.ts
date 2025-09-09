@@ -42,9 +42,10 @@ export class FileSystemManager {
         return false;
       }
 
-      // Check if directory has any content
+      // Check if directory has any content other than the documents subdirectory
       const contents = await fs.readdir(this.currentDir);
-      return contents.length > 0;
+      const contentOtherThanDocs = contents.filter((item) => item !== this.documentsSubDirectory);
+      return contentOtherThanDocs.length > 0;
     } catch {
       return false;
     }
