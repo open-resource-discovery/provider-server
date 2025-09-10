@@ -89,15 +89,23 @@ export class FileSystemManager {
 
         // Backup current directory if it exists
         const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
-        if (await this.hasCurrentContent()) {
+
+        // Check if current directory exists (not just if it has content)
+        try {
+          await fs.access(this.currentDir);
           log.info("Creating backup of current directory");
           await this.copyDirectory(this.currentDir, backupDir);
+        } catch {
+          // Directory doesn't exist, nothing to backup
         }
 
         try {
-          // Remove current directory
-          if (await this.hasCurrentContent()) {
+          // Remove current directory if it exists
+          try {
+            await fs.access(this.currentDir);
             await fs.rm(this.currentDir, { recursive: true, force: true });
+          } catch {
+            // Directory doesn't exist, nothing to remove
           }
 
           // Copy temp to current
@@ -130,8 +138,13 @@ export class FileSystemManager {
         // On non-Windows systems, use rename for atomic operation
         const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
 
-        if (await this.hasCurrentContent()) {
+        // Check if current directory exists (not just if it has content)
+        try {
+          await fs.access(this.currentDir);
+          // Directory exists, rename it to backup
           await fs.rename(this.currentDir, backupDir);
+        } catch {
+          // Directory doesn't exist, nothing to backup
         }
 
         await fs.rename(tempDir, this.currentDir);
