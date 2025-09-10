@@ -70,11 +70,14 @@ describe("errorHandler", () => {
 
   describe("Fastify auth errors", () => {
     it("should convert Fastify 401 auth error to UnauthorizedError", () => {
-      const fastifyAuthError = {
-        statusCode: 401,
-        code: "FST_BASIC_AUTH_MISSING_OR_BAD_AUTHORIZATION_HEADER",
-        message: "Missing authorization",
+      const fastifyAuthError = new Error("Missing authorization") as Error & {
+        statusCode: number;
+        code: string;
+        name: string;
       };
+      fastifyAuthError.statusCode = 401;
+      fastifyAuthError.code = "FST_BASIC_AUTH_MISSING_OR_BAD_AUTHORIZATION_HEADER";
+      fastifyAuthError.name = "FastifyError";
 
       errorHandler(fastifyAuthError, mockRequest as FastifyRequest, mockReply as FastifyReply);
 
@@ -89,11 +92,14 @@ describe("errorHandler", () => {
     });
 
     it("should not convert non-auth 401 errors", () => {
-      const otherError = {
-        statusCode: 401,
-        code: "DIFFERENT_CODE",
-        message: "Some other error",
+      const otherError = new Error("Some other error") as Error & {
+        statusCode: number;
+        code: string;
+        name: string;
       };
+      otherError.statusCode = 401;
+      otherError.code = "DIFFERENT_CODE";
+      otherError.name = "FastifyError";
 
       errorHandler(otherError, mockRequest as FastifyRequest, mockReply as FastifyReply);
 
@@ -101,7 +107,7 @@ describe("errorHandler", () => {
       expect(mockReply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.objectContaining({
-            message: "Unsupported throw use.",
+            message: "Internal Server error: Some other error",
           }),
         }),
       );
