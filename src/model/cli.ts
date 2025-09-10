@@ -51,4 +51,5 @@ export interface CommandLineOptions {
   dataDir?: string;
   updateDelay?: string;
   statusDashboardEnabled?: string;
+  fetchStrategy?: string;
 }

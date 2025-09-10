@@ -67,6 +67,11 @@ export class LocalDocumentRepository implements DocumentRepository {
   public getDirectoryHash(directoryPath: string): Promise<string | null> {
     const fullDirectoryPath = this.getFullLocalPath(directoryPath);
     try {
+      // Check if directory exists first
+      if (!fs.existsSync(fullDirectoryPath)) {
+        log.debug(`Directory ${fullDirectoryPath} does not exist yet`);
+        return Promise.resolve(null);
+      }
       // Simple hash based on file modification times for local directories
       const files = getAllFiles(fullDirectoryPath);
       const hash = crypto.createHash("sha256");

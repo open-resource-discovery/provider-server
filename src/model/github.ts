@@ -36,6 +36,8 @@ export interface GithubOpts {
   customDirectory?: string;
 }
 
+export type FetchStrategy = "api" | "clone" | "archive";
+
 export interface GithubConfig {
   apiUrl: string;
   owner: string;
@@ -43,6 +45,7 @@ export interface GithubConfig {
   branch: string;
   token?: string;
   rootDirectory: string;
+  fetchStrategy?: FetchStrategy;
 }
 
 export function buildGithubConfig(opts: {
@@ -51,6 +54,7 @@ export function buildGithubConfig(opts: {
   branch: string;
   token?: string;
   rootDirectory?: string;
+  fetchStrategy?: FetchStrategy;
 }): GithubConfig {
   const [owner, repo] = opts.repository.split("/");
   return {
@@ -60,5 +64,6 @@ export function buildGithubConfig(opts: {
     branch: opts.branch,
     token: opts.token,
     rootDirectory: opts.rootDirectory || ".",
+    fetchStrategy: opts.fetchStrategy || "clone",
   };
 }
