@@ -7,7 +7,7 @@ import { CacheService } from "../cacheService.js";
 import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
 import { NotFoundError } from "../../model/error/NotFoundError.js";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js";
-import { DescribedSystemVersionService } from "../describedSystemVersionService.js";
+import * as describedSystemVersionService from "../describedSystemVersionService.js";
 
 const mockRepository: jest.Mocked<DocumentRepository> = {
   getDocument: jest.fn(),
@@ -312,9 +312,7 @@ describe("DocumentService", () => {
 
       // Mock the version service
       const mockDefaultVersion = { version: "1.0.0" };
-      jest
-        .spyOn(DescribedSystemVersionService.prototype, "getDefaultDescribedSystemVersion")
-        .mockReturnValue(mockDefaultVersion);
+      jest.spyOn(describedSystemVersionService, "getDefaultDescribedSystemVersion").mockReturnValue(mockDefaultVersion);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithoutVersion);
@@ -335,7 +333,7 @@ describe("DocumentService", () => {
       // Mock the version service with build number
       const mockVersionWithBuild = { version: "1.0.0+202509121027" };
       jest
-        .spyOn(DescribedSystemVersionService.prototype, "getDefaultDescribedSystemVersion")
+        .spyOn(describedSystemVersionService, "getDefaultDescribedSystemVersion")
         .mockReturnValue(mockVersionWithBuild);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
@@ -351,14 +349,12 @@ describe("DocumentService", () => {
       const testHash = "hash-null-version";
       const docWithNullVersion: ORDDocument = {
         ...mockDocument,
-        describedSystemVersion: null as any,
       };
+      delete docWithNullVersion.describedSystemVersion;
 
       // Mock the version service
       const mockDefaultVersion = { version: "1.0.0" };
-      jest
-        .spyOn(DescribedSystemVersionService.prototype, "getDefaultDescribedSystemVersion")
-        .mockReturnValue(mockDefaultVersion);
+      jest.spyOn(describedSystemVersionService, "getDefaultDescribedSystemVersion").mockReturnValue(mockDefaultVersion);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithNullVersion);

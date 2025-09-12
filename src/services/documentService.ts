@@ -17,7 +17,7 @@ import path from "path";
 import { PATH_CONSTANTS } from "../constant.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
 import { getDocumentPerspective, Perspective } from "../model/perspective.js";
-import { DescribedSystemVersionService } from "./describedSystemVersionService.js";
+import { getDefaultDescribedSystemVersion } from "./describedSystemVersionService.js";
 
 export class DocumentService implements DocumentServiceInterface {
   // Method to ensure data (config, docs, FQN map) is loaded and cached
@@ -181,8 +181,7 @@ export class DocumentService implements DocumentServiceInterface {
     const apiResources = this.processResourceDefinition(document.apiResources || []);
 
     // Inject describedSystemVersion if not present
-    const describedSystemVersion =
-      document.describedSystemVersion || DescribedSystemVersionService.getInstance().getDefaultDescribedSystemVersion();
+    const describedSystemVersion = document.describedSystemVersion || getDefaultDescribedSystemVersion();
 
     return {
       ...document,
