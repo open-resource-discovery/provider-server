@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Automatic injection of `describedSystemVersion` field for ORD documents that don't have one
+- New environment variable `ORD_INCLUDE_BUILD_NUMBER` to control whether startup timestamp is appended as build number to auto-generated versions
+- Version resolution logic: uses version from current working directory's `package.json`, falls back to `1.0.0`
+- Optional build number format: `{version}+{YYYYMMDDHHMI}` when `ORD_INCLUDE_BUILD_NUMBER=true`
+
 ## [0.9.2] - 2025-07-22
 
 ### Changed

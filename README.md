@@ -102,10 +102,11 @@ npx @open-resource-discovery/provider-server --help
 
 Some configuration options are only available as environment variables for security reasons:
 
-| Environment Variable | Description                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `WEBHOOK_SECRET`     | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
-| `BASIC_AUTH`         | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
+| Environment Variable      | Description                                                                                          |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET`          | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
+| `BASIC_AUTH`              | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
+| `ORD_INCLUDE_BUILD_NUMBER` | Set to `"true"` to append startup timestamp as build number to auto-generated `describedSystemVersion` (default: `"false"`) |
 
 ### Required Structure
 
