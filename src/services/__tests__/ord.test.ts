@@ -7,6 +7,7 @@ import { CacheService } from "../cacheService.js";
 import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
 import { NotFoundError } from "../../model/error/NotFoundError.js";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js";
+import { DescribedSystemVersionService } from "../describedSystemVersionService.js";
 
 const mockRepository: jest.Mocked<DocumentRepository> = {
   getDocument: jest.fn(),
@@ -280,6 +281,91 @@ describe("DocumentService", () => {
       const result = await documentService.getProcessedDocument(testPath);
 
       expect(result.apiResources?.[0].resourceDefinitions?.[0].url).toEqual(expectedRewrittenUrl);
+    });
+  });
+
+  describe("describedSystemVersion injection", () => {
+    it("should preserve existing describedSystemVersion", async () => {
+      const testPath = "documents/existing-version.json";
+      const testHash = "hash-existing-version";
+      const existingVersion = { version: "2.5.0" };
+      const docWithVersion: ORDDocument = {
+        ...mockDocument,
+        describedSystemVersion: existingVersion,
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(existingVersion);
+    });
+
+    it("should inject describedSystemVersion when missing", async () => {
+      const testPath = "documents/no-version.json";
+      const testHash = "hash-no-version";
+      const docWithoutVersion: ORDDocument = {
+        ...mockDocument,
+      };
+      delete docWithoutVersion.describedSystemVersion;
+
+      // Mock the version service
+      const mockDefaultVersion = { version: "1.0.0" };
+      jest
+        .spyOn(DescribedSystemVersionService.prototype, "getDefaultDescribedSystemVersion")
+        .mockReturnValue(mockDefaultVersion);
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithoutVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(mockDefaultVersion);
+    });
+
+    it("should inject describedSystemVersion with build number when enabled", async () => {
+      const testPath = "documents/no-version-build.json";
+      const testHash = "hash-no-version-build";
+      const docWithoutVersion: ORDDocument = {
+        ...mockDocument,
+      };
+      delete docWithoutVersion.describedSystemVersion;
+
+      // Mock the version service with build number
+      const mockVersionWithBuild = { version: "1.0.0+202509121027" };
+      jest
+        .spyOn(DescribedSystemVersionService.prototype, "getDefaultDescribedSystemVersion")
+        .mockReturnValue(mockVersionWithBuild);
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithoutVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(mockVersionWithBuild);
+    });
+
+    it("should inject describedSystemVersion when explicitly null", async () => {
+      const testPath = "documents/null-version.json";
+      const testHash = "hash-null-version";
+      const docWithNullVersion: ORDDocument = {
+        ...mockDocument,
+        describedSystemVersion: null as any,
+      };
+
+      // Mock the version service
+      const mockDefaultVersion = { version: "1.0.0" };
+      jest
+        .spyOn(DescribedSystemVersionService.prototype, "getDefaultDescribedSystemVersion")
+        .mockReturnValue(mockDefaultVersion);
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithNullVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(mockDefaultVersion);
     });
   });
 });
