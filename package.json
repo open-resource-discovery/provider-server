@@ -44,7 +44,7 @@
     "@octokit/rest": "20.1.2",
     "@open-resource-discovery/specification": "1.12.1",
     "bcryptjs": "3.0.2",
-    "commander": "14.0.0",
+    "commander": "14.0.1",
     "dotenv": "17.2.2",
     "fastify": "5.6.0",
     "fastify-plugin": "5.0.1",
