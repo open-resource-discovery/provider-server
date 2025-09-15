@@ -20,7 +20,7 @@ export interface ProviderServerOptions {
     basicAuthUsers?: Record<string, string>;
   };
   dataDir: string;
-  cors: boolean;
+  cors?: boolean;
   webhookSecret?: string;
   updateDelay: number;
   statusDashboardEnabled: boolean;
