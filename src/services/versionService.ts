@@ -35,7 +35,7 @@ export class VersionService {
         lastChecked: new Date(),
       };
     } catch (error) {
-      log.warn("Failed to fetch latest version from GHCR:", error);
+      log.warn(`Failed to fetch latest version from GHCR: ${error}`);
       return {
         current: currentVersion,
         latest: currentVersion,
@@ -83,7 +83,7 @@ export class VersionService {
       const data = (await response.json()) as { tags?: string[] };
       return data.tags || [];
     } catch (error) {
-      log.error("Error fetching tags from GHCR:", error);
+      log.error(`Error fetching tags from GHCR: ${error}`);
       throw error;
     }
   }
@@ -99,7 +99,7 @@ export class VersionService {
       const data = (await response.json()) as { token?: string };
       return data.token || "";
     } catch (error) {
-      log.error("Error getting auth token from GHCR:", error);
+      log.error(`Error getting auth token from GHCR: ${error}`);
       throw error;
     }
   }
