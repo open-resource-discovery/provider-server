@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Certificate validation can be configured both statically and dynamically
 - Improved mTLS middleware to support both standard TLS socket validation and SAP CF header-based validation
 - Enhanced mTLS configuration flexibility with CLI options taking precedence over environment variables
+- Automatic injection of `describedSystemVersion` field for ORD documents with perspective type `system-version`, that don't have one
 
 ## [0.9.2] - 2025-07-22
 

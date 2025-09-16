@@ -36,7 +36,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
       const html = fs.readFileSync(htmlPath, "utf-8");
       reply.type("text/html").send(html);
     } catch (error) {
-      log.error("Failed to serve status.html:", error);
+      log.error(`Failed to serve status.html: ${error}`);
       reply.code(500).send("Failed to load status page");
     }
   });
@@ -48,7 +48,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
       const css = fs.readFileSync(cssPath, "utf-8");
       reply.type("text/css").send(css);
     } catch (error) {
-      log.error("Failed to serve status.css:", error);
+      log.error(`Failed to serve status.css: ${error}`);
       reply.code(500).send("Failed to load styles");
     }
   });
@@ -60,7 +60,7 @@ function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions, done:
       const js = fs.readFileSync(jsPath, "utf-8");
       reply.type("application/javascript").send(js);
     } catch (error) {
-      log.error("Failed to serve status.js:", error);
+      log.error(`Failed to serve status.js: ${error}`);
       reply.code(500).send("Failed to load script");
     }
   });
