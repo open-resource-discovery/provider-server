@@ -51,7 +51,7 @@ program
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
   .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
   .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
-  .option("--cors <cors>", "CORS active: default disabled", process.env.CORS || "false")
+  .option("--cors <cors>", "CORS active: default disabled", process.env.CORS)
   .option(
     "--update-delay <updateDelay>",
     "Cooldown between webhook-triggered updates (seconds)",

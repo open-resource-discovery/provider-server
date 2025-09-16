@@ -42,7 +42,7 @@ describe("End-to-End Testing", () => {
       dataDir: "./test-data",
       updateDelay: 30000,
       statusDashboardEnabled: false,
-      cors: true,
+      cors: ["*"],
     });
   });
 
@@ -71,8 +71,6 @@ describe("End-to-End Testing", () => {
     const documentResponse = await fetch(`${SERVER_URL}${documentUrl}`, {
       headers: { Authorization: `Basic ${credentials}` },
     });
-    // no origin header, no CORS
-    expect(documentResponse.headers.get("access-control-allow-origin")).toBe(null);
     expect(documentResponse.status).toBe(200);
     const document = (await documentResponse.json()) as ORDDocument;
     expect(document.apiResources).not.toHaveLength(0);
@@ -81,10 +79,10 @@ describe("End-to-End Testing", () => {
     const apiResource = document.apiResources![0];
     const resourceUrl = apiResource.resourceDefinitions![0].url;
     const resourceResponse = await fetch(`${SERVER_URL}${resourceUrl}`, {
-      headers: { Authorization: `Basic ${credentials}`, Origin: "requester" },
+      headers: { Authorization: `Basic ${credentials}` },
     });
-    // with origin header, CORS applied
-    expect(resourceResponse.headers.get("access-control-allow-origin")).toBe("requester");
+    // CORS enabled, any origin allowed
+    expect(resourceResponse.headers.get("access-control-allow-origin")).toBe("*");
     expect(resourceResponse.status).toBe(200);
   });
 });

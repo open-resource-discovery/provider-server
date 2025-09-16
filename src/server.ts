@@ -45,7 +45,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 
   if (opts.cors) {
     server.register(cors, {
-      origin: true,
+      origin: opts.cors,
     });
   }
 
