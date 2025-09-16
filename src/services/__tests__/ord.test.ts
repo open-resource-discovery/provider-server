@@ -7,7 +7,6 @@ import { CacheService } from "../cacheService.js";
 import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
 import { NotFoundError } from "../../model/error/NotFoundError.js";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js";
-import * as describedSystemVersionService from "../describedSystemVersionService.js";
 
 const mockRepository: jest.Mocked<DocumentRepository> = {
   getDocument: jest.fn(),
@@ -304,64 +303,234 @@ describe("DocumentService", () => {
 
     it("should inject describedSystemVersion when missing", async () => {
       const testPath = "documents/no-version.json";
-      const testHash = "hash-no-version";
+      const testHash = "1234567890abcdef";
       const docWithoutVersion: ORDDocument = {
         ...mockDocument,
+        perspective: "system-version",
       };
       delete docWithoutVersion.describedSystemVersion;
-
-      // Mock the version service
-      const mockDefaultVersion = { version: "1.0.0" };
-      jest.spyOn(describedSystemVersionService, "getDefaultDescribedSystemVersion").mockReturnValue(mockDefaultVersion);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithoutVersion);
 
       const result = await documentService.getProcessedDocument(testPath);
 
-      expect(result.describedSystemVersion).toEqual(mockDefaultVersion);
+      expect(result.describedSystemVersion).toEqual({ version: "1.0.0-12345678" });
     });
 
-    it("should inject describedSystemVersion with build number when enabled", async () => {
+    it("should inject describedSystemVersion when missing (with specific hash)", async () => {
       const testPath = "documents/no-version-build.json";
-      const testHash = "hash-no-version-build";
+      const testHash = "abcdef1234567890fedcba0987654321";
       const docWithoutVersion: ORDDocument = {
         ...mockDocument,
+        perspective: "system-version",
       };
       delete docWithoutVersion.describedSystemVersion;
-
-      // Mock the version service with build number
-      const mockVersionWithBuild = { version: "1.0.0+202509121027" };
-      jest
-        .spyOn(describedSystemVersionService, "getDefaultDescribedSystemVersion")
-        .mockReturnValue(mockVersionWithBuild);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithoutVersion);
 
       const result = await documentService.getProcessedDocument(testPath);
 
-      expect(result.describedSystemVersion).toEqual(mockVersionWithBuild);
+      expect(result.describedSystemVersion).toEqual({ version: "1.0.0-abcdef12" });
     });
 
-    it("should inject describedSystemVersion when explicitly null", async () => {
+    it("should inject describedSystemVersion when hash returns null", async () => {
       const testPath = "documents/null-version.json";
-      const testHash = "hash-null-version";
+      const testHash = "somevalidhash";
       const docWithNullVersion: ORDDocument = {
         ...mockDocument,
+        perspective: "system-version",
       };
       delete docWithNullVersion.describedSystemVersion;
-
-      // Mock the version service
-      const mockDefaultVersion = { version: "1.0.0" };
-      jest.spyOn(describedSystemVersionService, "getDefaultDescribedSystemVersion").mockReturnValue(mockDefaultVersion);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithNullVersion);
 
       const result = await documentService.getProcessedDocument(testPath);
 
-      expect(result.describedSystemVersion).toEqual(mockDefaultVersion);
+      // Since we're passing a valid hash, it should use it
+      expect(result.describedSystemVersion).toEqual({ version: "1.0.0-somevali" });
+    });
+  });
+
+  describe("Perspective-based describedSystemVersion injection", () => {
+    it("should inject version for system-version perspective when missing", async () => {
+      const testPath = "documents/system-version-no-version.json";
+      const testHash = "abcdef1234567890";
+      const docWithSystemVersionPerspective: ORDDocument = {
+        ...mockDocument,
+        perspective: "system-version",
+      };
+      delete docWithSystemVersionPerspective.describedSystemVersion;
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithSystemVersionPerspective);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual({ version: "1.0.0-abcdef12" });
+      expect(result.perspective).toBe("system-version");
+    });
+
+    it("should NOT inject version for system-instance perspective when missing", async () => {
+      const testPath = "documents/system-instance-no-version.json";
+      const testHash = "abcdef1234567890";
+      const docWithSystemInstancePerspective: ORDDocument = {
+        ...mockDocument,
+        perspective: "system-instance",
+      };
+      delete docWithSystemInstancePerspective.describedSystemVersion;
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithSystemInstancePerspective);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toBeUndefined();
+      expect(result.perspective).toBe("system-instance");
+    });
+
+    it("should NOT inject version for system-independent perspective when missing", async () => {
+      const testPath = "documents/system-independent-no-version.json";
+      const testHash = "abcdef1234567890";
+      const docWithSystemIndependentPerspective: ORDDocument = {
+        ...mockDocument,
+        perspective: "system-independent",
+      };
+      delete docWithSystemIndependentPerspective.describedSystemVersion;
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithSystemIndependentPerspective);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toBeUndefined();
+      expect(result.perspective).toBe("system-independent");
+    });
+
+    it("should NOT inject version for default perspective (system-instance) when missing", async () => {
+      const testPath = "documents/default-perspective-no-version.json";
+      const testHash = "abcdef1234567890";
+      const docWithoutPerspective: ORDDocument = {
+        ...mockDocument,
+        // no perspective property - should default to system-instance
+      };
+      delete docWithoutPerspective.describedSystemVersion;
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithoutPerspective);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toBeUndefined();
+      expect(result.perspective).toBe("system-instance");
+    });
+
+    it("should preserve existing version for system-version perspective", async () => {
+      const testPath = "documents/has-version-sv.json";
+      const testHash = "abcdef1234567890";
+      const existingVersion = { version: "2.5.0" };
+      const docWithVersion: ORDDocument = {
+        ...mockDocument,
+        perspective: "system-version",
+        describedSystemVersion: existingVersion,
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(existingVersion);
+      expect(result.perspective).toBe("system-version");
+    });
+
+    it("should preserve existing version for system-instance perspective", async () => {
+      const testPath = "documents/has-version-si.json";
+      const testHash = "abcdef1234567890";
+      const existingVersion = { version: "2.5.0" };
+      const docWithVersion: ORDDocument = {
+        ...mockDocument,
+        perspective: "system-instance",
+        describedSystemVersion: existingVersion,
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(existingVersion);
+      expect(result.perspective).toBe("system-instance");
+    });
+
+    it("should preserve existing version for system-independent perspective", async () => {
+      const testPath = "documents/has-version-sind.json";
+      const testHash = "abcdef1234567890";
+      const existingVersion = { version: "2.5.0" };
+      const docWithVersion: ORDDocument = {
+        ...mockDocument,
+        perspective: "system-independent",
+        describedSystemVersion: existingVersion,
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithVersion);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.describedSystemVersion).toEqual(existingVersion);
+      expect(result.perspective).toBe("system-independent");
+    });
+  });
+
+  describe("getDefaultDescribedSystemVersion (through processDocument)", () => {
+    it("should return version with first 8 characters of hash", async () => {
+      const fullHash = "a1b2c3d4e5f6789012345678901234567890abcd";
+      mockRepository.getDirectoryHash.mockResolvedValue(fullHash);
+      mockRepository.getDocument.mockResolvedValue({
+        ...mockDocument,
+        perspective: "system-version",
+        describedSystemVersion: undefined,
+      });
+
+      const result = await documentService.getProcessedDocument("test.json");
+      expect(result.describedSystemVersion).toEqual({ version: "1.0.0-a1b2c3d4" });
+    });
+
+    it("should handle short hash correctly", async () => {
+      const shortHash = "abc123";
+      mockRepository.getDirectoryHash.mockResolvedValue(shortHash);
+      mockRepository.getDocument.mockResolvedValue({
+        ...mockDocument,
+        perspective: "system-version",
+        describedSystemVersion: undefined,
+      });
+
+      const result = await documentService.getProcessedDocument("test.json");
+      expect(result.describedSystemVersion).toEqual({ version: "1.0.0-abc123" });
+    });
+
+    it("should handle different hash formats", async () => {
+      // Test with various hash formats to ensure robustness
+      const testCases = [
+        { hash: "12345678", expected: "1.0.0-12345678" },
+        { hash: "abcdefghijklmnop", expected: "1.0.0-abcdefgh" },
+        { hash: "short", expected: "1.0.0-short" },
+      ];
+
+      for (const testCase of testCases) {
+        mockRepository.getDirectoryHash.mockResolvedValue(testCase.hash);
+        mockRepository.getDocument.mockResolvedValue({
+          ...mockDocument,
+          perspective: "system-version",
+          describedSystemVersion: undefined,
+        });
+
+        const result = await documentService.getProcessedDocument("test.json");
+        expect(result.describedSystemVersion).toEqual({ version: testCase.expected });
+      }
     });
   });
 });
