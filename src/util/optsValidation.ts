@@ -210,10 +210,7 @@ function validateLocalDirectory(directoryPath: string, documentsSubDirectory: st
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    log.error(
-      `Local directory validation failed for ${directoryPath}: ${errorMessage}`,
-      error instanceof Error ? error : undefined,
-    );
+    log.error(`Local directory validation failed for ${directoryPath}: ${errorMessage}`);
     if (error instanceof LocalDirectoryError) {
       throw error;
     }

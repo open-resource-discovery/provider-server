@@ -4,6 +4,7 @@ import {
   APIResource,
   EventResource,
   ORDV1DocumentDescription,
+  SystemVersion,
 } from "@open-resource-discovery/specification";
 import { DocumentService as DocumentServiceInterface } from "./interfaces/documentService.js";
 import { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
@@ -35,7 +36,7 @@ export class DocumentService implements DocumentServiceInterface {
 
     for (const [relativePath, document] of documentsMap.entries()) {
       try {
-        const processedDoc = this.processDocument(document);
+        const processedDoc = this.processDocument(document, dirHash);
         this.cacheService.cacheDocument(relativePath, dirHash, processedDoc);
         documentPaths.push(relativePath);
         processedDocsForFqn.push(processedDoc);
@@ -101,7 +102,7 @@ export class DocumentService implements DocumentServiceInterface {
     }
 
     // Process the document (apply base URL, access strategies, etc.)
-    const processedDoc = this.processDocument(document);
+    const processedDoc = this.processDocument(document, currentDirHash);
 
     this.cacheService.cacheDocument(relativePath, currentDirHash, processedDoc);
 
@@ -175,17 +176,25 @@ export class DocumentService implements DocumentServiceInterface {
     return map;
   }
 
-  private processDocument(document: ORDDocument): ORDDocument {
+  private processDocument(document: ORDDocument, directoryHash: string | null): ORDDocument {
     const eventResources = this.processResourceDefinition(document.eventResources || []);
     const apiResources = this.processResourceDefinition(document.apiResources || []);
 
+    const perspective = getDocumentPerspective(document);
+
+    // Only inject describedSystemVersion for system-version perspective documents that don't have it
+    const describedSystemVersion =
+      document.describedSystemVersion ||
+      (perspective === "system-version" ? this.getDefaultDescribedSystemVersion(directoryHash) : undefined);
+
     return {
       ...document,
-      perspective: getDocumentPerspective(document),
+      perspective,
       describedSystemInstance: {
         ...document.describedSystemInstance,
         baseUrl: this.processingContext.baseUrl,
       },
+      describedSystemVersion,
       apiResources: apiResources.length ? apiResources : undefined,
       eventResources: eventResources.length ? eventResources : undefined,
     };
@@ -224,5 +233,17 @@ export class DocumentService implements DocumentServiceInterface {
 
   private isRemoteUrl(url: string): boolean {
     return url.startsWith("http://") || url.startsWith("https://");
+  }
+
+  /**
+   * Gets the default described system version.
+   *
+   * @param directoryHash - The full directory hash from the repository
+   * @returns Version in format "1.0.0-<hash>" where hash is the first 8 characters of the directory hash
+   */
+  private getDefaultDescribedSystemVersion(directoryHash: string | null): SystemVersion {
+    const shortHash = directoryHash ? directoryHash.substring(0, 8) : "unknown";
+    const version = `1.0.0-${shortHash}`;
+    return { version };
   }
 }

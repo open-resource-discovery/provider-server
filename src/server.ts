@@ -268,7 +268,7 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
         await server.close();
         server.log.info("Server shutdown complete");
       } catch (err) {
-        server.log.error("Error during server shutdown:", err);
+        server.log.error(`Error during server shutdown: ${err}`);
         throw err;
       }
     };
