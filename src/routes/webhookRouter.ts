@@ -58,7 +58,7 @@ export class WebhookRouter {
       this.logger.debug("  Signatures match: %s", equal);
       return equal;
     } catch (error) {
-      this.logger.debug("Signature comparison error:", error);
+      this.logger.debug(`Signature comparison error: ${error}`);
       return false;
     }
   }
@@ -114,7 +114,7 @@ export class WebhookRouter {
               message: "Manual update triggered successfully",
             });
           } catch (error) {
-            this.logger.error("Failed to trigger manual update:", error);
+            this.logger.error(`Failed to trigger manual update: ${error}`);
             return reply.code(500).send({
               status: "error",
               message: "Failed to trigger update",
@@ -161,7 +161,7 @@ export class WebhookRouter {
             message: "Content update has been triggered immediately",
           });
         } catch (error) {
-          this.logger.error("Failed to trigger immediate update:", error);
+          this.logger.error(`Failed to trigger immediate update: ${error}`);
           return reply.code(500).send({
             status: "error",
             message: "Failed to trigger update",

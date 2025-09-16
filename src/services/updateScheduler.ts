@@ -159,7 +159,7 @@ export class UpdateScheduler extends EventEmitter {
     try {
       await this.performUpdate();
     } catch (error) {
-      this.logger.error(`${isManualTrigger ? "Manual" : "Webhook"} update failed:`, error);
+      this.logger.error(`${isManualTrigger ? "Manual" : "Webhook"} update failed: ${error}`);
       this.emit("update-failed", error);
       throw error;
     }
@@ -234,7 +234,7 @@ export class UpdateScheduler extends EventEmitter {
       try {
         await this.fileSystemManager.cleanupTempDirectory();
       } catch (cleanupError) {
-        this.logger.error("Failed to cleanup temp directory:", cleanupError);
+        this.logger.error(`Failed to cleanup temp directory: ${cleanupError}`);
       }
 
       throw error;
