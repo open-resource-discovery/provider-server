@@ -14,7 +14,8 @@ export default {
   automock: false,
   moduleFileExtensions: ["js", "json", "ts", "d.ts"],
   moduleDirectories: ["node_modules"],
-  modulePathIgnorePatterns: ["src/__tests__/resources/"],
+  modulePathIgnorePatterns: ["src/__tests__/resources/", "dist/"],
+  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   transformIgnorePatterns: ["node_modules/(?!(@octokit|p-limit|yocto-queue)/)"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {
