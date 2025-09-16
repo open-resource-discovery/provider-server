@@ -91,13 +91,15 @@ export function createSapCfMtlsHook(options: SapCfMtlsOptions = {}) {
         if (rootCaDn) rootCaDn = Buffer.from(rootCaDn, "base64").toString("ascii");
       }
 
-      log.debug("SAP CF mTLS: Client certificate details", {
-        subjectDn,
-        subjectCn,
-        issuerDn,
-        rootCaDn,
-        sessionId: headers["x-ssl-client-session-id"],
-      });
+      log.debug(
+        `SAP CF mTLS: Client certificate details ${JSON.stringify({
+          subjectDn,
+          subjectCn,
+          issuerDn,
+          rootCaDn,
+          sessionId: headers["x-ssl-client-session-id"],
+        })}`,
+      );
 
       // Validate subject if trusted subjects are configured
       if (trustedSubjects.length > 0 && subjectDn) {
@@ -151,7 +153,7 @@ export function createSapCfMtlsHook(options: SapCfMtlsOptions = {}) {
       log.info(`SAP CF mTLS: Client certificate authorized. Subject CN: ${subjectCn}`);
       done();
     } catch (error) {
-      log.error("SAP CF mTLS: Error during client certificate validation:", error);
+      log.error(`SAP CF mTLS: Error during client certificate validation: ${error}`);
       // Mark as not authenticated via mTLS and continue (to allow basic auth)
       request.isMtlsAuthenticated = false;
       done();
