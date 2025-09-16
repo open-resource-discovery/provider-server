@@ -73,7 +73,7 @@ export class StatusWebSocketHandler {
         const message = JSON.parse(data.toString());
         this.handleMessage(socket, message);
       } catch (error) {
-        this.logger.error("Failed to parse WebSocket message:", error);
+        this.logger.error(`Failed to parse WebSocket message: ${error}`);
         socket.send(
           JSON.stringify({
             type: "error",
@@ -89,7 +89,7 @@ export class StatusWebSocketHandler {
     });
 
     socket.on("error", (error) => {
-      this.logger.error("WebSocket error:", error);
+      this.logger.error(`WebSocket error: ${error}`);
       this.clients.delete(socket);
     });
 
@@ -153,7 +153,7 @@ export class StatusWebSocketHandler {
             }),
           );
         } catch (error) {
-          this.logger.warn("Failed to send delayed full status:", error);
+          this.logger.warn(`Failed to send delayed full status: ${error}`);
         }
       }
     }, 100);
