@@ -222,7 +222,7 @@ export class StatusService {
         },
       };
     } catch (error) {
-      this.logger.error("Failed to get disk metrics:", error);
+      this.logger.error(`Failed to get disk metrics: ${error}`);
       return {
         memory: {
           used: usedMemory,
