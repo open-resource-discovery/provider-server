@@ -49,6 +49,7 @@ export interface CommandLineOptions {
   githubRepository?: string;
   githubToken?: string;
   dataDir?: string;
+  cors?: string;
   updateDelay?: string;
   statusDashboardEnabled?: string;
 }
