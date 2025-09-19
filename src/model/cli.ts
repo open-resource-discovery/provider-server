@@ -52,4 +52,5 @@ export interface CommandLineOptions {
   cors?: string;
   updateDelay?: string;
   statusDashboardEnabled?: string;
+  fetchStrategy?: string;
 }

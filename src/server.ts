@@ -13,7 +13,7 @@ import { log } from "src/util/logger.js";
 import { RouterFactory } from "./factories/routerFactory.js";
 import { FqnDocumentMap } from "./util/fqnHelpers.js";
 import { FileSystemManager } from "./services/fileSystemManager.js";
-import { GithubContentFetcher } from "./services/githubContentFetcher.js";
+import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
@@ -21,6 +21,7 @@ import { StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
+import { SyncStatusService } from "./services/syncStatusService.js";
 import cors from "@fastify/cors";
 
 const version = getPackageVersion();
@@ -31,6 +32,7 @@ type ShutdownFunction = () => Promise<void>;
 
 let fileSystemManager: FileSystemManager | null = null;
 let updateScheduler: UpdateScheduler | null = null;
+const syncStatus = SyncStatusService.getInstance();
 
 export async function startProviderServer(opts: ProviderServerOptions): Promise<ShutdownFunction> {
   log.info("============================================================");
@@ -56,9 +58,32 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   });
   await fileSystemManager.initialize();
 
-  // Perform warm-up if using GitHub source
   if (opts.sourceType === OptSourceType.Github) {
-    await performWarmup(opts);
+    // Create the update scheduler but don't perform initial sync yet
+    const githubConfig = buildGithubConfig({
+      apiUrl: opts.githubApiUrl!,
+      repository: opts.githubRepository!,
+      branch: opts.githubBranch!,
+      token: opts.githubToken,
+      rootDirectory: opts.ordDirectory,
+      fetchStrategy: opts.fetchStrategy,
+    });
+
+    const contentFetcher = new GitCloneContentFetcher(githubConfig);
+
+    log.info(`Using fetch strategy: ${githubConfig.fetchStrategy || "clone"}`);
+
+    updateScheduler = new UpdateScheduler(
+      {
+        updateDelay: opts.updateDelay,
+      },
+      contentFetcher,
+      fileSystemManager,
+      log,
+    );
+
+    // Initialize the scheduler to load metadata
+    await updateScheduler.initialize();
   }
 
   // Basic server setup
@@ -87,63 +112,61 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     webhookRouter.register(server);
   }
 
-  return await startServer(server, opts);
+  const shutdown = await startServer(server, opts);
+
+  // Perform warm-up asynchronously after server has started
+  if (opts.sourceType === OptSourceType.Github && updateScheduler) {
+    performWarmupAsync(opts).catch((error) => {
+      log.error("Background warmup failed:", error);
+    });
+  }
+
+  return shutdown;
 }
 
-async function performWarmup(opts: ProviderServerOptions): Promise<void> {
-  log.info("Performing server warm-up...");
+async function performWarmupAsync(_opts: ProviderServerOptions): Promise<void> {
+  if (syncStatus.initialSyncInProgress) {
+    log.warn("Initial sync already in progress, skipping duplicate warmup");
+    return;
+  }
 
-  const githubConfig = buildGithubConfig({
-    apiUrl: opts.githubApiUrl!,
-    repository: opts.githubRepository!,
-    branch: opts.githubBranch!,
-    token: opts.githubToken,
-    rootDirectory: opts.ordDirectory,
-  });
+  syncStatus.initialSyncInProgress = true;
+  log.info("Starting background content synchronization...");
 
-  const contentFetcher = new GithubContentFetcher(githubConfig);
+  try {
+    // Check if we have a current version
+    const currentVersion = await fileSystemManager!.getCurrentVersion();
 
-  updateScheduler = new UpdateScheduler(
-    {
-      updateDelay: opts.updateDelay,
-    },
-    contentFetcher,
-    fileSystemManager!,
-    log,
-  );
+    if (!currentVersion) {
+      log.info("No current version found. Fetching initial content from GitHub...");
 
-  // Initialize the scheduler to load metadata
-  await updateScheduler.initialize();
-
-  // Check if we have a current version
-  const currentVersion = await fileSystemManager!.getCurrentVersion();
-
-  if (!currentVersion) {
-    log.info("No current version found. Fetching initial content from GitHub...");
-
-    try {
-      await updateScheduler.forceUpdate();
-      log.info("Initial content fetch completed successfully");
-    } catch (error) {
-      log.fatal("Failed to fetch initial content from GitHub: %s", error);
-      throw error;
-    }
-  } else {
-    log.info(`Found existing version: ${currentVersion}`);
-
-    const needsUpdate = await updateScheduler.checkForUpdates();
-
-    if (needsUpdate) {
       try {
-        await updateScheduler.forceUpdate();
-        log.info("Content update completed successfully");
+        await updateScheduler!.forceUpdate();
+        log.info("Initial content fetch completed successfully");
+        syncStatus.initialSyncComplete = true;
       } catch (error) {
-        log.error("Failed to update content from GitHub: %s", error);
-        log.warn("Continuing with existing cached content");
+        log.error("Failed to fetch initial content from GitHub: %s", error);
       }
     } else {
-      log.info("Local content is up to date with GitHub");
+      log.info(`Found existing version: ${currentVersion}`);
+      syncStatus.initialSyncComplete = true; // We have content to serve
+
+      const needsUpdate = await updateScheduler!.checkForUpdates();
+
+      if (needsUpdate) {
+        try {
+          await updateScheduler!.forceUpdate();
+          log.info("Content update completed successfully");
+        } catch (error) {
+          log.error("Failed to update content from GitHub: %s", error);
+          log.warn("Continuing with existing cached content");
+        }
+      } else {
+        log.info("Local content is up to date with GitHub");
+      }
     }
+  } finally {
+    syncStatus.initialSyncInProgress = false;
   }
 }
 
@@ -187,11 +210,16 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   });
 
   // Add health check endpoint
-  server.get("/health", { logLevel: "error" }, (_request, _reply) => {
+  server.get("/health", { logLevel: "error" }, async (_request, _reply) => {
+    const currentVersion = await fileSystemManager?.getCurrentVersion();
     return {
       status: "ok",
       timestamp: new Date().toISOString(),
       version,
+      sync: {
+        ...syncStatus.getSyncStatus(),
+        hasContent: opts.sourceType !== OptSourceType.Github || syncStatus.initialSyncComplete || !!currentVersion,
+      },
     };
   });
 
@@ -265,6 +293,12 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     // Return the shutdown function
     return async () => {
       try {
+        // Stop the update scheduler if it exists
+        if (updateScheduler) {
+          server.log.info("Stopping update scheduler...");
+          updateScheduler.stop();
+        }
+
         await server.close();
         server.log.info("Server shutdown complete");
       } catch (err) {
