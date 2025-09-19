@@ -1,12 +1,14 @@
 import fastifyETag from "@fastify/etag";
+import fastify, { FastifyServerOptions } from "fastify";
+import fs from "node:fs";
+import https from "node:https";
 import fastifyWebsocket from "@fastify/websocket";
-import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import statusRouter from "./routes/statusRouter.js";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
-import { OptSourceType } from "src/model/cli.js";
+import { OptSourceType, OptAuthMethod } from "src/model/cli.js";
 import { type FastifyInstanceType } from "src/model/fastify.js";
 import { type ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
@@ -37,11 +39,41 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   log.info("ORD Provider Server");
   log.info("============================================================");
 
-  const server = fastify({
+  // Configure server options
+  const serverOptions: FastifyServerOptions & { https?: https.ServerOptions } = {
     loggerInstance: log,
     ignoreTrailingSlash: true,
     exposeHeadRoutes: true,
-  });
+  };
+
+  // Add HTTPS options if using standard mTLS (not SAP CF mode)
+  if (
+    opts.authentication.methods.includes(OptAuthMethod.MTLS) &&
+    opts.mtls &&
+    !opts.authentication.sapCfMtls?.enabled
+  ) {
+    log.info("Standard mTLS authentication enabled. Configuring HTTPS server.");
+    try {
+      serverOptions.https = {
+        key: fs.readFileSync(opts.mtls.keyPath),
+        cert: fs.readFileSync(opts.mtls.certPath),
+        ca: fs.readFileSync(opts.mtls.caPath),
+        requestCert: true,
+        rejectUnauthorized: opts.mtls.rejectUnauthorized,
+      };
+
+      log.info(`  Server Key: ${opts.mtls.keyPath}`);
+      log.info(`  Server Cert: ${opts.mtls.certPath}`);
+      log.info(`  CA Cert: ${opts.mtls.caPath}`);
+    } catch (error) {
+      log.error(`Error reading mTLS certificate files: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to configure mTLS: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  } else if (opts.authentication.methods.includes(OptAuthMethod.MTLS) && opts.authentication.sapCfMtls?.enabled) {
+    log.info("SAP CF mTLS authentication enabled. Server will run in HTTP mode (TLS handled by platform).");
+  }
+
+  const server = fastify(serverOptions);
 
   if (opts.cors) {
     server.register(cors, {
@@ -68,6 +100,13 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   await setupAuthentication(server, {
     authMethods: opts.authentication.methods,
     validUsers: opts.authentication.basicAuthUsers,
+    sapCfMtls: opts.authentication.sapCfMtls,
+    mtls: opts.mtls
+      ? {
+          trustedIssuers: opts.mtls.trustedIssuers,
+          trustedSubjects: opts.mtls.trustedSubjects,
+        }
+      : undefined,
   });
 
   // Configure routing based on source type
@@ -166,7 +205,6 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
 
   const statusService = new StatusService(updateScheduler, fileSystemManager, log, opts, localRepository);
   const wsHandler = new StatusWebSocketHandler(statusService, updateScheduler, log);
-  // @ts-expect-error Type mismatch between Fastify instance types
   wsHandler.register(server);
 
   // Register status router with enhanced functionality

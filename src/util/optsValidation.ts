@@ -14,6 +14,7 @@ import { log } from "./logger.js";
 import { validateOrdDocument } from "./validateOrdDocument.js";
 import { isBcryptHash } from "./passwordHash.js";
 import { getBaseUrl } from "./ordConfig.js";
+import { MtlsMode } from "../constant.js";
 
 // @ts-expect-error baseUrl pattern selection
 export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
@@ -27,7 +28,7 @@ export async function validateAndParseOptions(options: CommandLineOptions): Prom
 
   validateBaseUrlOption(options, errors);
 
-  validateAuthOptions(options.auth, errors);
+  validateAuthOptions(options.auth, errors, options);
 
   validateSourceTypeOptionsOffline(options, errors);
 
@@ -35,7 +36,7 @@ export async function validateAndParseOptions(options: CommandLineOptions): Prom
     throw ValidationError.fromErrors(errors);
   }
 
-  const parsedOpts = buildProviderServerOptions(options);
+  const parsedOpts = await buildProviderServerOptions(options);
 
   if (parsedOpts.sourceType === OptSourceType.Github) {
     await validateSourceTypeOptionsOnline(parsedOpts, errors);
@@ -62,16 +63,17 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
   }
 }
 
-function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): void {
+function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], options?: CommandLineOptions): void {
   const isOpen = authMethods.includes(OptAuthMethod.Open);
   const isBasicAuth = authMethods.includes(OptAuthMethod.Basic);
+  const isMtls = authMethods.includes(OptAuthMethod.MTLS);
 
-  if (isOpen && isBasicAuth) {
+  if (isOpen && (isBasicAuth || isMtls)) {
     errors.push('Authentication method "open" cannot be used together with other options.');
     return;
   }
 
-  if (!isOpen && !isBasicAuth) {
+  if (!isOpen && !isBasicAuth && !isMtls) {
     errors.push("No valid authentication method specified.");
     return;
   }
@@ -94,6 +96,56 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
       errors.push(
         `Invalid JSON in environment variable "BASIC_AUTH": ${error instanceof Error ? error.message : String(error)}`,
       );
+    }
+  }
+
+  // Validate mTLS options if mTLS is enabled and options are provided
+  if (isMtls && options) {
+    // Check if SAP CF mode is enabled
+    const mtlsMode = process.env.MTLS_MODE || MtlsMode.Standard;
+
+    if (mtlsMode === MtlsMode.SapCmpMtls) {
+      // In SAP CF mode, certificate files are not required but we need trusted issuers or subjects
+      log.info("SAP CF mTLS mode detected - certificate files not required");
+
+      const trustedIssuers = process.env.MTLS_TRUSTED_ISSUERS;
+      const trustedSubjects = process.env.MTLS_TRUSTED_SUBJECTS;
+      const configEndpoints = process.env.MTLS_CONFIG_ENDPOINTS;
+
+      // MTLS_CONFIG_ENDPOINTS is mandatory in sap:cmp-mtls mode
+      if (!configEndpoints || configEndpoints.trim() === "") {
+        errors.push("SAP CF mTLS mode requires MTLS_CONFIG_ENDPOINTS to be configured");
+      }
+
+      // Validate optional trusted issuers and subjects if provided
+      if (trustedIssuers && trustedIssuers.trim() === "") {
+        errors.push("MTLS_TRUSTED_ISSUERS cannot be empty when configured");
+      }
+      if (trustedSubjects && trustedSubjects.trim() === "") {
+        errors.push("MTLS_TRUSTED_SUBJECTS cannot be empty when configured");
+      }
+    } else {
+      // Standard mTLS mode requires certificate files
+      const missingParams: string[] = [];
+      if (!options.mtlsCaPath) missingParams.push("--mtls-ca-path");
+      if (!options.mtlsCertPath) missingParams.push("--mtls-cert-path");
+      if (!options.mtlsKeyPath) missingParams.push("--mtls-key-path");
+
+      if (missingParams.length > 0) {
+        errors.push(`Detected missing parameters for mTLS authentication: ${missingParams.join(", ")}`);
+        return;
+      }
+
+      // Validate file existence
+      if (options.mtlsCaPath && !fs.existsSync(options.mtlsCaPath)) {
+        errors.push(`CA certificate file not found: ${options.mtlsCaPath}`);
+      }
+      if (options.mtlsCertPath && !fs.existsSync(options.mtlsCertPath)) {
+        errors.push(`Server certificate file not found: ${options.mtlsCertPath}`);
+      }
+      if (options.mtlsKeyPath && !fs.existsSync(options.mtlsKeyPath)) {
+        errors.push(`Server private key file not found: ${options.mtlsKeyPath}`);
+      }
     }
   }
 }
