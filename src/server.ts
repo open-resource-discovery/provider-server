@@ -13,7 +13,6 @@ import { log } from "src/util/logger.js";
 import { RouterFactory } from "./factories/routerFactory.js";
 import { FqnDocumentMap } from "./util/fqnHelpers.js";
 import { FileSystemManager } from "./services/fileSystemManager.js";
-import { GithubContentFetcher } from "./services/githubContentFetcher.js";
 import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
@@ -70,10 +69,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       fetchStrategy: opts.fetchStrategy,
     });
 
-    const contentFetcher =
-      githubConfig.fetchStrategy === "clone"
-        ? new GitCloneContentFetcher(githubConfig)
-        : new GithubContentFetcher(githubConfig);
+    const contentFetcher = new GitCloneContentFetcher(githubConfig);
 
     log.info(`Using fetch strategy: ${githubConfig.fetchStrategy || "clone"}`);
 
