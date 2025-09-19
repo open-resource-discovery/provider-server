@@ -23,6 +23,7 @@ import { buildGithubConfig } from "./model/github.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
 import { SyncStatusService } from "./services/syncStatusService.js";
+import cors from "@fastify/cors";
 
 const version = getPackageVersion();
 
@@ -44,6 +45,12 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     ignoreTrailingSlash: true,
     exposeHeadRoutes: true,
   });
+
+  if (opts.cors) {
+    server.register(cors, {
+      origin: opts.cors,
+    });
+  }
 
   // Initialize file system manager
   fileSystemManager = new FileSystemManager({
