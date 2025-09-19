@@ -21,6 +21,7 @@ import { StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
+import cors from "@fastify/cors";
 
 const version = getPackageVersion();
 
@@ -41,6 +42,12 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     ignoreTrailingSlash: true,
     exposeHeadRoutes: true,
   });
+
+  if (opts.cors) {
+    server.register(cors, {
+      origin: opts.cors,
+    });
+  }
 
   // Initialize file system manager
   fileSystemManager = new FileSystemManager({
@@ -261,7 +268,7 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
         await server.close();
         server.log.info("Server shutdown complete");
       } catch (err) {
-        server.log.error("Error during server shutdown:", err);
+        server.log.error(`Error during server shutdown: ${err}`);
         throw err;
       }
     };

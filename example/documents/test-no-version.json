@@ -1,0 +1,62 @@
+{
+  "openResourceDiscovery": "1.12",
+  "description": "Test document without describedSystemVersion",
+  "perspective": "system-version",
+  "describedSystemInstance": {
+    "baseUrl": "https://test.example.com"
+  },
+  "policyLevel": "sap:core:v1",
+  "apiResources": [
+    {
+      "ordId": "test:apiResource:test:v1",
+      "title": "Test API",
+      "shortDescription": "A test API without describedSystemVersion",
+      "description": "This API will get a generated describedSystemVersion",
+      "version": "1.0.0",
+      "lastUpdate": "2025-09-12T10:27:00Z",
+      "visibility": "public",
+      "releaseStatus": "active",
+      "systemInstanceAware": false,
+      "partOfPackage": "test:package:test:v1",
+      "partOfConsumptionBundles": [
+        {
+          "ordId": "test:consumptionBundle:test:v1"
+        }
+      ],
+      "apiProtocol": "rest",
+      "resourceDefinitions": [
+        {
+          "type": "openapi-v3",
+          "mediaType": "application/json",
+          "url": "/test-openapi.json",
+          "accessStrategies": [
+            {
+              "type": "open"
+            }
+          ]
+        }
+      ],
+      "entryPoints": ["/test/v1"]
+    }
+  ],
+  "packages": [
+    {
+      "ordId": "test:package:test:v1",
+      "title": "Test Package",
+      "shortDescription": "Test package",
+      "description": "Test package for validation",
+      "version": "1.0.0",
+      "policyLevel": "sap:core:v1",
+      "vendor": "test:vendor:test:"
+    }
+  ],
+  "consumptionBundles": [
+    {
+      "ordId": "test:consumptionBundle:test:v1",
+      "version": "1.0.0",
+      "title": "Test Consumption Bundle",
+      "shortDescription": "Test consumption bundle",
+      "description": "Test consumption bundle for validation"
+    }
+  ]
+}

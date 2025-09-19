@@ -36,7 +36,7 @@ export function errorHandler(err: Error | FastifyError | any, req: FastifyReques
     castedError = new InternalServerError("Unsupported throw use.");
   }
 
-  req.log.error(`ERROR ${castedError.getHttpStatusCode()}`, castedError.getErrorResponse());
+  req.log.error(`ERROR ${castedError.getHttpStatusCode()}: ${JSON.stringify(castedError.getErrorResponse())}`);
 
   reply
     .code(castedError.getHttpStatusCode())

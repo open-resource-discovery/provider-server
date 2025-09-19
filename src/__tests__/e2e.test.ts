@@ -42,6 +42,7 @@ describe("End-to-End Testing", () => {
       dataDir: "./test-data",
       updateDelay: 30000,
       statusDashboardEnabled: false,
+      cors: ["*"],
     });
   });
 
@@ -80,6 +81,8 @@ describe("End-to-End Testing", () => {
     const resourceResponse = await fetch(`${SERVER_URL}${resourceUrl}`, {
       headers: { Authorization: `Basic ${credentials}` },
     });
+    // CORS enabled, any origin allowed
+    expect(resourceResponse.headers.get("access-control-allow-origin")).toBe("*");
     expect(resourceResponse.status).toBe(200);
   });
 });

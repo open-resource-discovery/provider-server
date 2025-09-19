@@ -159,7 +159,7 @@ export class GithubContentFetcher implements ContentFetcher {
         return null;
       }
 
-      return directoryEntry.sha!;
+      return directoryEntry.sha;
     } catch (error) {
       log.error(`Failed to get directory tree SHA: ${error}`);
       throw error;
@@ -283,7 +283,7 @@ export class GithubContentFetcher implements ContentFetcher {
 
           onProgress?.(progress);
         } catch (error) {
-          log.warn(`Failed to fetch ${item.path}:`, error);
+          log.warn(`Failed to fetch ${item.path}: ${error}`);
           progress.errors.push(`Failed to fetch ${item.path}: ${error}`);
           if (
             error instanceof DiskSpaceError ||

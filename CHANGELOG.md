@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Automatic injection of `describedSystemVersion` field for ORD documents with perspective type `system-version`, that don't have one
+
 ## [0.9.2] - 2025-07-22
 
 ### Changed
