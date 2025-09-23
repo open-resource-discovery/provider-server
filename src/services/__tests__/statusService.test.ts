@@ -471,7 +471,7 @@ describe("StatusService", () => {
 
         expect(status.systemMetrics?.memory.used).toBeGreaterThan(0);
         expect(status.systemMetrics?.disk.used).toBe(0);
-        expect(mockLogger.error).toHaveBeenCalledWith("Failed to get disk metrics:", expect.any(Error));
+        expect(mockLogger.error).toHaveBeenCalledWith("Failed to get disk metrics: Error: Permission denied");
       });
     });
   });

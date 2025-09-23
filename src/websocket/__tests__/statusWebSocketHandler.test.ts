@@ -142,7 +142,9 @@ describe("StatusWebSocketHandler", () => {
 
       await messageHandler("invalid json");
 
-      expect(mockLogger.error).toHaveBeenCalledWith("Failed to parse WebSocket message:", expect.any(Error));
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringMatching(/^Failed to parse WebSocket message: SyntaxError:/),
+      );
       expect(mockSocket.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: "error",
@@ -230,7 +232,7 @@ describe("StatusWebSocketHandler", () => {
       const testError = new Error("Connection error");
       errorHandler!(testError);
 
-      expect(mockLogger.error).toHaveBeenCalledWith("WebSocket error:", testError);
+      expect(mockLogger.error).toHaveBeenCalledWith(`WebSocket error: ${testError}`);
     });
   });
 

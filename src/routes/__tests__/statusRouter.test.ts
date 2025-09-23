@@ -151,7 +151,7 @@ describe("statusRouter", () => {
 
       handler(mockRequest as FastifyRequest, mockReply);
 
-      expect(log.error).toHaveBeenCalledWith("Failed to serve status.html:", fileError);
+      expect(log.error).toHaveBeenCalledWith(`Failed to serve status.html: ${fileError}`);
       expect(mockReply.code).toHaveBeenCalledWith(500);
       expect(mockReply.send).toHaveBeenCalledWith("Failed to load status page");
     });
@@ -190,7 +190,7 @@ describe("statusRouter", () => {
 
       handler(mockRequest as FastifyRequest, mockReply);
 
-      expect(log.error).toHaveBeenCalledWith("Failed to serve status.css:", fileError);
+      expect(log.error).toHaveBeenCalledWith(`Failed to serve status.css: ${fileError}`);
       expect(mockReply.code).toHaveBeenCalledWith(500);
       expect(mockReply.send).toHaveBeenCalledWith("Failed to load styles");
     });
@@ -229,7 +229,7 @@ describe("statusRouter", () => {
 
       handler(mockRequest as FastifyRequest, mockReply);
 
-      expect(log.error).toHaveBeenCalledWith("Failed to serve status.js:", fileError);
+      expect(log.error).toHaveBeenCalledWith(`Failed to serve status.js: ${fileError}`);
       expect(mockReply.code).toHaveBeenCalledWith(500);
       expect(mockReply.send).toHaveBeenCalledWith("Failed to load script");
     });

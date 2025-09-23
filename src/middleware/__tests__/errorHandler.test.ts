@@ -34,7 +34,7 @@ describe("errorHandler", () => {
       expect(mockReply.code).toHaveBeenCalledWith(400);
       expect(mockReply.header).toHaveBeenCalledWith("Content-Type", "application/json; charset=utf-8");
       expect(mockReply.send).toHaveBeenCalledWith(error.getErrorResponse());
-      expect(mockLog.error).toHaveBeenCalledWith("ERROR 400", error.getErrorResponse());
+      expect(mockLog.error).toHaveBeenCalledWith(`ERROR 400: ${JSON.stringify(error.getErrorResponse())}`);
     });
 
     it("should handle NotFoundError", () => {
@@ -44,7 +44,7 @@ describe("errorHandler", () => {
 
       expect(mockReply.code).toHaveBeenCalledWith(404);
       expect(mockReply.send).toHaveBeenCalledWith(error.getErrorResponse());
-      expect(mockLog.error).toHaveBeenCalledWith("ERROR 404", error.getErrorResponse());
+      expect(mockLog.error).toHaveBeenCalledWith(`ERROR 404: ${JSON.stringify(error.getErrorResponse())}`);
     });
 
     it("should handle UnauthorizedError", () => {
@@ -54,7 +54,7 @@ describe("errorHandler", () => {
 
       expect(mockReply.code).toHaveBeenCalledWith(401);
       expect(mockReply.send).toHaveBeenCalledWith(error.getErrorResponse());
-      expect(mockLog.error).toHaveBeenCalledWith("ERROR 401", error.getErrorResponse());
+      expect(mockLog.error).toHaveBeenCalledWith(`ERROR 401: ${JSON.stringify(error.getErrorResponse())}`);
     });
 
     it("should handle InternalServerError", () => {
@@ -64,7 +64,7 @@ describe("errorHandler", () => {
 
       expect(mockReply.code).toHaveBeenCalledWith(500);
       expect(mockReply.send).toHaveBeenCalledWith(error.getErrorResponse());
-      expect(mockLog.error).toHaveBeenCalledWith("ERROR 500", error.getErrorResponse());
+      expect(mockLog.error).toHaveBeenCalledWith(`ERROR 500: ${JSON.stringify(error.getErrorResponse())}`);
     });
   });
 
@@ -249,7 +249,7 @@ describe("errorHandler", () => {
       errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
 
       expect(mockLog.error).toHaveBeenCalledTimes(1);
-      expect(mockLog.error).toHaveBeenCalledWith("ERROR 404", error.getErrorResponse());
+      expect(mockLog.error).toHaveBeenCalledWith(`ERROR 404: ${JSON.stringify(error.getErrorResponse())}`);
     });
 
     it("should chain reply methods correctly", () => {

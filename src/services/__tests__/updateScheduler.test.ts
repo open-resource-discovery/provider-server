@@ -589,7 +589,9 @@ describe("UpdateScheduler", () => {
 
       await expect(scheduler.forceUpdate()).rejects.toThrow("Fetch failed");
 
-      expect(mockLogger.error).toHaveBeenCalledWith("Failed to cleanup temp directory:", expect.any(Error));
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringMatching(/^Failed to cleanup temp directory: Error: Cleanup failed$/),
+      );
     });
   });
 

@@ -101,7 +101,7 @@ describe("VersionService", () => {
 
       const result = await versionService.getVersionInfo("1.0.0");
 
-      expect(mockLog.warn).toHaveBeenCalledWith("Failed to fetch latest version from GHCR:", expect.any(Error));
+      expect(mockLog.warn).toHaveBeenCalledWith("Failed to fetch latest version from GHCR: Error: Network error");
       expect(result).toEqual({
         current: "1.0.0",
         latest: "1.0.0",

@@ -10,7 +10,9 @@ jest.mock("p-limit", () => {
   };
 });
 
-jest.mock("@octokit/rest");
+jest.mock("@octokit/rest", () => ({
+  Octokit: jest.fn(),
+}));
 jest.mock("fs/promises");
 jest.mock("../../util/logger.js");
 
@@ -61,9 +63,7 @@ describe("GithubContentFetcher", () => {
       },
     };
 
-    (Octokit as unknown as jest.MockedClass<typeof Octokit>).mockImplementation(
-      () => mockOctokit as unknown as Octokit,
-    );
+    (Octokit as unknown as jest.Mock).mockImplementation(() => mockOctokit as unknown as Octokit);
 
     mockLog.info = jest.fn();
     mockLog.debug = jest.fn();
