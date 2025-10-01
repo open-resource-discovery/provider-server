@@ -47,8 +47,7 @@ coverage/
 
 manifest.yaml
 
-# Data directory for static file serving
-data/
-
 # Generated worker wrapper for development
 src/workers/gitOperationsWorker.js
+data/*
+!data/.gitkeep

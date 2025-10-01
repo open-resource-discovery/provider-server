@@ -361,7 +361,7 @@ export class UpdateScheduler extends EventEmitter {
     return this.lastWebhookUpdateTime;
   }
 
-  private startPeriodicCheck(): void {
+  public startPeriodicCheck(): void {
     if (this.periodicCheckInterval) {
       clearInterval(this.periodicCheckInterval);
     }
@@ -373,7 +373,7 @@ export class UpdateScheduler extends EventEmitter {
     this.logger.info("Started periodic content checking (every 2 hours)");
   }
 
-  private async checkForContentChanges(): Promise<void> {
+  public async checkForContentChanges(): Promise<void> {
     if (this.updateInProgress) {
       this.logger.debug("Skipping periodic check - update already in progress");
       return;
