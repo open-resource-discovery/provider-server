@@ -2,29 +2,11 @@ import { parentPort } from "worker_threads";
 import * as fs from "fs/promises";
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
-
-interface GitOperationData {
-  url?: string;
-  dir?: string;
-  ref?: string;
-  ours?: string;
-  theirs?: string;
-  singleBranch?: boolean;
-  depth?: number;
-  fastForward?: boolean;
-  force?: boolean;
-  auth?: { username: string; password: string };
-}
+import type { GitOperationData, GitProgressEvent } from "./gitWorkerTypes.js";
 
 interface WorkerMessage {
   type: "clone" | "checkout" | "resetIndex" | "pull" | "abort";
   data?: GitOperationData;
-}
-
-interface GitProgressEvent {
-  phase: string;
-  loaded?: number;
-  total?: number;
 }
 
 interface ProgressMessage {

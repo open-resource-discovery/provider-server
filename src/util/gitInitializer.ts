@@ -112,7 +112,6 @@ async function performGitInitialization(
         branch: githubBranch,
         token: githubToken,
         rootDirectory: options.ordDirectory,
-        fetchStrategy: options.fetchStrategy,
       });
 
       const contentFetcher = new GitCloneContentFetcher(githubConfig);
@@ -128,6 +127,7 @@ async function performGitInitialization(
             log.info(`Content is up-to-date. Validating existing content...`);
             validateGitContent(currentPath, options.ordDocumentsSubDirectory);
             log.info(`Existing content is valid. Skipping repository clone.`);
+            stateManager?.completeUpdate();
             return; // Content is valid and up-to-date, no need to re-clone
           } catch (validationError) {
             log.warn(`Existing content validation failed: ${validationError}. Will fetch fresh content.`);
@@ -157,7 +157,6 @@ async function performGitInitialization(
     branch: githubBranch,
     token: githubToken,
     rootDirectory: options.ordDirectory,
-    fetchStrategy: options.fetchStrategy,
   });
 
   const contentFetcher = new GitCloneContentFetcher(githubConfig);

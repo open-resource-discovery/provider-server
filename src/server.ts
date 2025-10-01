@@ -72,12 +72,9 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       branch: opts.githubBranch!,
       token: opts.githubToken,
       rootDirectory: opts.ordDirectory,
-      fetchStrategy: opts.fetchStrategy,
     });
 
     const contentFetcher = new GitCloneContentFetcher(githubConfig);
-
-    log.info(`Using fetch strategy: ${githubConfig.fetchStrategy || "clone"}`);
 
     updateScheduler = new UpdateScheduler(
       {
@@ -144,10 +141,6 @@ async function performOnlineValidation(
   log.info("Starting online validation and content synchronization...");
 
   try {
-    // Notify state manager and scheduler that initial validation is starting
-    if (updateStateManager) {
-      updateStateManager.startUpdate("validation");
-    }
     if (updateScheduler) {
       updateScheduler.notifyUpdateStarted();
     }
@@ -163,19 +156,7 @@ async function performOnlineValidation(
       const currentPath = fileSystemManager.getCurrentPath();
       new LocalDocumentRepository(currentPath);
 
-      // Check if we need to update (in case content was already present)
       if (updateScheduler) {
-        const needsUpdate = await updateScheduler.checkForUpdates();
-        if (needsUpdate) {
-          try {
-            await updateScheduler.forceUpdate();
-            log.info("Content update completed successfully");
-          } catch (error) {
-            log.error("Failed to update content from GitHub: %s", error);
-            log.warn("Continuing with existing content");
-          }
-        }
-        // Always notify completion since we called notifyUpdateStarted earlier
         updateScheduler.notifyUpdateCompleted();
       }
     }

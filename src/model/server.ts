@@ -2,7 +2,6 @@ import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath, trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/pathUtils.js";
-import { FetchStrategy } from "./github.js";
 
 export interface ProviderServerOptions {
   ordDirectory: string;
@@ -24,7 +23,6 @@ export interface ProviderServerOptions {
   webhookSecret?: string;
   updateDelay: number;
   statusDashboardEnabled: boolean;
-  fetchStrategy?: FetchStrategy;
 }
 
 function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSourceType): string {
@@ -66,6 +64,5 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     webhookSecret: process.env.WEBHOOK_SECRET,
     updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
     statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
-    fetchStrategy: options.fetchStrategy as FetchStrategy,
   };
 }

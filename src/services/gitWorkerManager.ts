@@ -1,37 +1,8 @@
 import { createRequire } from "module";
 import { Worker } from "worker_threads";
+import { GitOperation, GitProgressEvent, WorkerMessage } from "../workers/gitWorkerTypes.js";
 
 const require = createRequire(import.meta.url);
-
-interface GitOperationData {
-  url?: string;
-  dir?: string;
-  ref?: string;
-  ours?: string;
-  theirs?: string;
-  singleBranch?: boolean;
-  depth?: number;
-  fastForward?: boolean;
-  force?: boolean;
-  auth?: { username: string; password: string };
-}
-
-interface GitOperation {
-  type: "clone" | "checkout" | "resetIndex" | "pull";
-  data: GitOperationData;
-}
-
-interface GitProgressEvent {
-  phase: string;
-  loaded?: number;
-  total?: number;
-}
-
-interface WorkerMessage {
-  type: "progress" | "result";
-  data?: { success: boolean } | GitProgressEvent;
-  error?: string;
-}
 
 export class GitWorkerManager {
   private worker: Worker | null = null;
