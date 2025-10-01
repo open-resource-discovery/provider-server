@@ -1,6 +1,7 @@
 import { UpdateScheduler } from "../updateScheduler.js";
 import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "../interfaces/contentFetcher.js";
 import { FileSystemManager } from "../fileSystemManager.js";
+import { UpdateStateManager } from "../updateStateManager.js";
 import { Logger } from "pino";
 
 // Mock implementations
@@ -74,6 +75,11 @@ class MockFileSystemManager {
     return await Promise.resolve("/tmp/test");
   }
 
+  public async prepareTempDirectoryWithGit(): Promise<string> {
+    this.getTempDirectoryCalled = true;
+    return await Promise.resolve("/tmp/test");
+  }
+
   public async validateContent(_directory: string): Promise<boolean> {
     this.validateContentCalled = true;
     return await Promise.resolve(!this.shouldValidateFail);
@@ -123,6 +129,7 @@ describe("UpdateScheduler", () => {
   let mockContentFetcher: MockContentFetcher;
   let mockFileSystemManager: MockFileSystemManager;
   let mockLogger: Logger;
+  let mockStateManager: UpdateStateManager;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -135,6 +142,8 @@ describe("UpdateScheduler", () => {
       debug: jest.fn(),
     } as unknown as Logger;
 
+    mockStateManager = new UpdateStateManager(mockLogger);
+
     scheduler = new UpdateScheduler(
       {
         updateDelay: 100,
@@ -142,6 +151,7 @@ describe("UpdateScheduler", () => {
       mockContentFetcher,
       mockFileSystemManager as unknown as FileSystemManager,
       mockLogger,
+      mockStateManager,
     );
 
     // Reset the mock to ensure clean state
@@ -313,6 +323,7 @@ describe("UpdateScheduler", () => {
         mockContentFetcher,
         mockFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       // First update
@@ -346,6 +357,7 @@ describe("UpdateScheduler", () => {
         freshContentFetcher,
         freshFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       // Initialize to ensure clean state
@@ -413,6 +425,7 @@ describe("UpdateScheduler", () => {
         freshContentFetcher,
         freshFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       // Initialize to reset any previous state
@@ -473,6 +486,7 @@ describe("UpdateScheduler", () => {
         testFetcher,
         testFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       let errorEmitted: Error | null = null;
@@ -493,17 +507,18 @@ describe("UpdateScheduler", () => {
       expect(errorEmitted!.message).toBe("Fetch failed");
     });
 
-    it("should emit update-progress event", () => {
+    it("should emit update-progress event", async () => {
       const progressPromise = new Promise<void>((resolve) => {
-        scheduler.on("update-progress", (progress) => {
+        mockStateManager.on("update-progress", (progress) => {
           expect(progress.totalFiles).toBe(10);
           expect(progress.fetchedFiles).toBe(10);
           resolve();
         });
       });
 
-      scheduler.forceUpdate();
-      return progressPromise;
+      const updatePromise = scheduler.forceUpdate();
+      await progressPromise;
+      await updatePromise;
     });
   });
 

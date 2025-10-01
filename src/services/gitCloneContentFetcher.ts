@@ -40,32 +40,66 @@ export class GitCloneContentFetcher implements ContentFetcher {
       const gitDir = path.join(targetDir, ".git");
       const isExistingRepo = await this.pathExists(gitDir);
 
+      let previousCommitHash: string | null = null;
+      if (isExistingRepo) {
+        try {
+          previousCommitHash = await this.getCurrentCommitHash(targetDir);
+        } catch {
+          // Ignore error
+        }
+      }
+
       if (isExistingRepo) {
         // Repository exists, do a pull
-        await this.gitPull(targetDir, gitUrl, progress, onProgress);
+        log.debug(
+          `Updating existing repository from ${this.config.owner}/${this.config.repo} (branch: ${this.config.branch})`,
+        );
+
+        await this.gitPull(targetDir, progress, onProgress);
       } else {
         // Fresh clone
+        log.debug(`Cloning repository from ${this.config.owner}/${this.config.repo} (branch: ${this.config.branch})`);
         await this.gitClone(gitUrl, targetDir, progress, onProgress);
       }
 
-      // Get commit hash
+      // Get commit hash after update
       this.currentCommitHash = await this.getCurrentCommitHash(targetDir);
 
-      // Count files
-      const fileCount = await this.countFiles(targetDir);
-      progress.totalFiles = fileCount;
-      progress.fetchedFiles = fileCount;
-
       const duration = (new Date().getTime() - progress.startTime.getTime()) / 1000;
-      log.debug(`Git clone/pull completed successfully in ${duration.toFixed(2)}s - ${fileCount} files`);
+      const operation = isExistingRepo ? "update" : "clone";
+
+      if (isExistingRepo && previousCommitHash) {
+        if (previousCommitHash === this.currentCommitHash) {
+          log.debug(
+            `Git ${operation} completed in ${duration.toFixed(2)}s - already up to date at ${this.currentCommitHash.substring(0, 7)}`,
+          );
+        } else {
+          log.debug(
+            `Git ${operation} completed in ${duration.toFixed(2)}s - updated from ${previousCommitHash.substring(0, 7)} to ${this.currentCommitHash.substring(0, 7)}`,
+          );
+        }
+      } else {
+        // For clone, count total files
+        const fileCount = await this.countFiles(targetDir);
+        progress.totalFiles = fileCount;
+        progress.fetchedFiles = fileCount;
+        log.debug(`Git ${operation} completed successfully in ${duration.toFixed(2)}s - ${fileCount} total files`);
+      }
+
+      const totalFiles = await this.countFiles(targetDir);
+      progress.totalFiles = totalFiles;
+      progress.fetchedFiles = totalFiles;
+
+      const directoryTreeSha = await this.getDirectoryTreeSha(this.currentCommitHash);
 
       // Return metadata
       return {
         commitHash: this.currentCommitHash,
+        directoryTreeSha: directoryTreeSha || undefined,
         fetchTime: new Date(),
         branch: this.config.branch,
         repository: `${this.config.owner}/${this.config.repo}`,
-        totalFiles: fileCount,
+        totalFiles: totalFiles,
       };
     } catch (error) {
       if (this.abortController.signal.aborted) {
@@ -131,10 +165,20 @@ export class GitCloneContentFetcher implements ContentFetcher {
     }
   }
 
-  public getDirectoryTreeSha(_commitSha?: string): Promise<string | null> {
-    // Git clone doesn't provide tree SHA in the same way as the API
-    // Return null or implement if needed
-    return Promise.resolve(null);
+  public async getDirectoryTreeSha(commitSha?: string): Promise<string | null> {
+    try {
+      const sha = commitSha || (await this.getLatestCommitSha());
+
+      // For git operations, we'll use the commit SHA combined with the rootDirectory
+      // to create a unique identifier for change detection
+      const dirIdentifier = `${sha}:${this.config.rootDirectory}`;
+
+      log.debug(`Generated directory tree SHA: ${dirIdentifier}`);
+      return dirIdentifier;
+    } catch (error) {
+      log.error(`Failed to get directory tree SHA: ${error}`);
+      return null;
+    }
   }
 
   private buildGitUrl(): string {
@@ -154,17 +198,6 @@ export class GitCloneContentFetcher implements ContentFetcher {
       const gitHost = apiUrl.origin.replace(/\/api\/v\d+$/, "").replace(/\/api$/, "");
       return `${gitHost}/${this.config.owner}/${this.config.repo}.git`;
     }
-  }
-
-  private getAuthHeaders(): Record<string, string> {
-    if (!this.config.token) {
-      return {};
-    }
-
-    // For GitHub token authentication (used for non-git operations)
-    return {
-      Authorization: `token ${this.config.token}`,
-    };
   }
 
   private getAuthCallback(): (() => { username: string; password: string }) | undefined {
@@ -207,31 +240,25 @@ export class GitCloneContentFetcher implements ContentFetcher {
           const loaded = progressEvent.loaded || 0;
           const total = progressEvent.total || 0;
 
-          // Handle different git phases with detailed messages
+          progress.phase = phase;
+
           if (phase === "Counting objects") {
             message = `Counting objects: ${loaded}`;
           } else if (phase === "Receiving objects") {
             const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
-            message = `Receiving objects: ${loaded}/${total} (${percentage}%)`;
-            // Update file counts based on objects
-            if (total > 0 && progress.totalFiles === 0) {
-              progress.totalFiles = total;
-            }
-            progress.fetchedFiles = loaded;
+            message = `Receiving objects: ${percentage}% (${loaded}/${total} git objects)`;
           } else if (phase === "Resolving deltas") {
             const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
-            message = `Resolving deltas: ${loaded}/${total} (${percentage}%)`;
+            message = `Resolving deltas: ${percentage}% (${loaded}/${total} git objects)`;
+          } else if (phase === "Analyzing workdir" || phase === "Updating workdir") {
+            const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
+            message = `${phase}: ${percentage}% (${loaded}/${total} git objects)`;
           } else if (phase === "Downloading objects") {
             const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
-            message = `Downloading objects: ${loaded}/${total} (${percentage}%)`;
-            // Update progress counts
-            if (total > 0 && progress.totalFiles === 0) {
-              progress.totalFiles = total;
-            }
-            progress.fetchedFiles = loaded;
+            message = `Downloading objects: ${percentage}% (${loaded}/${total} git objects)`;
           } else if (phase === "Checking out files") {
             const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
-            message = `Checking out files: ${loaded}/${total} (${percentage}%)`;
+            message = `Checking out files: ${percentage}% (${loaded}/${total})`;
           } else {
             message = "Processing...";
           }
@@ -259,57 +286,49 @@ export class GitCloneContentFetcher implements ContentFetcher {
 
   private async gitPull(
     targetDir: string,
-    _gitUrl: string,
     progress: ContentFetchProgress,
     onProgress?: (progress: ContentFetchProgress) => void,
   ): Promise<void> {
     log.debug(`Pulling latest changes in ${targetDir}`);
-    progress.currentFile = "Checking for updates...";
+    progress.currentFile = "Pulling latest changes...";
     onProgress?.(progress);
 
-    try {
-      progress.currentFile = "Fetching latest changes from remote...";
-      onProgress?.(progress);
+    // Get current commit before pull
+    const beforeCommit = await this.getCurrentCommitHash(targetDir);
+    log.debug(`Current commit before pull: ${beforeCommit.substring(0, 7)}`);
 
-      await this.gitWorker.fetch(
+    try {
+      await this.gitWorker.pull(
         targetDir,
         this.config.branch,
         this.getAuthCallback() ? { username: this.config.token!, password: "x-oauth-basic" } : undefined,
       );
+      log.debug("Successfully pulled changes");
+    } catch (_pullError) {
+      log.info(`Pull failed, resetting to origin/${this.config.branch}`);
 
-      onProgress?.(progress);
-
-      await this.gitWorker.merge(targetDir, this.config.branch, `origin/${this.config.branch}`);
-
-      progress.currentFile = "Pull completed";
-      onProgress?.(progress);
-
-      // After pull, extract rootDirectory if needed
-      if (this.config.rootDirectory !== ".") {
-        log.debug(`Re-extracting content from rootDirectory: ${this.config.rootDirectory}`);
-        progress.currentFile = `Extracting ${this.config.rootDirectory}...`;
-        onProgress?.(progress);
-        await this.extractRootDirectory(targetDir, progress, onProgress);
-      }
-    } catch (error) {
-      // If merge fails, try reset --hard
-      log.warn(`Merge failed, attempting hard reset: ${error}`);
-
-      progress.currentFile = "Performing hard reset...";
-      onProgress?.(progress);
+      // First reset the index to clear any staged changes
+      await this.gitWorker.resetIndex(targetDir);
 
       await this.gitWorker.checkout(targetDir, `origin/${this.config.branch}`, true);
+    }
 
-      progress.currentFile = "Reset completed";
+    // Get current commit after update
+    const afterCommit = await this.getCurrentCommitHash(targetDir);
+
+    if (beforeCommit !== afterCommit) {
+      log.info(`Repository updated from ${beforeCommit.substring(0, 7)} to ${afterCommit.substring(0, 7)}`);
+    }
+
+    progress.currentFile = "Pull completed";
+    onProgress?.(progress);
+
+    // After pull, extract rootDirectory if needed
+    if (this.config.rootDirectory !== ".") {
+      log.debug(`Re-extracting content from rootDirectory: ${this.config.rootDirectory}`);
+      progress.currentFile = `Extracting ${this.config.rootDirectory}...`;
       onProgress?.(progress);
-
-      // After reset, extract rootDirectory if needed
-      if (this.config.rootDirectory !== ".") {
-        log.debug(`Re-extracting content from rootDirectory after reset: ${this.config.rootDirectory}`);
-        progress.currentFile = `Extracting ${this.config.rootDirectory}...`;
-        onProgress?.(progress);
-        await this.extractRootDirectory(targetDir, progress, onProgress);
-      }
+      await this.extractRootDirectory(targetDir, progress, onProgress);
     }
   }
 
@@ -329,14 +348,12 @@ export class GitCloneContentFetcher implements ContentFetcher {
 
   private async countFiles(targetDir: string): Promise<number> {
     try {
-      // Use isomorphic-git to list files
       const files = await git.listFiles({
         fs,
         dir: targetDir,
         ref: "HEAD",
       });
 
-      // Filter files based on root directory if needed
       if (this.config.rootDirectory !== ".") {
         const filtered = files.filter((file) => file.startsWith(this.config.rootDirectory));
         return filtered.length;
@@ -355,7 +372,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
     const items = await fs.readdir(dir, { withFileTypes: true });
 
     for (const item of items) {
-      if (item.name === ".git") continue; // Skip .git directory
+      if (item.name === ".git") continue;
 
       const fullPath = path.join(dir, item.name);
       if (item.isDirectory()) {
@@ -383,6 +400,26 @@ export class GitCloneContentFetcher implements ContentFetcher {
     onProgress?: (progress: ContentFetchProgress) => void,
   ): Promise<void> {
     const sourcePath = path.join(targetDir, this.config.rootDirectory);
+
+    log.info(`Extracting root directory: ${this.config.rootDirectory} from ${targetDir}`);
+
+    // Log git status before extraction to debug issues
+    try {
+      const status = await git.statusMatrix({
+        fs,
+        dir: targetDir,
+      });
+      const modifiedFiles = status.filter(([, , worktreeStatus]) => worktreeStatus !== 1);
+      log.debug(`Git status before extraction - modified files: ${modifiedFiles.length}`);
+      if (modifiedFiles.length > 0) {
+        log.warn(`Warning: ${modifiedFiles.length} modified files detected before extraction`);
+        modifiedFiles.slice(0, 5).forEach(([filepath]) => {
+          log.debug(`  Modified: ${filepath}`);
+        });
+      }
+    } catch (statusError) {
+      log.debug(`Could not check git status: ${statusError}`);
+    }
 
     // Check if the source path exists
     if (!(await this.pathExists(sourcePath))) {
@@ -427,7 +464,6 @@ export class GitCloneContentFetcher implements ContentFetcher {
 
       log.debug(`Successfully extracted ${this.config.rootDirectory} to ${targetDir}`);
     } catch (error) {
-      // Try to clean up staging if it exists
       try {
         await fs.rm(stagingDir, { recursive: true, force: true });
       } catch {
@@ -439,7 +475,6 @@ export class GitCloneContentFetcher implements ContentFetcher {
   }
 
   public destroy(): void {
-    // Clean up the worker thread
     this.gitWorker.destroy();
   }
 }

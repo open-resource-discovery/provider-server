@@ -2,6 +2,7 @@ export interface ContentFetchProgress {
   totalFiles: number;
   fetchedFiles: number;
   currentFile?: string;
+  phase?: string;
   startTime: Date;
   errors: string[];
 }

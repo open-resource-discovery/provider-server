@@ -17,7 +17,7 @@ interface GitOperationData {
 }
 
 interface WorkerMessage {
-  type: "clone" | "fetch" | "merge" | "checkout" | "abort";
+  type: "clone" | "checkout" | "resetIndex" | "pull" | "abort";
   data?: GitOperationData;
 }
 
@@ -65,23 +65,23 @@ class GitWorker {
         }
         await this.handleClone(message.data);
         break;
-      case "fetch":
-        if (!message.data) {
-          throw new Error("Fetch operation requires data");
-        }
-        await this.handleFetch(message.data);
-        break;
-      case "merge":
-        if (!message.data) {
-          throw new Error("Merge operation requires data");
-        }
-        await this.handleMerge(message.data);
-        break;
       case "checkout":
         if (!message.data) {
           throw new Error("Checkout operation requires data");
         }
         await this.handleCheckout(message.data);
+        break;
+      case "resetIndex":
+        if (!message.data) {
+          throw new Error("Reset index operation requires data");
+        }
+        await this.handleResetIndex(message.data);
+        break;
+      case "pull":
+        if (!message.data) {
+          throw new Error("Pull operation requires data");
+        }
+        await this.handlePull(message.data);
         break;
       case "abort":
         this.handleAbort();
@@ -146,50 +146,41 @@ class GitWorker {
     }
   }
 
-  private async handleFetch(data: GitOperationData): Promise<void> {
-    this.abortController = new AbortController();
-
-    try {
-      await git.fetch({
-        fs,
-        http,
-        dir: data.dir!,
-        ref: data.ref!,
-        singleBranch: data.singleBranch!,
-        onAuth: data.auth ? (): { username: string; password: string } => data.auth! : undefined,
-        // signal: this.abortController.signal, // Not supported in isomorphic-git types
-      });
-
-      this.sendResult({ success: true });
-    } catch (error) {
-      if (this.abortController.signal.aborted) {
-        this.sendResult(undefined, "Fetch operation aborted");
-      } else {
-        throw error;
-      }
-    } finally {
-      this.abortController = null;
-    }
-  }
-
-  private async handleMerge(data: GitOperationData): Promise<void> {
-    await git.merge({
-      fs,
-      dir: data.dir!,
-      ours: data.ours!,
-      theirs: data.theirs!,
-      fastForward: data.fastForward!,
-    });
-
-    this.sendResult({ success: true });
-  }
-
   private async handleCheckout(data: GitOperationData): Promise<void> {
     await git.checkout({
       fs,
       dir: data.dir!,
       ref: data.ref!,
       force: data.force!,
+    });
+
+    this.sendResult({ success: true });
+  }
+
+  private async handleResetIndex(data: GitOperationData): Promise<void> {
+    await git.resetIndex({
+      fs,
+      dir: data.dir!,
+      filepath: ".",
+    });
+
+    this.sendResult({ success: true });
+  }
+
+  private async handlePull(data: GitOperationData): Promise<void> {
+    await git.pull({
+      fs,
+      http,
+      dir: data.dir!,
+      ref: data.ref,
+      singleBranch: true,
+      fastForward: true,
+      onAuth: data.auth ? (): { username: string; password: string } => data.auth! : undefined,
+      // TODO
+      author: {
+        name: "ORD Provider Server",
+        email: "noreply@ord-provider-server",
+      },
     });
 
     this.sendResult({ success: true });

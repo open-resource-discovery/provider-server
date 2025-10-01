@@ -100,3 +100,23 @@ export function getFileName(filePath: string): string {
 export function getDirName(filePath: string): string {
   return path.posix.dirname(filePath);
 }
+
+/**
+ * Trims leading and trailing slashes from a string
+ * @param str The string to trim
+ * @returns The string without leading or trailing slashes, or undefined if input is undefined
+ */
+export function trimLeadingAndTrailingSlashes(str: string | undefined): string | undefined {
+  if (str === undefined) return undefined;
+  return str.replace(/^\/|\/$/g, "");
+}
+
+/**
+ * Trims trailing slash from a string
+ * @param str The string to trim
+ * @returns The string without trailing slash, or undefined if input is undefined
+ */
+export function trimTrailingSlash(str: string | undefined): string | undefined {
+  if (str === undefined) return undefined;
+  return str.replace(/\/$/, "");
+}

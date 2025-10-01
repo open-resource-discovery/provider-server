@@ -1,8 +1,7 @@
 import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
-import { normalizePath } from "src/util/pathUtils.js";
-import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
+import { normalizePath, trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/pathUtils.js";
 import { FetchStrategy } from "./github.js";
 
 export interface ProviderServerOptions {

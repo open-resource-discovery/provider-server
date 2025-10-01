@@ -62,6 +62,36 @@ export class FileSystemManager {
     return this.tempDir;
   }
 
+  public async prepareTempDirectoryWithGit(): Promise<string> {
+    // Check if current directory has a .git folder
+    const currentGitDir = path.join(this.currentDir, ".git");
+    const hasGit = await this.pathExists(currentGitDir);
+
+    if (hasGit) {
+      log.info("Found existing git repository in current directory, copying to temp for incremental update");
+
+      await this.cleanupTempDirectory();
+
+      await this.copyDirectory(this.currentDir, this.tempDir);
+
+      log.info("Copied current directory with git history to temp directory");
+    } else {
+      // No git repo, just prepare empty temp directory
+      await this.getTempDirectory();
+    }
+
+    return this.tempDir;
+  }
+
+  private async pathExists(p: string): Promise<boolean> {
+    try {
+      await fs.access(p);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private async copyDirectory(src: string, dest: string): Promise<void> {
     await fs.mkdir(dest, { recursive: true });
 

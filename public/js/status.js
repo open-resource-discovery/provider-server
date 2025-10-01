@@ -551,14 +551,29 @@ class StatusClient {
     if (progress) {
       let progressText = "";
 
-      if (progress.totalFiles && progress.fetchedFiles !== undefined) {
-        const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
-        progressText = `Fetching files: ${progress.fetchedFiles}/${progress.totalFiles} (${percentage}%)`;
+      if (progress.currentFile) {
+        if (
+          progress.currentFile.includes("Receiving objects:") ||
+          progress.currentFile.includes("Resolving deltas:") ||
+          progress.currentFile.includes("Downloading objects:") ||
+          progress.currentFile.includes("Checking out files:") ||
+          progress.currentFile.includes("Analyzing workdir:") ||
+          progress.currentFile.includes("Updating workdir:") ||
+          progress.currentFile.includes("Counting objects:")
+        ) {
+          // Show git progress messages as-is
+          progressText = progress.currentFile;
+        } else if (!progress.currentFile.includes("git objects")) {
+          const fileName = progress.currentFile.split("/").pop();
+          progressText = fileName;
+        }
       }
 
-      if (progress.currentFile) {
-        const fileName = progress.currentFile.split("/").pop();
-        progressText += ` - ${fileName}`;
+      if (!progressText && progress.totalFiles && progress.fetchedFiles !== undefined) {
+        if (progress.totalFiles < 20000 || progress.fetchedFiles > progress.totalFiles / 2) {
+          const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
+          progressText = `Fetching files: ${progress.fetchedFiles}/${progress.totalFiles} (${percentage}%)`;
+        }
       }
 
       if (progress.errors && progress.errors.length > 0) {
