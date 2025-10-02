@@ -11,9 +11,8 @@ import { type FastifyInstanceType } from "src/model/fastify.js";
 import { type ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
 import { RouterFactory } from "./factories/routerFactory.js";
-import { FqnDocumentMap } from "./util/fqnHelpers.js";
 import { FileSystemManager } from "./services/fileSystemManager.js";
-import { GithubContentFetcher } from "./services/githubContentFetcher.js";
+import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
@@ -21,7 +20,11 @@ import { StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
+import { initializeGitSource } from "./util/gitInitializer.js";
 import cors from "@fastify/cors";
+import { UpdateStateManager } from "./services/updateStateManager.js";
+import { createReadinessGate } from "./middleware/readinessGate.js";
+import { GitHubBranchNotFoundError, GitHubRepositoryNotFoundError } from "./model/error/GithubErrors.js";
 
 const version = getPackageVersion();
 
@@ -31,6 +34,7 @@ type ShutdownFunction = () => Promise<void>;
 
 let fileSystemManager: FileSystemManager | null = null;
 let updateScheduler: UpdateScheduler | null = null;
+let updateStateManager: UpdateStateManager | null = null;
 
 export async function startProviderServer(opts: ProviderServerOptions): Promise<ShutdownFunction> {
   log.info("============================================================");
@@ -39,8 +43,10 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 
   const server = fastify({
     loggerInstance: log,
-    ignoreTrailingSlash: true,
     exposeHeadRoutes: true,
+    routerOptions: {
+      ignoreTrailingSlash: true,
+    },
   });
 
   if (opts.cors) {
@@ -49,6 +55,9 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     });
   }
 
+  // Initialize update state manager
+  updateStateManager = new UpdateStateManager(log);
+
   // Initialize file system manager
   fileSystemManager = new FileSystemManager({
     dataDir: opts.dataDir,
@@ -56,9 +65,30 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   });
   await fileSystemManager.initialize();
 
-  // Perform warm-up if using GitHub source
   if (opts.sourceType === OptSourceType.Github) {
-    await performWarmup(opts);
+    // Create the update scheduler but don't perform initial sync yet
+    const githubConfig = buildGithubConfig({
+      apiUrl: opts.githubApiUrl!,
+      repository: opts.githubRepository!,
+      branch: opts.githubBranch!,
+      token: opts.githubToken,
+      rootDirectory: opts.ordDirectory,
+    });
+
+    const contentFetcher = new GitCloneContentFetcher(githubConfig);
+
+    updateScheduler = new UpdateScheduler(
+      {
+        updateDelay: opts.updateDelay,
+      },
+      contentFetcher,
+      fileSystemManager,
+      log,
+      updateStateManager,
+    );
+
+    // Initialize the scheduler to load metadata
+    await updateScheduler.initialize();
   }
 
   // Basic server setup
@@ -69,6 +99,12 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     authMethods: opts.authentication.methods,
     validUsers: opts.authentication.basicAuthUsers,
   });
+
+  // Setup readiness gate for GitHub source type
+  // This holds requests during git clone/pull operations to prevent 404s
+  if (opts.sourceType === OptSourceType.Github && updateStateManager) {
+    server.addHook("onRequest", createReadinessGate(updateStateManager));
+  }
 
   // Configure routing based on source type
   await setupRouting(server, opts);
@@ -87,62 +123,62 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     webhookRouter.register(server);
   }
 
-  return await startServer(server, opts);
+  const shutdown = await startServer(server, opts);
+
+  // For GitHub source, perform online validation after server has started
+  if (opts.sourceType === OptSourceType.Github && fileSystemManager) {
+    performOnlineValidation(opts, fileSystemManager).catch((error) => {
+      log.error("Background online validation failed:", error);
+    });
+  }
+
+  return shutdown;
 }
 
-async function performWarmup(opts: ProviderServerOptions): Promise<void> {
-  log.info("Performing server warm-up...");
+async function performOnlineValidation(
+  opts: ProviderServerOptions,
+  fileSystemManager: FileSystemManager,
+): Promise<void> {
+  log.info("Starting online validation and content synchronization...");
 
-  const githubConfig = buildGithubConfig({
-    apiUrl: opts.githubApiUrl!,
-    repository: opts.githubRepository!,
-    branch: opts.githubBranch!,
-    token: opts.githubToken,
-    rootDirectory: opts.ordDirectory,
-  });
-
-  const contentFetcher = new GithubContentFetcher(githubConfig);
-
-  updateScheduler = new UpdateScheduler(
-    {
-      updateDelay: opts.updateDelay,
-    },
-    contentFetcher,
-    fileSystemManager!,
-    log,
-  );
-
-  // Initialize the scheduler to load metadata
-  await updateScheduler.initialize();
-
-  // Check if we have a current version
-  const currentVersion = await fileSystemManager!.getCurrentVersion();
-
-  if (!currentVersion) {
-    log.info("No current version found. Fetching initial content from GitHub...");
-
-    try {
-      await updateScheduler.forceUpdate();
-      log.info("Initial content fetch completed successfully");
-    } catch (error) {
-      log.fatal("Failed to fetch initial content from GitHub: %s", error);
-      throw error;
+  try {
+    if (updateScheduler) {
+      updateScheduler.notifyUpdateStarted();
     }
-  } else {
-    log.info(`Found existing version: ${currentVersion}`);
 
-    const needsUpdate = await updateScheduler.checkForUpdates();
+    // Initialize git source - this will clone and validate the GitHub repository
+    const validationResult = await initializeGitSource(opts, fileSystemManager, updateStateManager!);
 
-    if (needsUpdate) {
-      try {
-        await updateScheduler.forceUpdate();
-        log.info("Content update completed successfully");
-      } catch (error) {
-        log.error("Failed to update content from GitHub: %s", error);
-        log.warn("Continuing with existing cached content");
+    if (validationResult.contentAvailable) {
+      log.info("Online validation complete. Content is now available.");
+
+      // Notify the repository that content is now available by recreating it
+      // This will update the directoryExists flag
+      const currentPath = fileSystemManager.getCurrentPath();
+      new LocalDocumentRepository(currentPath);
+
+      if (updateScheduler) {
+        updateScheduler.notifyUpdateCompleted();
+      }
+    }
+  } catch (error) {
+    if (updateScheduler) {
+      updateScheduler.notifyUpdateFailed(error);
+    }
+
+    if (error instanceof GitHubBranchNotFoundError || error instanceof GitHubRepositoryNotFoundError) {
+      const hasExistingContent = await fileSystemManager.getCurrentVersion();
+
+      if (!hasExistingContent) {
+        log.error("Failed to initialize GitHub content: %s", error.message);
+        log.error("Please check your GitHub repository and branch configuration");
+        log.warn("Server is running but cannot serve content - check /status for details");
+      } else {
+        log.warn("Validation failed but continuing with existing content: %s", error.message);
+        log.warn("Server will serve stale content until configuration is fixed");
       }
     } else {
-      log.info("Local content is up to date with GitHub");
+      log.error("Online validation failed: %s", error);
     }
   }
 }
@@ -164,8 +200,15 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
     localRepository = new LocalDocumentRepository(opts.ordDirectory);
   }
 
-  const statusService = new StatusService(updateScheduler, fileSystemManager, log, opts, localRepository);
-  const wsHandler = new StatusWebSocketHandler(statusService, updateScheduler, log);
+  const statusService = new StatusService(
+    updateScheduler,
+    fileSystemManager,
+    log,
+    opts,
+    localRepository,
+    updateStateManager,
+  );
+  const wsHandler = new StatusWebSocketHandler(statusService, updateScheduler, log, updateStateManager);
   // @ts-expect-error Type mismatch between Fastify instance types
   wsHandler.register(server);
 
@@ -187,11 +230,15 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   });
 
   // Add health check endpoint
-  server.get("/health", { logLevel: "error" }, (_request, _reply) => {
+  server.get("/health", { logLevel: "error" }, async (_request, _reply) => {
+    const currentVersion = await fileSystemManager?.getCurrentVersion();
     return {
       status: "ok",
       timestamp: new Date().toISOString(),
       version,
+      sync: {
+        hasContent: opts.sourceType !== OptSourceType.Github || !!currentVersion,
+      },
     };
   });
 
@@ -228,19 +275,28 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     );
   }
 
-  const initialFqnDocumentMap: FqnDocumentMap = {};
-
-  // For GitHub source, always use local filesystem with the current version directory
+  // For GitHub source, use the current version directory
   const effectiveOrdDirectory =
     opts.sourceType === OptSourceType.Github ? fileSystemManager!.getCurrentPath() : opts.ordDirectory;
 
   const router = await RouterFactory.createRouter({
-    sourceType: OptSourceType.Local, // Always use local mode now
+    sourceType: opts.sourceType,
     baseUrl: baseUrl,
     authMethods: opts.authentication.methods,
-    fqnDocumentMap: initialFqnDocumentMap,
+    fqnDocumentMap: {},
     documentsSubDirectory: opts.ordDocumentsSubDirectory,
     ordDirectory: effectiveOrdDirectory,
+    githubOpts:
+      opts.sourceType === OptSourceType.Github
+        ? {
+            githubApiUrl: opts.githubApiUrl!,
+            githubRepository: opts.githubRepository!,
+            githubBranch: opts.githubBranch!,
+            githubToken: opts.githubToken,
+            customDirectory: opts.ordDirectory,
+          }
+        : undefined,
+    fileSystemManager: fileSystemManager || undefined,
   });
 
   router.register(server);
@@ -265,6 +321,11 @@ async function startServer(server: FastifyInstanceType, opts: ProviderServerOpti
     // Return the shutdown function
     return async () => {
       try {
+        if (updateScheduler) {
+          server.log.info("Stopping update scheduler...");
+          updateScheduler.stop();
+        }
+
         await server.close();
         server.log.info("Server shutdown complete");
       } catch (err) {

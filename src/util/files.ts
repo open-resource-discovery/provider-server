@@ -9,20 +9,31 @@ import path from "path";
  * @param arrayOfFiles Optional array to accumulate files (used for recursion)
  * @returns Array of file paths
  */
-export function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
+export async function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): Promise<string[]> {
   const normalizedDirPath = normalizePath(dirPath);
-  const files = fs.readdirSync(normalizedDirPath);
 
-  files.forEach((file) => {
-    const filePath = normalizePath(joinFilePaths(normalizedDirPath, file));
+  // Check if directory exists before trying to read it
+  try {
+    await fs.promises.access(normalizedDirPath);
+  } catch {
+    return arrayOfFiles;
+  }
 
-    if (fs.statSync(filePath).isDirectory()) {
-      getAllFiles(filePath, arrayOfFiles);
-    } else {
-      // Add file to our array
-      arrayOfFiles.push(filePath);
-    }
-  });
+  const files = await fs.promises.readdir(normalizedDirPath);
+
+  await Promise.all(
+    files.map(async (file) => {
+      const filePath = normalizePath(joinFilePaths(normalizedDirPath, file));
+
+      const stat = await fs.promises.stat(filePath);
+      if (stat.isDirectory()) {
+        await getAllFiles(filePath, arrayOfFiles);
+      } else {
+        // Add file to our array
+        arrayOfFiles.push(filePath);
+      }
+    }),
+  );
 
   return arrayOfFiles;
 }

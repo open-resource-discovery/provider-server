@@ -1,9 +1,11 @@
 import { EventEmitter } from "events";
-import { ContentFetcher, ContentFetchProgress } from "./interfaces/contentFetcher.js";
+import { ContentFetcher } from "./interfaces/contentFetcher.js";
 import { FileSystemManager } from "./fileSystemManager.js";
 import { Logger } from "pino";
 import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
 import { GitHubNetworkError } from "../model/error/GithubErrors.js";
+import { createProgressHandler } from "../util/progressHandler.js";
+import { UpdateStateManager } from "./updateStateManager.js";
 
 export interface UpdateSchedulerConfig {
   updateDelay: number; // milliseconds - also used as webhook cooldown
@@ -25,6 +27,7 @@ export class UpdateScheduler extends EventEmitter {
   private readonly contentFetcher: ContentFetcher;
   private readonly fileSystemManager: FileSystemManager;
   private readonly logger: Logger;
+  private readonly stateManager: UpdateStateManager;
 
   private updateTimeout: NodeJS.Timeout | null = null;
   private updateInProgress = false;
@@ -44,12 +47,14 @@ export class UpdateScheduler extends EventEmitter {
     contentFetcher: ContentFetcher,
     fileSystemManager: FileSystemManager,
     logger: Logger,
+    stateManager: UpdateStateManager,
   ) {
     super();
     this.config = config;
     this.contentFetcher = contentFetcher;
     this.fileSystemManager = fileSystemManager;
     this.logger = logger;
+    this.stateManager = stateManager;
   }
 
   public async initialize(): Promise<void> {
@@ -81,11 +86,14 @@ export class UpdateScheduler extends EventEmitter {
     this.scheduledUpdateTime = new Date(Date.now() + effectiveDelay);
     this.logger.info(`Update scheduled for ${this.scheduledUpdateTime.toISOString()}`);
 
+    // Update state manager
+    this.stateManager.scheduleUpdate(this.scheduledUpdateTime);
+
     this.updateTimeout = setTimeout(() => {
       this.performUpdate().catch((error) => {
         this.logger.error("Update failed: %s", error);
         this.failedUpdates++;
-        this.emit("update-failed", error);
+        this.stateManager.failUpdate(error instanceof Error ? error.message : String(error));
       });
     }, effectiveDelay);
 
@@ -172,9 +180,10 @@ export class UpdateScheduler extends EventEmitter {
 
     this.updateInProgress = true;
     this.scheduledUpdateTime = null;
+    this.stateManager.startUpdate("scheduler");
     this.emit("update-started");
 
-    const tempDir = await this.fileSystemManager.getTempDirectory();
+    const tempDir = await this.fileSystemManager.prepareTempDirectoryWithGit();
 
     try {
       this.logger.info("Starting content update");
@@ -182,9 +191,12 @@ export class UpdateScheduler extends EventEmitter {
       const currentVersion = await this.fileSystemManager.getCurrentVersion();
       this.logger.debug(`  Current version: ${currentVersion || "none"}`);
 
-      const metadata = await this.contentFetcher.fetchAllContent(tempDir, (progress: ContentFetchProgress) => {
-        this.emit("update-progress", progress);
+      const progressHandler = createProgressHandler({
+        logger: this.logger,
+        emitter: this.stateManager,
+        emitEvent: "update-progress",
       });
+      const metadata = await this.contentFetcher.fetchAllContent(tempDir, progressHandler);
 
       // Validate the new content
       const isValid = await this.fileSystemManager.validateContent(tempDir);
@@ -204,6 +216,7 @@ export class UpdateScheduler extends EventEmitter {
       this.lastError = null;
 
       this.logger.info(`Successfully updated content to commit ${metadata.commitHash}`);
+      this.stateManager.completeUpdate();
       this.emit("update-completed");
     } catch (error) {
       this.logger.error(`Update failed: ${error}`);
@@ -237,6 +250,20 @@ export class UpdateScheduler extends EventEmitter {
         this.logger.error(`Failed to cleanup temp directory: ${cleanupError}`);
       }
 
+      // Update state manager with failure
+      let errorMessage: string;
+      if (error instanceof DiskSpaceError) {
+        errorMessage = "No disk space available";
+      } else if (error instanceof MemoryError) {
+        errorMessage = "Insufficient memory available";
+      } else if (error instanceof GitHubNetworkError) {
+        errorMessage = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error);
+      }
+      this.stateManager.failUpdate(errorMessage, this.failedCommitHash || undefined);
       throw error;
     } finally {
       this.updateInProgress = false;
@@ -268,6 +295,32 @@ export class UpdateScheduler extends EventEmitter {
     return this.lastUpdateTime;
   }
 
+  // Methods to track external update operations (e.g., initial validation)
+  public notifyUpdateStarted(): void {
+    this.updateInProgress = true;
+    this.stateManager.startUpdate("validation");
+    this.emit("update-started");
+  }
+
+  public notifyUpdateCompleted(): void {
+    this.updateInProgress = false;
+    this.lastUpdateTime = new Date();
+    this.lastUpdateFailed = false;
+    this.failedUpdates = 0;
+    this.lastError = null;
+    this.stateManager.completeUpdate();
+    this.emit("update-completed");
+  }
+
+  public notifyUpdateFailed(error: unknown): void {
+    this.updateInProgress = false;
+    this.lastUpdateFailed = true;
+    this.failedUpdates++;
+    this.lastError = error instanceof Error ? error.message : String(error);
+    this.stateManager.failUpdate(this.lastError);
+    this.emit("update-failed", error);
+  }
+
   public async checkForUpdates(): Promise<boolean | undefined> {
     try {
       const metadata = await this.fileSystemManager.getMetadata();
@@ -279,6 +332,13 @@ export class UpdateScheduler extends EventEmitter {
       const latestDirectorySha = await this.contentFetcher.getDirectoryTreeSha();
 
       if (latestDirectorySha) {
+        // If metadata doesn't have directoryTreeSha, it's from before we added this field
+        // so we should update
+        if (!metadata.directoryTreeSha) {
+          this.logger.info("Metadata missing directoryTreeSha, update needed");
+          return true;
+        }
+
         const needsUpdate = metadata.directoryTreeSha !== latestDirectorySha;
 
         if (needsUpdate) {
@@ -350,6 +410,11 @@ export class UpdateScheduler extends EventEmitter {
     if (this.periodicCheckInterval) {
       clearInterval(this.periodicCheckInterval);
       this.periodicCheckInterval = null;
+    }
+
+    // Clean up the content fetcher if it has a destroy method
+    if ("destroy" in this.contentFetcher && typeof this.contentFetcher.destroy === "function") {
+      this.contentFetcher.destroy();
     }
   }
 }

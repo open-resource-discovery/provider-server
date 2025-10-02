@@ -7,6 +7,10 @@ import {
   isRemoteUrl,
   getFileName,
   getDirName,
+  createDocumentUrlPath,
+  createResourceUrlPath,
+  trimLeadingAndTrailingSlashes,
+  trimTrailingSlash,
 } from "../pathUtils.js";
 
 describe("Path Utilities", () => {
@@ -119,6 +123,75 @@ describe("Path Utilities", () => {
 
     it("should handle relative paths", () => {
       expect(getDirName("path/to/file.txt")).toBe("path/to");
+    });
+  });
+
+  describe("createDocumentUrlPath", () => {
+    it("should create document URL path from root and file path", () => {
+      const result = createDocumentUrlPath("/data/documents", "/data/documents/my-doc.json");
+      expect(result).toBe("/ord/v1/my-doc");
+    });
+
+    it("should handle nested documents", () => {
+      const result = createDocumentUrlPath("/data/documents", "/data/documents/sub/folder/doc.json");
+      expect(result).toBe("/ord/v1/sub/folder/doc");
+    });
+
+    it("should encode special characters in filename", () => {
+      const result = createDocumentUrlPath("/data/documents", "/data/documents/my doc.json");
+      expect(result).toContain("my%20doc");
+    });
+  });
+
+  describe("createResourceUrlPath", () => {
+    it("should create resource URL path from ordId and resource path", () => {
+      const result = createResourceUrlPath("sap.xref:apiResource:astronomy:v1", "openapi.json");
+      expect(result).toBe("/ord/v1/sap.xref:apiResource:astronomy:v1/openapi.json");
+    });
+
+    it("should handle resource paths with subdirectories", () => {
+      const result = createResourceUrlPath("sap.xref:eventResource:test:v1", "schemas/event.json");
+      expect(result).toBe("/ord/v1/sap.xref:eventResource:test:v1/schemas/event.json");
+    });
+  });
+
+  describe("trimLeadingAndTrailingSlashes", () => {
+    it("should remove leading and trailing slashes", () => {
+      expect(trimLeadingAndTrailingSlashes("/path/to/resource/")).toBe("path/to/resource");
+    });
+
+    it("should remove only leading slash", () => {
+      expect(trimLeadingAndTrailingSlashes("/path/to/resource")).toBe("path/to/resource");
+    });
+
+    it("should remove only trailing slash", () => {
+      expect(trimLeadingAndTrailingSlashes("path/to/resource/")).toBe("path/to/resource");
+    });
+
+    it("should not modify string without slashes", () => {
+      expect(trimLeadingAndTrailingSlashes("path")).toBe("path");
+    });
+
+    it("should return undefined for undefined input", () => {
+      expect(trimLeadingAndTrailingSlashes(undefined)).toBeUndefined();
+    });
+  });
+
+  describe("trimTrailingSlash", () => {
+    it("should remove trailing slash", () => {
+      expect(trimTrailingSlash("/path/to/resource/")).toBe("/path/to/resource");
+    });
+
+    it("should not modify string without trailing slash", () => {
+      expect(trimTrailingSlash("/path/to/resource")).toBe("/path/to/resource");
+    });
+
+    it("should return undefined for undefined input", () => {
+      expect(trimTrailingSlash(undefined)).toBeUndefined();
+    });
+
+    it("should not remove leading slash", () => {
+      expect(trimTrailingSlash("/path/")).toBe("/path");
     });
   });
 });

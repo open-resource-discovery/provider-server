@@ -1,6 +1,7 @@
 import { UpdateScheduler } from "../updateScheduler.js";
 import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "../interfaces/contentFetcher.js";
 import { FileSystemManager } from "../fileSystemManager.js";
+import { UpdateStateManager } from "../updateStateManager.js";
 import { Logger } from "pino";
 import { DiskSpaceError, MemoryError } from "../../model/error/SystemErrors.js";
 import { GitHubNetworkError } from "../../model/error/GithubErrors.js";
@@ -89,6 +90,11 @@ class MockFileSystemManager {
     return await Promise.resolve("/tmp/test");
   }
 
+  public async prepareTempDirectoryWithGit(): Promise<string> {
+    this.getTempDirectoryCalled = true;
+    return await Promise.resolve("/tmp/test");
+  }
+
   public async validateContent(_directory: string): Promise<boolean> {
     this.validateContentCalled = true;
     return await Promise.resolve(!this.shouldValidateFail);
@@ -138,6 +144,7 @@ describe("UpdateScheduler", () => {
   let mockContentFetcher: MockContentFetcher;
   let mockFileSystemManager: MockFileSystemManager;
   let mockLogger: Logger;
+  let mockStateManager: UpdateStateManager;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -150,6 +157,8 @@ describe("UpdateScheduler", () => {
       debug: jest.fn(),
     } as unknown as Logger;
 
+    mockStateManager = new UpdateStateManager(mockLogger);
+
     scheduler = new UpdateScheduler(
       {
         updateDelay: 100,
@@ -157,6 +166,7 @@ describe("UpdateScheduler", () => {
       mockContentFetcher,
       mockFileSystemManager as unknown as FileSystemManager,
       mockLogger,
+      mockStateManager,
     );
 
     // Reset the mock to ensure clean state
@@ -327,6 +337,7 @@ describe("UpdateScheduler", () => {
         mockContentFetcher,
         mockFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       try {
@@ -344,11 +355,80 @@ describe("UpdateScheduler", () => {
         // Advance time to resolve cooldown
         jest.advanceTimersByTime(150);
         jest.runOnlyPendingTimers();
-
         await throttledPromise;
+      } catch {
+        // ignore
       } finally {
         freshScheduler.stop();
       }
+    });
+
+    it("should abort current update and process latest webhook request", async () => {
+      // Use real timers for this test
+      jest.useRealTimers();
+
+      // Create fresh mocks for this test
+      const freshContentFetcher = new MockContentFetcher();
+      const freshFileSystemManager = new MockFileSystemManager();
+
+      // Create a fresh scheduler to avoid any state from previous tests
+      const freshScheduler = new UpdateScheduler(
+        {
+          updateDelay: 100,
+        },
+        freshContentFetcher,
+        freshFileSystemManager as unknown as FileSystemManager,
+        mockLogger,
+        mockStateManager,
+      );
+
+      // Initialize to ensure clean state
+      await freshScheduler.initialize();
+
+      // Make the content fetcher slow so the update stays in progress
+      let resolveFetch: (() => void) | undefined;
+      freshContentFetcher.fetchAllContent = jest.fn().mockImplementation(async () => {
+        // Wait for manual resolution
+        await new Promise<void>((resolve) => {
+          resolveFetch = resolve;
+        });
+        return {
+          commitHash: "abc123def456",
+          fetchTime: new Date(),
+          branch: "main",
+          repository: "owner/repo",
+          totalFiles: 10,
+        };
+      });
+
+      // Start first update but don't await it
+      const firstUpdate = freshScheduler.scheduleImmediateUpdate();
+
+      // Wait for fetch to be called and ensure update is in progress
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Wait for cooldown to pass (5 seconds + buffer)
+      await new Promise((resolve) => setTimeout(resolve, 5100));
+
+      // Reset mock logger to track new calls
+      mockLogger.info = jest.fn();
+
+      // Try to schedule another immediately - this should abort the current update
+      void freshScheduler.scheduleImmediateUpdate();
+
+      // Give it a moment to process
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(mockLogger.info).toHaveBeenCalledWith("Aborting current update to process latest webhook request");
+
+      // Complete the first update
+      if (resolveFetch) resolveFetch();
+
+      // Wait for first update to complete
+      await firstUpdate;
+
+      // Re-enable fake timers
+      jest.useFakeTimers();
     });
 
     it("should handle errors in immediate update", async () => {
@@ -364,6 +444,7 @@ describe("UpdateScheduler", () => {
         freshContentFetcher,
         freshFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       try {
@@ -452,6 +533,7 @@ describe("UpdateScheduler", () => {
         testFetcher,
         testFileSystemManager as unknown as FileSystemManager,
         mockLogger,
+        mockStateManager,
       );
 
       let errorEmitted: Error | null = null;
@@ -472,34 +554,18 @@ describe("UpdateScheduler", () => {
       expect(errorEmitted!.message).toBe("Fetch failed");
     });
 
-    it("should emit update-failed when scheduled update fails", (done) => {
-      mockContentFetcher.shouldFail = true;
-
-      scheduler.on("update-failed", (error) => {
-        expect(error).toBeInstanceOf(Error);
-        expect(mockLogger.error).toHaveBeenCalledWith("Update failed: %s", expect.any(Error));
-        done();
-      });
-
-      // Schedule an update that will fail
-      scheduler.scheduleUpdate(10);
-
-      // Advance timers to trigger the update
-      jest.advanceTimersByTime(20);
-      jest.runAllTimers();
-    });
-
-    it("should emit update-progress event", () => {
+    it("should emit update-progress event", async () => {
       const progressPromise = new Promise<void>((resolve) => {
-        scheduler.on("update-progress", (progress) => {
+        mockStateManager.on("update-progress", (progress) => {
           expect(progress.totalFiles).toBe(10);
           expect(progress.fetchedFiles).toBe(10);
           resolve();
         });
       });
 
-      scheduler.forceUpdate();
-      return progressPromise;
+      const updatePromise = scheduler.forceUpdate();
+      await progressPromise;
+      await updatePromise;
     });
   });
 

@@ -1,7 +1,6 @@
 import { GithubOpts } from "../model/github.js";
 import { OptAuthMethod, OptSourceType } from "../model/cli.js";
 import { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
-import { GithubDocumentRepository } from "../repositories/githubDocumentRepository.js";
 import { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
 import { CacheService } from "../services/cacheService.js";
 import { DocumentService } from "../services/documentService.js";
@@ -9,6 +8,8 @@ import { DocumentRouter } from "../routes/documentRouter.js";
 import { FqnDocumentMap } from "../util/fqnHelpers.js";
 import { ProcessingContext } from "../services/interfaces/processingContext.js";
 import { PATH_CONSTANTS } from "../constant.js";
+import { FileSystemManager } from "../services/fileSystemManager.js";
+import { log } from "../util/logger.js";
 
 interface FactoryOptions {
   sourceType: OptSourceType;
@@ -18,6 +19,7 @@ interface FactoryOptions {
   documentsSubDirectory?: string;
   githubOpts?: GithubOpts;
   ordDirectory?: string;
+  fileSystemManager?: FileSystemManager;
 }
 
 export class RouterFactory {
@@ -29,7 +31,12 @@ export class RouterFactory {
     const documentsSubDirectory = options.documentsSubDirectory || PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY;
 
     if (options.sourceType === OptSourceType.Github && options.githubOpts) {
-      repository = new GithubDocumentRepository(options.githubOpts);
+      // For GitHub source, use LocalDocumentRepository with the cloned content
+      if (!options.fileSystemManager) {
+        throw new Error("FileSystemManager is required for GitHub source type");
+      }
+      const currentPath = options.fileSystemManager.getCurrentPath();
+      repository = new LocalDocumentRepository(currentPath);
       processingContext = {
         baseUrl: options.baseUrl,
         authMethods: options.authMethods,
@@ -50,9 +57,35 @@ export class RouterFactory {
 
     const documentService = new DocumentService(repository, cacheService, processingContext, documentsSubDirectory);
 
-    // Ensure FQN map is generated and retrieve it
-    // Calling getFqnMap also ensures ensureDataLoaded has run
-    const fqnDocumentMap = await documentService.getFqnMap();
+    // For GitHub source, always defer document loading to avoid blocking server startup
+    let fqnDocumentMap = {};
+
+    if (options.sourceType === OptSourceType.Github) {
+      // Check branch mismatch for logging purposes only
+      if (options.fileSystemManager) {
+        const metadata = await options.fileSystemManager.getMetadata();
+
+        if (metadata && options.githubOpts) {
+          const branchMatches = metadata.branch === options.githubOpts.githubBranch;
+          const repoMatches = metadata.repository === options.githubOpts.githubRepository;
+
+          if (!branchMatches || !repoMatches) {
+            log.info(`Branch/repo will be updated in background:`);
+            log.info(`  Current: ${metadata.branch} (${metadata.repository})`);
+            log.info(`  Requested: ${options.githubOpts.githubBranch} (${options.githubOpts.githubRepository})`);
+          } else {
+            log.info(`Using existing content from ${metadata.branch} branch`);
+          }
+        }
+      }
+    }
+
+    if (options.sourceType === OptSourceType.Local) {
+      // For local source, load immediately (synchronous behavior)
+      fqnDocumentMap = await documentService.getFqnMap();
+    }
+    // For GitHub source, fqnDocumentMap stays as (empty)
+    // It will be loaded lazily on first request via ensureDataLoaded()
 
     const routerOptions = {
       baseUrl: options.baseUrl,
@@ -61,6 +94,8 @@ export class RouterFactory {
       documentsSubDirectory: documentsSubDirectory,
     };
 
-    return new DocumentRouter(documentService, routerOptions);
+    return new DocumentRouter(documentService, {
+      ...routerOptions,
+    });
   }
 }

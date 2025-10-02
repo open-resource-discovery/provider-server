@@ -20,56 +20,88 @@ import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelper
 import { getDocumentPerspective, Perspective } from "../model/perspective.js";
 
 export class DocumentService implements DocumentServiceInterface {
+  // Track in-progress loading operations to prevent duplicate cache builds
+  private readonly loadingPromises = new Map<string, Promise<void>>();
+
   // Method to ensure data (config, docs, FQN map) is loaded and cached
-  private async ensureDataLoaded(dirHash: string): Promise<void> {
+  private ensureDataLoaded(dirHash: string): Promise<void> {
     // Check if config is already cached for this hash, implying data is loaded
     if (this.cacheService.getCachedOrdConfig(dirHash)) {
-      return;
+      return Promise.resolve();
     }
 
-    log.debug(`Cache miss for hash ${dirHash}. Fetching documents, building config and FQN map.`);
-    const documentsMap = await this.repository.getDocuments(this.documentsDirectoryPath);
-    const ordConfig: ORDConfiguration = emptyOrdConfig(this.processingContext.baseUrl);
-    const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext.authMethods);
-    const documentPaths: string[] = [];
-    const processedDocsForFqn: ORDDocument[] = [];
+    // Check if already loading this hash
+    const existingPromise = this.loadingPromises.get(dirHash);
+    if (existingPromise) {
+      log.debug(`Cache load already in progress for hash ${dirHash}, waiting...`);
+      return existingPromise;
+    }
 
-    for (const [relativePath, document] of documentsMap.entries()) {
+    // Create and store the loading promise
+    const loadingPromise = (async (): Promise<void> => {
       try {
-        const processedDoc = this.processDocument(document, dirHash);
-        this.cacheService.cacheDocument(relativePath, dirHash, processedDoc);
-        documentPaths.push(relativePath);
-        processedDocsForFqn.push(processedDoc);
+        log.debug(`Cache miss for hash ${dirHash}. Fetching documents, building config and FQN map.`);
+        const documentsMap = await this.repository.getDocuments(this.documentsDirectoryPath);
+        const ordConfig: ORDConfiguration = emptyOrdConfig(this.processingContext.baseUrl);
+        const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext.authMethods);
+        const documentPaths: string[] = [];
 
-        const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
-        const perspective = getDocumentPerspective(document);
+        const processedDocsForFqn: ORDDocument[] = [];
 
-        // Create the document entry with perspective
-        const documentEntry: ORDV1DocumentDescription = {
-          url: documentUrl,
-          accessStrategies,
-          perspective,
-        };
+        let count = 0;
+        for (const [relativePath, document] of documentsMap.entries()) {
+          try {
+            const processedDoc = this.processDocument(document, dirHash);
+            this.cacheService.cacheDocument(relativePath, dirHash, processedDoc);
+            documentPaths.push(relativePath);
+            processedDocsForFqn.push(processedDoc);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ordConfig.openResourceDiscoveryV1.documents?.push(documentEntry as any);
-      } catch (error) {
-        log.warn(`Error processing document ${relativePath}: ${error}`);
+            const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+            const perspective = getDocumentPerspective(document);
+
+            // Create the document entry with perspective
+            const documentEntry: ORDV1DocumentDescription = {
+              url: documentUrl,
+              accessStrategies,
+              perspective,
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ordConfig.openResourceDiscoveryV1.documents?.push(documentEntry as any);
+          } catch (error) {
+            log.warn(`Error processing document ${relativePath}: ${error}`);
+          }
+
+          // Yield to event loop every 100 documents to keep server responsive
+          count++;
+          if (count % 100 === 0) {
+            await new Promise((resolve) => setImmediate(resolve));
+            log.debug(`Processed ${count}/${documentsMap.size} documents`);
+          }
+        }
+
+        if (ordConfig.openResourceDiscoveryV1.documents?.length === 0) {
+          log.warn(`No valid ORD documents found in ${this.documentsDirectoryPath}. Caching empty config/map.`);
+        }
+
+        const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(processedDocsForFqn);
+
+        // Cache everything associated with this hash
+        this.cacheService.setCachedOrdConfig(dirHash, ordConfig);
+        this.cacheService.setCachedDirectoryDocumentPaths(dirHash, documentPaths);
+        this.cacheService.setCachedFqnMap(dirHash, fqnDocumentMap);
+
+        log.info(`Cached config, paths, and FQN map for hash: ${dirHash}`);
+      } finally {
+        // Clean up the loading promise when done
+        this.loadingPromises.delete(dirHash);
       }
-    }
+    })();
 
-    // Generate FQN map
-    const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(processedDocsForFqn);
+    // Store the promise so concurrent requests can wait on it
+    this.loadingPromises.set(dirHash, loadingPromise);
 
-    if (ordConfig.openResourceDiscoveryV1.documents?.length === 0) {
-      log.warn(`No valid ORD documents found in ${this.documentsDirectoryPath}. Caching empty config/map.`);
-    }
-
-    // Cache everything associated with this hash
-    this.cacheService.setCachedOrdConfig(dirHash, ordConfig);
-    this.cacheService.setCachedDirectoryDocumentPaths(dirHash, documentPaths);
-    this.cacheService.setCachedFqnMap(dirHash, fqnDocumentMap);
-    log.info(`Cached config, paths, and FQN map for hash: ${dirHash}`);
+    return loadingPromise;
   }
 
   public constructor(

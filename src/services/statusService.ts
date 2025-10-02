@@ -8,6 +8,7 @@ import { LocalDocumentRepository } from "../repositories/localDocumentRepository
 import { OptSourceType } from "../model/cli.js";
 import { VersionService } from "./versionService.js";
 import { getPackageVersion } from "../util/files.js";
+import { UpdateStateManager } from "./updateStateManager.js";
 
 export interface StatusResponse {
   version: string;
@@ -56,6 +57,7 @@ export class StatusService {
   private readonly logger: Logger;
   private readonly serverOptions: ProviderServerOptions;
   private readonly localRepository: LocalDocumentRepository | null;
+  private readonly stateManager: UpdateStateManager | null;
   private readonly version: string;
   private readonly serverStartupTime: Date;
 
@@ -65,12 +67,14 @@ export class StatusService {
     logger: Logger,
     serverOptions: ProviderServerOptions,
     localRepository: LocalDocumentRepository | null = null,
+    stateManager: UpdateStateManager | null = null,
   ) {
     this.updateScheduler = updateScheduler;
     this.fileSystemManager = fileSystemManager;
     this.logger = logger;
     this.serverOptions = serverOptions;
     this.localRepository = localRepository;
+    this.stateManager = stateManager;
     this.version = getPackageVersion();
     this.serverStartupTime = new Date();
   }
@@ -121,29 +125,36 @@ export class StatusService {
         failedUpdates: 0,
         commitHash: null,
       };
-    } else if (this.fileSystemManager && this.updateScheduler) {
-      // GitHub mode needs both fileSystemManager and updateScheduler
-      const updateStatus = this.updateScheduler.getStatus();
-
+    } else if (this.fileSystemManager) {
+      // GitHub mode - get state from UpdateStateManager if available
+      const stateManagerStatus = this.stateManager?.getState();
+      const updateSchedulerStatus = this.updateScheduler?.getStatus();
       const currentVersion = await this.fileSystemManager.getCurrentVersion();
       const metadata = await this.fileSystemManager.getMetadata();
 
-      response.content = {
-        lastFetchTime: updateStatus.lastUpdateTime?.toISOString() || null,
-        currentVersion: currentVersion,
-        updateStatus: updateStatus.updateInProgress
+      // Use StateManager status if available, otherwise fall back to UpdateScheduler
+      const status =
+        stateManagerStatus?.status ??
+        (updateSchedulerStatus?.updateInProgress
           ? "in_progress"
-          : updateStatus.scheduledUpdateTime
+          : updateSchedulerStatus?.scheduledUpdateTime
             ? "scheduled"
-            : updateStatus.lastUpdateFailed
+            : updateSchedulerStatus?.lastUpdateFailed
               ? "failed"
-              : "idle",
-        scheduledUpdateTime: updateStatus.scheduledUpdateTime?.toISOString() || null,
-        failedUpdates: updateStatus.failedUpdates,
+              : "idle");
+
+      response.content = {
+        lastFetchTime:
+          (stateManagerStatus?.lastUpdateTime || updateSchedulerStatus?.lastUpdateTime)?.toISOString() || null,
+        currentVersion: currentVersion,
+        updateStatus: status,
+        scheduledUpdateTime:
+          (stateManagerStatus?.scheduledTime || updateSchedulerStatus?.scheduledUpdateTime)?.toISOString() || null,
+        failedUpdates: stateManagerStatus?.failedUpdates ?? updateSchedulerStatus?.failedUpdates ?? 0,
         commitHash: metadata?.commitHash || null,
-        failedCommitHash: updateStatus.failedCommitHash || null,
-        lastWebhookTime: this.updateScheduler.getLastWebhookTime()?.toISOString() || null,
-        lastError: updateStatus.lastError || undefined,
+        failedCommitHash: stateManagerStatus?.failedCommitHash ?? updateSchedulerStatus?.failedCommitHash ?? null,
+        lastWebhookTime: this.updateScheduler?.getLastWebhookTime()?.toISOString() || null,
+        lastError: stateManagerStatus?.lastError ?? updateSchedulerStatus?.lastError ?? undefined,
       };
     }
 

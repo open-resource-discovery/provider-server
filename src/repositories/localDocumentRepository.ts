@@ -10,9 +10,20 @@ import { joinFilePaths, normalizePath } from "../util/pathUtils.js";
 
 export class LocalDocumentRepository implements DocumentRepository {
   private readonly ordDirectory: string;
+  private directoryExists: boolean = false;
 
   public constructor(ordDirectory: string) {
     this.ordDirectory = normalizePath(ordDirectory);
+    this.checkDirectoryExists();
+  }
+
+  private checkDirectoryExists(): void {
+    try {
+      const stats = fs.statSync(this.ordDirectory);
+      this.directoryExists = stats.isDirectory();
+    } catch {
+      this.directoryExists = false;
+    }
   }
 
   private getFullLocalPath(relativePath: string): string {
@@ -64,16 +75,27 @@ export class LocalDocumentRepository implements DocumentRepository {
     })();
   }
 
-  public getDirectoryHash(directoryPath: string): Promise<string | null> {
+  public async getDirectoryHash(directoryPath: string): Promise<string | null> {
+    if (!this.directoryExists) {
+      return Promise.resolve("no-content");
+    }
     const fullDirectoryPath = this.getFullLocalPath(directoryPath);
     try {
+      // Check if directory exists first
+      if (!fs.existsSync(fullDirectoryPath)) {
+        log.debug(`Directory ${fullDirectoryPath} does not exist yet`);
+        return Promise.resolve(null);
+      }
+
       // Simple hash based on file modification times for local directories
-      const files = getAllFiles(fullDirectoryPath);
+      const files = await getAllFiles(fullDirectoryPath);
+
       const hash = crypto.createHash("sha256");
       for (const file of files.sort()) {
         const stats = fs.statSync(file);
         hash.update(file + stats.mtimeMs);
       }
+
       return Promise.resolve(hash.digest("hex"));
     } catch (error) {
       log.error(`Error calculating hash for local directory ${fullDirectoryPath}: ${error}`);
@@ -81,10 +103,13 @@ export class LocalDocumentRepository implements DocumentRepository {
     }
   }
 
-  public listFiles(directoryPath: string, _recursive?: boolean): Promise<string[]> {
+  public async listFiles(directoryPath: string, _recursive?: boolean): Promise<string[]> {
+    if (!this.directoryExists) {
+      return Promise.resolve([]);
+    }
     const fullDirectoryPath = this.getFullLocalPath(directoryPath);
     try {
-      const files = getAllFiles(fullDirectoryPath);
+      const files = await getAllFiles(fullDirectoryPath);
       return Promise.resolve(
         files.map((file) => path.relative(this.ordDirectory, file).split(path.sep).join(path.posix.sep)),
       );
