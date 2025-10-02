@@ -1,5 +1,6 @@
 import { GitCloneContentFetcher } from "../gitCloneContentFetcher.js";
 import { GithubConfig } from "../../model/github.js";
+import { GitHubBranchNotFoundError } from "../../model/error/GithubErrors.js";
 
 // Mock gitWorkerManager at the module level (already mocked in testSetup.ts)
 jest.mock("../gitWorkerManager.js");
@@ -99,7 +100,7 @@ describe("GitCloneContentFetcher", () => {
         refs: { heads: { develop: "some123commit" } },
       });
 
-      await expect(fetcher.getLatestCommitSha()).rejects.toThrow("Branch main not found in remote repository");
+      await expect(fetcher.getLatestCommitSha()).rejects.toThrow(GitHubBranchNotFoundError);
     });
 
     it("should handle network error", async () => {
