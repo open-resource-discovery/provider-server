@@ -31,28 +31,22 @@ export async function initializeGitSource(
   fileSystemManager: FileSystemManager,
   stateManager?: UpdateStateManager,
 ): Promise<{ contentAvailable: boolean; version?: string }> {
-  const errors: string[] = [];
-
   try {
     await performGitInitialization(options, fileSystemManager, stateManager);
   } catch (error: unknown) {
-    let message: string;
     if (error instanceof BackendError) {
-      message = error.message;
-    } else if (error instanceof Error) {
+      throw error;
+    }
+
+    // Only wrap generic errors in ValidationError
+    let message: string;
+    if (error instanceof Error) {
       message = `An unexpected error occurred during GitHub initialization: ${error.message}`;
     } else {
       message = `An unexpected error occurred during GitHub initialization: ${String(error)}`;
     }
 
-    // Notify state manager of failure
-    stateManager?.failUpdate(message);
-
-    errors.push(message);
-  }
-
-  if (errors.length > 0) {
-    throw ValidationError.fromErrors(errors);
+    throw ValidationError.fromErrors([message]);
   }
 
   const version = await fileSystemManager.getCurrentVersion();

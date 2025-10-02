@@ -5,7 +5,11 @@ import http from "isomorphic-git/http/node";
 import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "./interfaces/contentFetcher.js";
 import { GithubConfig } from "../model/github.js";
 import { log } from "../util/logger.js";
-import { GitHubNetworkError } from "../model/error/GithubErrors.js";
+import {
+  GitHubNetworkError,
+  GitHubBranchNotFoundError,
+  GitHubRepositoryNotFoundError,
+} from "../model/error/GithubErrors.js";
 import { DiskSpaceError } from "../model/error/SystemErrors.js";
 import { GitWorkerManager } from "./gitWorkerManager.js";
 
@@ -107,7 +111,33 @@ export class GitCloneContentFetcher implements ContentFetcher {
         throw new Error("Fetch aborted");
       }
 
+      if (
+        error instanceof GitHubBranchNotFoundError ||
+        error instanceof GitHubRepositoryNotFoundError ||
+        error instanceof GitHubNetworkError ||
+        error instanceof DiskSpaceError
+      ) {
+        throw error;
+      }
+
       if (error instanceof Error) {
+        if (error.message.includes("Could not find") && error.message.includes(this.config.branch)) {
+          throw GitHubBranchNotFoundError.forBranch(
+            this.config.branch,
+            `${this.config.owner}/${this.config.repo}`,
+            error,
+          );
+        }
+
+        if (
+          error.message.includes("404") ||
+          error.message.includes("not found") ||
+          error.message.includes("Repository not found") ||
+          error.message.includes("repository does not exist")
+        ) {
+          throw GitHubRepositoryNotFoundError.forRepository(this.config.owner, this.config.repo, error);
+        }
+
         if (
           error.message.includes("Could not resolve host") ||
           error.message.includes("Connection refused") ||
@@ -124,7 +154,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
         }
       }
 
-      log.error(error, "Git clone/pull failed:", error);
+      log.debug(error, "Git clone/pull failed:", error);
       throw error;
     } finally {
       this.abortController = null;
@@ -158,8 +188,21 @@ export class GitCloneContentFetcher implements ContentFetcher {
         return info.refs.heads[this.config.branch];
       }
 
-      throw new Error(`Branch ${this.config.branch} not found in remote repository`);
+      throw GitHubBranchNotFoundError.forBranch(this.config.branch, `${this.config.owner}/${this.config.repo}`);
     } catch (error) {
+      if (error instanceof GitHubBranchNotFoundError) {
+        throw error;
+      }
+
+      if (
+        error instanceof Error &&
+        (error.message.includes("404") ||
+          error.message.includes("not found") ||
+          error.message.includes("Repository not found"))
+      ) {
+        throw GitHubRepositoryNotFoundError.forRepository(this.config.owner, this.config.repo, error);
+      }
+
       log.error(`Failed to get latest commit SHA: ${error}`);
       throw error;
     }

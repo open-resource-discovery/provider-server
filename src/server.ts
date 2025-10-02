@@ -24,6 +24,7 @@ import { initializeGitSource } from "./util/gitInitializer.js";
 import cors from "@fastify/cors";
 import { UpdateStateManager } from "./services/updateStateManager.js";
 import { createReadinessGate } from "./middleware/readinessGate.js";
+import { GitHubBranchNotFoundError, GitHubRepositoryNotFoundError } from "./model/error/GithubErrors.js";
 
 const version = getPackageVersion();
 
@@ -161,9 +162,23 @@ async function performOnlineValidation(
       }
     }
   } catch (error) {
-    log.error("Online validation failed: %s", error);
     if (updateScheduler) {
       updateScheduler.notifyUpdateFailed(error);
+    }
+
+    if (error instanceof GitHubBranchNotFoundError || error instanceof GitHubRepositoryNotFoundError) {
+      const hasExistingContent = await fileSystemManager.getCurrentVersion();
+
+      if (!hasExistingContent) {
+        log.error("Failed to initialize GitHub content: %s", error.message);
+        log.error("Please check your GitHub repository and branch configuration");
+        log.warn("Server is running but cannot serve content - check /status for details");
+      } else {
+        log.warn("Validation failed but continuing with existing content: %s", error.message);
+        log.warn("Server will serve stale content until configuration is fixed");
+      }
+    } else {
+      log.error("Online validation failed: %s", error);
     }
   }
 }
