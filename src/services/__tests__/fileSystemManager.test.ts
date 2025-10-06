@@ -41,10 +41,15 @@ describe("FileSystemManager", () => {
         .access(path.join(testDataDir, "temp"))
         .then(() => true)
         .catch(() => false);
+      const documentsDirExists = await fs
+        .access(path.join(testDataDir, "current", "documents"))
+        .then(() => true)
+        .catch(() => false);
 
       expect(dataDirExists).toBe(true);
       expect(currentDirExists).toBe(true);
       expect(tempDirExists).toBe(true);
+      expect(documentsDirExists).toBe(true);
     });
   });
 

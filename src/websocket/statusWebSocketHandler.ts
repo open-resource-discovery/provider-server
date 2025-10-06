@@ -5,6 +5,7 @@ import { StatusService } from "../services/statusService.js";
 import { VersionService } from "../services/versionService.js";
 import { UpdateScheduler } from "../services/updateScheduler.js";
 import { getPackageVersion } from "../util/files.js";
+import { UpdateStateManager } from "../services/updateStateManager.js";
 
 interface WebSocketMessage {
   type: string;
@@ -17,44 +18,61 @@ export class StatusWebSocketHandler {
   private readonly clients: Set<WebSocket> = new Set();
   private readonly statusService: StatusService;
   private readonly logger: Logger;
+  private readonly stateManager: UpdateStateManager | null;
   private readonly version: string;
 
-  public constructor(statusService: StatusService, updateScheduler: UpdateScheduler | null, logger: Logger) {
+  public constructor(
+    statusService: StatusService,
+    updateScheduler: UpdateScheduler | null,
+    logger: Logger,
+    stateManager: UpdateStateManager | null = null,
+  ) {
     this.statusService = statusService;
     this.logger = logger;
+    this.stateManager = stateManager;
     this.version = getPackageVersion();
 
-    // Subscribe to update events
-    if (updateScheduler) {
-      updateScheduler.on("update-started", () => {
+    // Subscribe to update events from state manager (primary) or scheduler (fallback)
+    const eventSource = stateManager || updateScheduler;
+
+    if (eventSource) {
+      eventSource.on("update-started", () => {
         this.broadcast({ type: "update-started" });
       });
 
-      updateScheduler.on("update-completed", () => {
+      eventSource.on("update-completed", () => {
         this.broadcast({ type: "update-completed" });
         // Send fresh status after update
         this.broadcastStatus();
       });
 
-      updateScheduler.on("update-failed", (error: Error) => {
+      eventSource.on("update-failed", (error: Error | string) => {
+        const errorMessage = typeof error === "string" ? error : error.message || "Update failed";
         this.broadcast({
           type: "update-failed",
-          error: error.message || "Update failed",
+          error: errorMessage,
         });
       });
 
-      updateScheduler.on("update-scheduled", (scheduledTime: Date) => {
+      eventSource.on("update-scheduled", (scheduledTime: Date) => {
         this.broadcast({
           type: "update-scheduled",
           scheduledTime: scheduledTime.toISOString(),
         });
       });
 
-      updateScheduler.on("update-progress", (progress: unknown) => {
+      eventSource.on("update-progress", (progress: unknown) => {
         this.broadcast({
           type: "update-progress",
           data: progress,
         });
+      });
+    }
+
+    if (stateManager) {
+      stateManager.on("state-changed", () => {
+        // Send fresh status whenever state changes
+        this.broadcastStatus();
       });
     }
   }
@@ -84,7 +102,7 @@ export class StatusWebSocketHandler {
     });
 
     socket.on("close", () => {
-      this.logger.info("WebSocket connection closed");
+      this.logger.debug("WebSocket connection closed");
       this.clients.delete(socket);
     });
 

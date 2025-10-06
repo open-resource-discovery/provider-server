@@ -47,3 +47,27 @@ export class MemoryError extends BackendError {
     return new MemoryError(message, target, details);
   }
 }
+
+/**
+ * Error thrown when an operation times out
+ */
+export class TimeoutError extends BackendError {
+  public name = "TimeoutError";
+  public httpStatusCode = 503; // Service Unavailable
+
+  public constructor(message: string, target?: string, details?: DetailError[]) {
+    super(message, "TIMEOUT_ERROR", target, details);
+  }
+
+  public static fromWaitError(error: Error, operation: string): TimeoutError {
+    const message = "Operation timed out while waiting for service to be ready";
+    const details: DetailError[] = [
+      {
+        code: "WAIT_TIMEOUT",
+        message: error.message || `Timeout during ${operation}`,
+      },
+    ];
+
+    return new TimeoutError(message, operation, details);
+  }
+}

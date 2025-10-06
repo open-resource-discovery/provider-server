@@ -124,3 +124,59 @@ export class GitHubDirectoryInvalidError extends BackendError {
     return new GitHubDirectoryInvalidError(message, path, details);
   }
 }
+
+export class GitHubRepositoryNotFoundError extends BackendError {
+  public name = "GitHubRepositoryNotFoundError";
+  public httpStatusCode = 404;
+
+  public constructor(message: string, target?: string, details?: DetailError[]) {
+    super(message, "GITHUB_REPOSITORY_NOT_FOUND", target, details);
+  }
+
+  public static forRepository(owner: string, repo: string, originalError?: Error): GitHubRepositoryNotFoundError {
+    const message = `GitHub repository not found: ${owner}/${repo}`;
+    const details: DetailError[] = [
+      {
+        code: "REPOSITORY_NOT_FOUND",
+        message: `The repository '${owner}/${repo}' does not exist or you don't have access to it`,
+      },
+    ];
+
+    if (originalError) {
+      details.push({
+        code: "ORIGINAL_ERROR",
+        message: originalError.message,
+      });
+    }
+
+    return new GitHubRepositoryNotFoundError(message, `${owner}/${repo}`, details);
+  }
+}
+
+export class GitHubBranchNotFoundError extends BackendError {
+  public name = "GitHubBranchNotFoundError";
+  public httpStatusCode = 404;
+
+  public constructor(message: string, target?: string, details?: DetailError[]) {
+    super(message, "GITHUB_BRANCH_NOT_FOUND", target, details);
+  }
+
+  public static forBranch(branch: string, repository: string, originalError?: Error): GitHubBranchNotFoundError {
+    const message = `GitHub branch not found: ${branch}`;
+    const details: DetailError[] = [
+      {
+        code: "BRANCH_NOT_FOUND",
+        message: `The branch '${branch}' does not exist in repository '${repository}'`,
+      },
+    ];
+
+    if (originalError) {
+      details.push({
+        code: "ORIGINAL_ERROR",
+        message: originalError.message,
+      });
+    }
+
+    return new GitHubBranchNotFoundError(message, `${repository}#${branch}`, details);
+  }
+}

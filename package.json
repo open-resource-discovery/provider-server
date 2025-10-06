@@ -1,6 +1,6 @@
 {
   "name": "@open-resource-discovery/provider-server",
-  "version": "0.9.4",
+  "version": "0.10.0",
   "description": "A CLI application or server that takes multiple ORD documents and other metadata files and exposes them as a ORD Provider implementation (ORD Document API)",
   "engines": {
     "node": ">=22.8.0",
@@ -50,6 +50,7 @@
     "fastify": "5.6.1",
     "fastify-plugin": "5.1.0",
     "fastify-raw-body": "5.0.0",
+    "isomorphic-git": "^1.33.0",
     "p-limit": "7.1.1",
     "pino": "10.0.0",
     "pino-pretty": "13.1.1"

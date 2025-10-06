@@ -217,7 +217,7 @@ describe("StatusWebSocketHandler", () => {
       connectionHandler(mockSocket, {});
       closeHandler!();
 
-      expect(mockLogger.info).toHaveBeenCalledWith("WebSocket connection closed");
+      expect(mockLogger.debug).toHaveBeenCalledWith("WebSocket connection closed");
     });
 
     it("should handle socket error event", () => {
