@@ -30,6 +30,10 @@ export class LocalDocumentRepository implements DocumentRepository {
     return joinFilePaths(this.ordDirectory, relativePath);
   }
 
+  public getOrdDirectory(): string {
+    return this.ordDirectory;
+  }
+
   public getDocument(path: string): Promise<ORDDocument | null> {
     const fullPath = this.getFullLocalPath(path);
     try {

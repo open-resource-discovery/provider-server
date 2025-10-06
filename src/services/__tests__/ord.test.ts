@@ -14,6 +14,7 @@ const mockRepository: jest.Mocked<DocumentRepository> = {
   getDirectoryHash: jest.fn(),
   listFiles: jest.fn(),
   getFileContent: jest.fn(),
+  getOrdDirectory: jest.fn(() => "/mock/ord/dir"),
 };
 
 let cacheService: CacheService;
@@ -71,6 +72,7 @@ describe("DocumentService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.values(mockRepository).forEach((mockFn) => mockFn.mockReset());
+    mockRepository.getOrdDirectory.mockReturnValue("/mock/ord/dir");
     cacheService = new CacheService();
     documentService = new DocumentService(mockRepository, cacheService, mockContext, testDocumentsDirectory);
   });

@@ -3,7 +3,7 @@ import { ContentFetchProgress } from "./interfaces/contentFetcher.js";
 import { Logger } from "pino";
 import { log as defaultLogger } from "../util/logger.js";
 
-export type UpdateStatus = "idle" | "in_progress" | "scheduled" | "failed";
+export type UpdateStatus = "idle" | "in_progress" | "scheduled" | "failed" | "cache_warming";
 export type UpdateSource = "validation" | "scheduler" | "webhook" | "manual";
 
 export interface UpdateState {
@@ -70,7 +70,7 @@ export class UpdateStateManager extends EventEmitter {
           this.emit("update-started");
           break;
         case "idle":
-          if (previousState.status === "in_progress") {
+          if (previousState.status === "in_progress" || previousState.status === "cache_warming") {
             this.emit("update-completed");
           }
           break;
@@ -232,6 +232,30 @@ export class UpdateStateManager extends EventEmitter {
         cleanup();
         resolve();
       }
+    });
+  }
+
+  /**
+   * Start cache warming
+   */
+  public startCacheWarming(): void {
+    this.logger.info("Starting cache warming");
+    this.setState({
+      status: "cache_warming",
+      phase: "Warming cache",
+      updateInProgress: true,
+    });
+  }
+
+  /**
+   * Complete cache warming
+   */
+  public completeCacheWarming(): void {
+    this.logger.info("Cache warming completed");
+    this.setState({
+      status: "idle",
+      phase: undefined,
+      updateInProgress: false,
     });
   }
 }

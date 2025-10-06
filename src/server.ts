@@ -25,6 +25,7 @@ import cors from "@fastify/cors";
 import { UpdateStateManager } from "./services/updateStateManager.js";
 import { createReadinessGate } from "./middleware/readinessGate.js";
 import { GitHubBranchNotFoundError, GitHubRepositoryNotFoundError } from "./model/error/GithubErrors.js";
+import { CacheService } from "./services/cacheService.js";
 
 const version = getPackageVersion();
 
@@ -35,6 +36,7 @@ type ShutdownFunction = () => Promise<void>;
 let fileSystemManager: FileSystemManager | null = null;
 let updateScheduler: UpdateScheduler | null = null;
 let updateStateManager: UpdateStateManager | null = null;
+let cacheServiceGlobal: CacheService | null = null;
 
 export async function startProviderServer(opts: ProviderServerOptions): Promise<ShutdownFunction> {
   log.info("============================================================");
@@ -127,7 +129,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 
   // For GitHub source, perform online validation after server has started
   if (opts.sourceType === OptSourceType.Github && fileSystemManager) {
-    performOnlineValidation(opts, fileSystemManager).catch((error) => {
+    performOnlineValidation(opts, fileSystemManager, cacheServiceGlobal).catch((error) => {
       log.error("Background online validation failed:", error);
     });
   }
@@ -138,6 +140,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 async function performOnlineValidation(
   opts: ProviderServerOptions,
   fileSystemManager: FileSystemManager,
+  cacheService: CacheService | null,
 ): Promise<void> {
   log.info("Starting online validation and content synchronization...");
 
@@ -147,7 +150,7 @@ async function performOnlineValidation(
     }
 
     // Initialize git source - this will clone and validate the GitHub repository
-    const validationResult = await initializeGitSource(opts, fileSystemManager, updateStateManager!);
+    const validationResult = await initializeGitSource(opts, fileSystemManager, updateStateManager!, cacheService);
 
     if (validationResult.contentAvailable) {
       log.info("Online validation complete. Content is now available.");
@@ -207,6 +210,7 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
     opts,
     localRepository,
     updateStateManager,
+    cacheServiceGlobal,
   );
   const wsHandler = new StatusWebSocketHandler(statusService, updateScheduler, log, updateStateManager);
   // @ts-expect-error Type mismatch between Fastify instance types
@@ -279,7 +283,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   const effectiveOrdDirectory =
     opts.sourceType === OptSourceType.Github ? fileSystemManager!.getCurrentPath() : opts.ordDirectory;
 
-  const router = await RouterFactory.createRouter({
+  const { router, cacheService } = await RouterFactory.createRouter({
     sourceType: opts.sourceType,
     baseUrl: baseUrl,
     authMethods: opts.authentication.methods,
@@ -298,6 +302,12 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
         : undefined,
     fileSystemManager: fileSystemManager || undefined,
   });
+
+  cacheServiceGlobal = cacheService;
+
+  if (opts.sourceType === OptSourceType.Github && updateScheduler) {
+    updateScheduler.setCacheService(cacheService, opts.ordDocumentsSubDirectory);
+  }
 
   router.register(server);
 }

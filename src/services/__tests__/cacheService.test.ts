@@ -51,7 +51,6 @@ describe("CacheService", () => {
       const retrieved = cacheService.getDocumentFromCache(path, dirHash);
 
       expect(retrieved).toEqual(mockDocument);
-      expect(log.debug).toHaveBeenCalledWith(`Caching document: ${path} with hash: ${dirHash}`);
       expect(log.debug).toHaveBeenCalledWith(`Cache hit for document: ${path} with hash: ${dirHash}`);
     });
 
@@ -93,7 +92,6 @@ describe("CacheService", () => {
       const retrieved = cacheService.getCachedOrdConfig(dirHash);
 
       expect(retrieved).toEqual(mockConfig);
-      expect(log.debug).toHaveBeenCalledWith(`Caching ORD config with hash: ${dirHash}`);
       expect(log.debug).toHaveBeenCalledWith(`Cache hit for ORD config with hash: ${dirHash}`);
     });
 
@@ -114,7 +112,6 @@ describe("CacheService", () => {
       const retrieved = cacheService.getCachedDirectoryDocumentPaths(dirHash);
 
       expect(retrieved).toEqual(paths);
-      expect(log.debug).toHaveBeenCalledWith(`Caching document paths for hash: ${dirHash}`);
       expect(log.debug).toHaveBeenCalledWith(`Cache hit for document paths with hash: ${dirHash}`);
     });
 
@@ -155,7 +152,6 @@ describe("CacheService", () => {
       const retrieved = cacheService.getCachedFqnMap(dirHash);
 
       expect(retrieved).toEqual(mockFqnMap);
-      expect(log.debug).toHaveBeenCalledWith(`Caching FQN map with hash: ${dirHash}`);
       expect(log.debug).toHaveBeenCalledWith(`Cache hit for FQN map with hash: ${dirHash}`);
     });
 

@@ -1,7 +1,24 @@
-import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
+import * as fs from "fs/promises";
+import * as path from "path";
+import {
+  ORDConfiguration,
+  ORDDocument,
+  APIResource,
+  EventResource,
+  ORDV1DocumentDescription,
+  SystemVersion,
+} from "@open-resource-discovery/specification";
 import { CacheService as CacheServiceInterface } from "./interfaces/cacheService.js";
 import { log } from "../util/logger.js";
-import { FqnDocumentMap } from "../util/fqnHelpers.js";
+import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
+import { ProcessingContext } from "./interfaces/processingContext.js";
+import { Logger } from "pino";
+import { getAllFiles } from "../util/files.js";
+import { validateOrdDocument } from "../util/validateOrdDocument.js";
+import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../util/ordConfig.js";
+import { ordIdToPathSegment, joinUrlPaths } from "../util/pathUtils.js";
+import { PATH_CONSTANTS } from "../constant.js";
+import { getDocumentPerspective } from "../model/perspective.js";
 
 export class CacheService implements CacheServiceInterface {
   // Cache for individual documents, keyed by their full path
@@ -14,6 +31,17 @@ export class CacheService implements CacheServiceInterface {
   private readonly fqnMapCache: Map<string, FqnDocumentMap> = new Map();
   // Store the last known hash for each directory path to detect changes
   private readonly lastKnownDirHashMap: Map<string, string> = new Map();
+
+  private currentWarmingPromise: Promise<void> | null = null;
+  private currentDirHash: string | null = null;
+  private abortController: AbortController | null = null;
+  private readonly processingContext: ProcessingContext | null;
+  private readonly logger: Logger;
+
+  public constructor(processingContext?: ProcessingContext, logger?: Logger) {
+    this.processingContext = processingContext || null;
+    this.logger = logger || log;
+  }
 
   /**
    * Retrieves a cached ORD document only if the directory hash matches
@@ -36,7 +64,6 @@ export class CacheService implements CacheServiceInterface {
    * Caches an ORD document and associates its path with the directory hash.
    */
   public cacheDocument(path: string, dirHash: string, document: ORDDocument): void {
-    log.debug(`Caching document: ${path} with hash: ${dirHash}`);
     this.documentCache.set(path, document);
 
     // Ensure the path is associated with the directory hash
@@ -64,7 +91,6 @@ export class CacheService implements CacheServiceInterface {
    * Caches the ORD configuration associated with a directory hash.
    */
   public setCachedOrdConfig(dirHash: string, config: ORDConfiguration): void {
-    log.debug(`Caching ORD config with hash: ${dirHash}`);
     this.configCache.set(dirHash, config);
   }
 
@@ -85,7 +111,6 @@ export class CacheService implements CacheServiceInterface {
    * Caches the list of document paths associated with a directory hash.
    */
   public setCachedDirectoryDocumentPaths(dirHash: string, paths: string[]): void {
-    log.debug(`Caching document paths for hash: ${dirHash}`);
     this.dirDocumentPathsCache.set(dirHash, paths);
   }
 
@@ -110,7 +135,6 @@ export class CacheService implements CacheServiceInterface {
    * @param map The FQN map to cache.
    */
   public setCachedFqnMap(dirHash: string, map: FqnDocumentMap): void {
-    log.debug(`Caching FQN map with hash: ${dirHash}`);
     this.fqnMapCache.set(dirHash, map);
   }
 
@@ -173,5 +197,283 @@ export class CacheService implements CacheServiceInterface {
     this.dirDocumentPathsCache.clear();
     this.fqnMapCache.clear();
     this.lastKnownDirHashMap.clear();
+  }
+
+  /**
+   * Warm the cache by processing all documents in the background
+   * @param documentsFullPath Absolute path to documents directory
+   * @param dirHash Directory hash for cache key
+   * @param documentsSubDirectory Subdirectory name to prepend to relative paths (e.g., "documents")
+   * @returns Promise that resolves when warming is complete
+   */
+  public async warmCache(documentsFullPath: string, dirHash: string, documentsSubDirectory?: string): Promise<void> {
+    if (!this.processingContext) {
+      this.logger.debug("Cache warming not available in local mode");
+      return Promise.resolve();
+    }
+
+    if (this.getCachedOrdConfig(dirHash)) {
+      this.logger.debug(`Cache already warm for hash ${dirHash}`);
+      return Promise.resolve();
+    }
+
+    // If already warming this exact hash, return existing promise
+    if (this.currentDirHash === dirHash && this.currentWarmingPromise) {
+      this.logger.debug(`Cache warming already in progress for hash ${dirHash}, waiting...`);
+      return this.currentWarmingPromise;
+    }
+
+    // If warming a different hash, wait for it to complete first
+    if (this.currentWarmingPromise && this.currentDirHash !== dirHash) {
+      this.logger.debug(
+        `Cache warming in progress for different hash ${this.currentDirHash}, waiting for completion...`,
+      );
+      await this.currentWarmingPromise.catch(() => {});
+    }
+
+    this.logger.info(`Starting cache warming for hash ${dirHash}`);
+    this.currentDirHash = dirHash;
+    this.abortController = new AbortController();
+    this.currentWarmingPromise = this.executeWarming(
+      documentsFullPath,
+      dirHash,
+      documentsSubDirectory || "",
+      this.abortController.signal,
+    );
+
+    return this.currentWarmingPromise;
+  }
+
+  private async executeWarming(
+    documentsFullPath: string,
+    dirHash: string,
+    documentsSubDirectory: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    try {
+      const baseUrl = this.processingContext!.baseUrl;
+      const authMethods = this.processingContext!.authMethods;
+
+      const allFiles = await getAllFiles(documentsFullPath);
+      const jsonFiles = allFiles.filter((file) => file.endsWith(".json"));
+
+      this.logger.info(`Cache warming: processing ${jsonFiles.length} documents`);
+
+      const documents: { relativePath: string; document: ORDDocument }[] = [];
+      const processedDocsForFqn: ORDDocument[] = [];
+      const ordConfig: ORDConfiguration = emptyOrdConfig(baseUrl);
+      const accessStrategies = getOrdDocumentAccessStrategies(authMethods);
+      const documentPaths: string[] = [];
+
+      let processed = 0;
+
+      for (const filePath of jsonFiles) {
+        // Check if warming was cancelled
+        if (signal.aborted) {
+          this.logger.info("Cache warming cancelled");
+          return;
+        }
+        try {
+          // Read and parse document
+          const content = await fs.readFile(filePath, "utf-8");
+          const jsonData = JSON.parse(content);
+
+          // Validate as ORD document
+          if (jsonData && jsonData.openResourceDiscovery) {
+            validateOrdDocument(jsonData as ORDDocument);
+
+            // Calculate relative path
+            // Prepend documentsSubDirectory to match the path structure expected by URLs
+            const fileRelativePath = path.relative(documentsFullPath, filePath).split(path.sep).join(path.posix.sep);
+            const relativePath = documentsSubDirectory
+              ? path.posix.join(documentsSubDirectory, fileRelativePath)
+              : fileRelativePath;
+
+            // Process the document
+            const processedDoc = this.processDocument(jsonData as ORDDocument, dirHash);
+
+            documents.push({
+              relativePath,
+              document: processedDoc,
+            });
+
+            documentPaths.push(relativePath);
+            processedDocsForFqn.push(processedDoc);
+
+            // Add to ORD config
+            const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+            const perspective = getDocumentPerspective(jsonData as ORDDocument);
+
+            const documentEntry: ORDV1DocumentDescription = {
+              url: documentUrl,
+              accessStrategies,
+              perspective,
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ordConfig.openResourceDiscoveryV1.documents?.push(documentEntry as any);
+          }
+        } catch (_error) {
+          // Skip invalid documents but continue processing other files
+        }
+
+        processed++;
+
+        // Log progress every 100 documents or on last document (reduce log noise)
+        if (processed % 100 === 0 || processed === jsonFiles.length) {
+          this.logger.info(`Cache warming progress: ${processed}/${jsonFiles.length} documents processed`);
+        }
+
+        // Check abort signal more frequently for responsiveness
+        if (processed % 10 === 0 && signal.aborted) {
+          this.logger.info("Cache warming cancelled");
+          return;
+        }
+      }
+
+      // Build FQN map
+      const fqnMap = getFlattenedOrdFqnDocumentMap(processedDocsForFqn);
+
+      // Update cache with results
+      for (const { relativePath, document } of documents) {
+        this.cacheDocument(relativePath, dirHash, document);
+      }
+      this.setCachedOrdConfig(dirHash, ordConfig);
+      this.setCachedDirectoryDocumentPaths(dirHash, documentPaths);
+      this.setCachedFqnMap(dirHash, fqnMap);
+
+      this.logger.info(
+        `Cache warming completed: ${documents.length} documents cached for hash ${dirHash.substring(0, 8)}`,
+      );
+    } catch (error) {
+      // Only log error if not aborted
+      if (!signal.aborted) {
+        this.logger.error(`Cache warming failed: ${error}`);
+        throw error;
+      }
+    } finally {
+      this.currentWarmingPromise = null;
+      this.currentDirHash = null;
+      this.abortController = null;
+    }
+  }
+
+  private processDocument(document: ORDDocument, directoryHash: string): ORDDocument {
+    const eventResources = this.processResourceDefinition(document.eventResources || []);
+    const apiResources = this.processResourceDefinition(document.apiResources || []);
+
+    const perspective = getDocumentPerspective(document);
+
+    // Only inject describedSystemVersion for system-version perspective documents that don't have it
+    const describedSystemVersion =
+      document.describedSystemVersion ||
+      (perspective === "system-version" ? this.getDefaultDescribedSystemVersion(directoryHash) : undefined);
+
+    return {
+      ...document,
+      perspective,
+      describedSystemInstance: {
+        ...document.describedSystemInstance,
+        baseUrl: this.processingContext?.baseUrl,
+      },
+      describedSystemVersion,
+      apiResources: apiResources.length ? apiResources : undefined,
+      eventResources: eventResources.length ? eventResources : undefined,
+    };
+  }
+
+  private processResourceDefinition<T extends EventResource | APIResource>(resources: T[]): T[] {
+    const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext?.authMethods || []);
+
+    return resources.map((resource) => ({
+      ...resource,
+      resourceDefinitions: (resource.resourceDefinitions || []).map((definition) => {
+        return {
+          ...definition,
+          ...(definition.url && { url: this.fixUrl(definition.url, resource.ordId) }),
+          accessStrategies,
+        };
+      }),
+    }));
+  }
+
+  private fixUrl(url: string, ordId: string): string {
+    const escapedOrdId = ordIdToPathSegment(ordId);
+    const pathParts = url.split("/");
+    const ordIdIdx = pathParts.findIndex((part) => escapedOrdId === part);
+
+    if (ordIdIdx > -1) {
+      pathParts[ordIdIdx] = ordId;
+    }
+
+    const urlWithFixedOrdId = pathParts.join("/");
+
+    if (this.isRemoteUrl(url)) {
+      return urlWithFixedOrdId;
+    }
+    // Construct server-relative URL
+    return joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, path.posix.resolve("/", urlWithFixedOrdId));
+  }
+
+  private isRemoteUrl(url: string): boolean {
+    return url.startsWith("http://") || url.startsWith("https://");
+  }
+
+  private getDefaultDescribedSystemVersion(directoryHash: string): SystemVersion {
+    const shortHash = directoryHash ? directoryHash.substring(0, 8) : "unknown";
+    const version = `1.0.0-${shortHash}`;
+    return { version };
+  }
+
+  /**
+   * Cancel any in-progress cache warming operation
+   */
+  public async cancelWarming(): Promise<void> {
+    if (this.abortController) {
+      this.logger.info("Cancelling cache warming...");
+      this.abortController.abort();
+
+      // Wait for the warming to actually stop
+      if (this.currentWarmingPromise) {
+        await this.currentWarmingPromise.catch(() => {});
+      }
+
+      this.abortController = null;
+      this.currentWarmingPromise = null;
+      this.currentDirHash = null;
+    }
+  }
+
+  /**
+   * Check if cache warming is currently in progress
+   */
+  public isWarming(): boolean {
+    return this.currentWarmingPromise !== null;
+  }
+
+  /**
+   * Get the hash currently being warmed (if any)
+   */
+  public getCurrentHash(): string | null {
+    return this.currentDirHash;
+  }
+
+  /**
+   * Wait for current warming operation to complete
+   * Returns immediately if not currently warming
+   */
+  public waitForCompletion(): Promise<void> {
+    if (this.currentWarmingPromise) {
+      return this.currentWarmingPromise;
+    }
+    return Promise.resolve();
+  }
+
+  /**
+   * Clean up any in-progress cache warming
+   */
+  public destroy(): void {
+    this.currentWarmingPromise = null;
+    this.currentDirHash = null;
   }
 }

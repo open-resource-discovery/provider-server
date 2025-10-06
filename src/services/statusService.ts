@@ -9,6 +9,7 @@ import { OptSourceType } from "../model/cli.js";
 import { VersionService } from "./versionService.js";
 import { getPackageVersion } from "../util/files.js";
 import { UpdateStateManager } from "./updateStateManager.js";
+import { CacheService } from "./interfaces/cacheService.js";
 
 export interface StatusResponse {
   version: string;
@@ -20,7 +21,7 @@ export interface StatusResponse {
   content?: {
     lastFetchTime: string | null;
     currentVersion: string | null;
-    updateStatus: "idle" | "scheduled" | "in_progress" | "failed";
+    updateStatus: "idle" | "scheduled" | "in_progress" | "failed" | "cache_warming";
     scheduledUpdateTime?: string | null;
     failedUpdates: number;
     commitHash: string | null;
@@ -58,6 +59,7 @@ export class StatusService {
   private readonly serverOptions: ProviderServerOptions;
   private readonly localRepository: LocalDocumentRepository | null;
   private readonly stateManager: UpdateStateManager | null;
+  private readonly cacheService: CacheService | null;
   private readonly version: string;
   private readonly serverStartupTime: Date;
 
@@ -68,6 +70,7 @@ export class StatusService {
     serverOptions: ProviderServerOptions,
     localRepository: LocalDocumentRepository | null = null,
     stateManager: UpdateStateManager | null = null,
+    cacheService: CacheService | null = null,
   ) {
     this.updateScheduler = updateScheduler;
     this.fileSystemManager = fileSystemManager;
@@ -75,6 +78,7 @@ export class StatusService {
     this.serverOptions = serverOptions;
     this.localRepository = localRepository;
     this.stateManager = stateManager;
+    this.cacheService = cacheService;
     this.version = getPackageVersion();
     this.serverStartupTime = new Date();
   }
@@ -132,8 +136,10 @@ export class StatusService {
       const currentVersion = await this.fileSystemManager.getCurrentVersion();
       const metadata = await this.fileSystemManager.getMetadata();
 
+      const isCacheWarming = this.cacheService?.isWarming() ?? false;
+
       // Use StateManager status if available, otherwise fall back to UpdateScheduler
-      const status =
+      let status =
         stateManagerStatus?.status ??
         (updateSchedulerStatus?.updateInProgress
           ? "in_progress"
@@ -142,6 +148,10 @@ export class StatusService {
             : updateSchedulerStatus?.lastUpdateFailed
               ? "failed"
               : "idle");
+
+      if (isCacheWarming && status === "idle") {
+        status = "cache_warming";
+      }
 
       response.content = {
         lastFetchTime:

@@ -1,0 +1,226 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64; rv:143.0) Gecko/20100101 Firefox/143.0" version="28.2.5">
+  <diagram name="Cache Flow" id="XmiQT2oDzpfRvCv3OEug">
+    <mxGraphModel dx="594" dy="559" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-1" value="ORD PROVIDER SERVER - CACHING ARCHITECTURE" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-2" value="TWO-TIER CACHING SYSTEM" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-3" value="TIER 1: GIT CACHE&#xa;(Disk - Persistent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="120" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-4" value="📁 data/current/.git/&#xa;• Size: ~238MB&#xa;• Type: Shallow (depth=1)&#xa;• Invalidated: Branch/repo change&#xa;• Reused: Incremental pulls" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-5" value="TIER 2: MEMORY CACHE&#xa;(In-Memory - Volatile)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="250" y="120" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-6" value="💾 Hash-Keyed Maps:&#xa;• documentCache&#xa;• configCache&#xa;• fqnMapCache&#xa;• Hash: SHA-256(paths+mtimes)&#xa;• Invalidated: Hash change" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="150" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-7" value="CACHE FLOW" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-8" value="Server Start / Update Trigger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="180" y="310" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-9" value="Check&#xa;Commit Hash" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="190" y="370" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-8" target="H3_55JnIGHM-5gKYMMFr-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-11" value="CHANGED" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#d32f2f;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="390" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-12" value="Swap Directories&#xa;(mtimes change)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-9" target="H3_55JnIGHM-5gKYMMFr-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-14" value="Warm Cache&#xa;(New Hash)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="530" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-12" target="H3_55JnIGHM-5gKYMMFr-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-16" value="UNCHANGED" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#2e7d32;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="310" y="390" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-17" value="Skip Swap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="300" y="460" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-9" target="H3_55JnIGHM-5gKYMMFr-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-19" value="Check&#xa;Cache Exists?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="300" y="530" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-17" target="H3_55JnIGHM-5gKYMMFr-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-21" value="YES" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#2e7d32;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="410" y="550" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-22" value="NO" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#d32f2f;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="260" y="550" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-23" value="Use Existing&#xa;Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="360" y="620" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-19" target="H3_55JnIGHM-5gKYMMFr-23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="610" />
+              <mxPoint x="400" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-25" value="Warm Cache&#xa;(Same Hash)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="240" y="620" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-19" target="H3_55JnIGHM-5gKYMMFr-25">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="610" />
+              <mxPoint x="290" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-27" value="✓ Cache Ready" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="180" y="700" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-14" target="H3_55JnIGHM-5gKYMMFr-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-25" target="H3_55JnIGHM-5gKYMMFr-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="H3_55JnIGHM-5gKYMMFr-23" target="H3_55JnIGHM-5gKYMMFr-27">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="400" y="680" />
+              <mxPoint x="240" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-31" value="CACHE WARMING PROCESS" style="text;html=1;strokeColor=#d79b00;fillColor=#ffe6cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-32" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffacd;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="120" width="440" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-33" value="TRIGGERS:&lt;br&gt;• Server startup (if content exists)&lt;br&gt;• After git pull/clone (if commit changed)&lt;br&gt;• Skipped if commit unchanged" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="495" y="130" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-34" value="PROCESS:&lt;br&gt;1. Calculate hash: SHA-256(paths + mtimes)&lt;br&gt;2. Check if already cached for hash&lt;br&gt;3. If not: Process all ORD documents&lt;br&gt;4. Build: config, docs, FQN map&lt;br&gt;5. Store in memory with hash key" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="495" y="200" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-35" value="UI STATUS:&lt;br&gt;• Badge: &#39;IN PROGRESS&#39;&lt;br&gt;• Hint: &#39;Warming cache...&#39;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="495" y="300" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-36" value="CANCELLATION:&lt;br&gt;• Cancelled on: Manual trigger, Webhook&lt;br&gt;• Uses: AbortController&lt;br&gt;• Checks every 100 docs&lt;br&gt;• Falls back to inline loading" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="710" y="130" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-37" value="PERFORMANCE:&lt;br&gt;• ~10,000 documents in ~40s&lt;br&gt;• Progress logged every 100 docs&lt;br&gt;• Async/await based (no workers)&lt;br&gt;• Non-blocking server startup" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="710" y="210" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-38" value="SMART SKIP:&lt;br&gt;• Compare: new commit === old commit&lt;br&gt;• If same → Skip swap &amp;amp; warming&lt;br&gt;• Preserves mtimes → Hash unchanged&lt;br&gt;• Cache stays valid → Fast path!" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="710" y="290" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-39" value="REQUEST HANDLING" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="420" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-40" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5e1;strokeColor=#82b366;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="460" width="440" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-41" value="Incoming Request&lt;br&gt;(/.well-known/open-resource-discovery)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="495" y="475" width="200" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-42" value="1. Calculate current directory hash&#xa;2. Check if cached for this hash&#xa;   ✓ YES → Return from cache (fast!)&#xa;   ✗ NO → Check if warming in progress&#xa;      • Same hash warming? → Wait → Retry&#xa;      • Different/no warming? → Load inline&#xa;3. Always served eventually" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="530" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-43" value="⏳ WAITING LOGIC:&#xa;• Middleware: waitForReady()&#xa;• Blocks until updateInProgress=false&#xa;• Cache warming sets updateInProgress=true&#xa;• Emits &#39;update-completed&#39; when done&#xa;• Timeout: 5 minutes" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="710" y="475" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-44" value="🔄 FALLBACK:&#xa;• If warming cancelled → inline load&#xa;• If warming failed → inline load&#xa;• Inline load: Same process, on-demand&#xa;• Guarantees: Request never hangs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="710" y="565" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-45" value="CACHE INVALIDATION RULES" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="780" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-46" value="GIT CACHE CLEARED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="820" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-47" value="When:&#xa;• Branch changed&#xa;• Repository changed&#xa;&#xa;Action: rm -rf .git/" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="850" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-48" value="MEMORY CACHE INVALIDATED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="250" y="820" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-49" value="When:&#xa;• Directory hash changes&#xa;• File mtimes change&#xa;&#xa;Action: clearCache()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="850" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-50" value="BOTH CACHES PRESERVED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="920" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-51" value="When:&#xa;• Commit unchanged&#xa;• No directory swap&#xa;&#xa;Result: Instant reuse!" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="950" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-52" value="TIMING COMPARISON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="250" y="920" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-53" value="• With changes: ~40s&#xa;  (git pull + cache warming)&#xa;• Without changes: &lt;1s&#xa;  (skip swap, cache preserved)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="950" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-54" value="UPDATE TRIGGER SCENARIOS" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="950" y="80" width="410" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-55" value="SCHEDULED (Every 2h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="960" y="120" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-56" value="• Check directoryTreeSha&#xa;• Auto-trigger if changed&#xa;• Uses incremental git pull" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="970" y="145" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-57" value="WEBHOOK (GitHub Push)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="120" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-58" value="• Cancels cache warming&#xa;• Cooldown throttling (30s)&#xa;• Immediate update trigger" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="145" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-59" value="MANUAL (API/UI Button)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="960" y="200" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-60" value="• Cancels cache warming&#xa;• No cooldown&#xa;• Immediate processing" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="970" y="225" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-61" value="All triggers use same flow:&#xa;Git pull → Validate → Compare commit hash →&#xa;If changed: Swap + Warm | If same: Skip" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="200" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-62" value="HASH CALCULATION" style="text;html=1;strokeColor=#d79b00;fillColor=#ffe6cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="950" y="290" width="410" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-63" value="SHA-256 Hash Formula:&#xa;&#xa;hash = SHA-256(&#xa;  file1_path + file1_mtime +&#xa;  file2_path + file2_mtime +&#xa;  ...&#xa;  fileN_path + fileN_mtime&#xa;)&#xa;&#xa;✓ Same files, same mtimes → Same hash → Cache HIT&#xa;✗ Swapped directory → New mtimes → New hash → Cache MISS&#xa;✓ No swap → Same mtimes → Same hash → Cache HIT" style="text;html=1;strokeColor=#d79b00;fillColor=#fffacd;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="950" y="330" width="410" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-64" value="STATE TRANSITIONS" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="950" y="530" width="410" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-65" value="&amp;nbsp;idle → in_progress&lt;br&gt;&amp;nbsp;(Git pull/clone started)&lt;br&gt;&lt;br&gt;&amp;nbsp;in_progress → cache_warming&lt;br&gt;&amp;nbsp;(Git complete, warming started)&lt;br&gt;&lt;br&gt;&amp;nbsp;cache_warming → idle&lt;br&gt;&amp;nbsp;(Warming complete, emits &#39;update-completed&#39;)&lt;br&gt;&lt;br&gt;&amp;nbsp;* → idle&lt;br&gt;&amp;nbsp;(Skip path: commit unchanged)" style="text;html=1;strokeColor=#666666;fillColor=#f0f0f0;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="950" y="570" width="410" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-73" value="PERFORMANCE METRICS" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="950" y="730" width="410" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="H3_55JnIGHM-5gKYMMFr-74" value="&amp;nbsp;TYPICAL TIMINGS (10,000 documents):&lt;br&gt;&lt;br&gt;• Initial clone + warming:     ~3min (one-time)&lt;br&gt;• Incremental update (changed): ~40s (git pull + warming)&lt;br&gt;• Update trigger (unchanged):   &amp;lt;1s (skip everything!)&lt;br&gt;• Request from warm cache:      &amp;lt;50ms&lt;br&gt;• Request during warming:       Wait → &amp;lt;50ms&lt;br&gt;• Request with cold cache:      ~30s (inline load)&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" style="text;html=1;strokeColor=#d6b656;fillColor=#fffacd;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="950" y="770" width="410" height="150" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
