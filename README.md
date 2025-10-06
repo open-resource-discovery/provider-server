@@ -117,23 +117,23 @@ Memory usage varies based on content type:
 
 #### ORD Documents (in `documents/` folder)
 
-- **Formula**: ~3× document size
+- **Formula**: ~4× document size
 - **Reason**: Validation, parsing, caching, and processing overhead
-- **Example**: 1GB of ORD documents → ~3GB RAM
+- **Example**: 500MB of ORD documents → 2GB RAM
 
 #### Resource Definition Files (outside `documents/` folder)
 
 - **Formula**: ~2× file size
 - **Reason**: Git clone operations only, no validation overhead
-- **Example**: 1GB of resource files → ~2GB RAM
+- **Example**: 500MB of resource files → ~1GB RAM
 
 #### Combined Example
 
 If you have 500MB ORD documents + 500MB resource files:
 
-- ORD documents: 500MB × 3 = 1.5GB
+- ORD documents: 500MB × 4 = 2GB
 - Resource files: 500MB × 2 = 1GB
-- **Total**: ~2.5GB RAM recommended
+- **Total**: ~3GB RAM recommended
 
 #### General Recommendations
 

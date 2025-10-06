@@ -1,6 +1,6 @@
 {
   "name": "@open-resource-discovery/provider-server",
-  "version": "0.9.5-dev.2",
+  "version": "0.10.0",
   "description": "A CLI application or server that takes multiple ORD documents and other metadata files and exposes them as a ORD Provider implementation (ORD Document API)",
   "engines": {
     "node": ">=22.8.0",
