@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - More tests
 - Utilizing `isomorphic-git` to clone repositories instead of using GitHub API
 
+### Changed
+
+- Caching behavior: Instant cache warm up after a clone / pull (non-blocking)
+
 ## [0.9.2] - 2025-07-22
 
 ### Changed
