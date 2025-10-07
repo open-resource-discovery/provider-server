@@ -115,6 +115,64 @@ Some configuration options are only available as environment variables for secur
 | `WEBHOOK_SECRET`     | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
 | `BASIC_AUTH`         | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
 
+## System Requirements
+
+The provider server's resource requirements depend on your repository size and content type.
+
+### Memory (RAM) Requirements
+
+Memory usage varies based on content type:
+
+#### ORD Documents (in `documents/` folder)
+
+- **Formula**: ~4× document size
+- **Reason**: Validation, parsing, caching, and processing overhead
+- **Example**: 500MB of ORD documents → 2GB RAM
+
+#### Resource Definition Files (outside `documents/` folder)
+
+- **Formula**: ~2× file size
+- **Reason**: Git clone operations only, no validation overhead
+- **Example**: 500MB of resource files → ~1GB RAM
+
+#### Combined Example
+
+If you have 500MB ORD documents + 500MB resource files:
+
+- ORD documents: 500MB × 4 = 2GB
+- Resource files: 500MB × 2 = 1GB
+- **Total**: ~3GB RAM recommended
+
+#### General Recommendations
+
+- **Small repositories** (<10MB): 512MB RAM minimum
+- **Medium repositories** (10-500MB): 1-2GB RAM
+- **Large repositories** (>500MB): Calculate using formulas above
+
+### Disk Space Requirements
+
+**Formula**: Total repository size × 2.5
+
+**Reason**: Space needed for:
+
+- Git repository clone
+- Working directory
+- Temporary directory during updates
+
+**Examples**:
+
+- 10MB repository → ~25MB disk space
+- 100MB repository → ~250MB disk space
+- 1GB repository → ~2.5GB disk space
+
+#### General Recommendations
+
+- **Small repositories** (<10MB): 512MB disk minimum
+- **Medium repositories** (10-500MB): 1-2GB disk
+- **Large repositories** (>500MB): Calculate using formula above
+
+> **Note**: These are minimum recommendations. Consider adding 20-30% buffer for optimal performance and to handle temporary spikes during operations.
+
 ### Required Structure
 
 The specified directory path (`-d`) should contain a documents directory (configurable via `--documents-subdirectory`, default is `documents`) with at least one valid ORD Document. Other resources referenced by ORD Documents can be placed anywhere in the specified directory.
@@ -448,8 +506,8 @@ cf push <your-app-name> \
 --no-manifest \
 --docker-image "ghcr.io/open-resource-discovery/provider-server:latest" \
 --docker-username <docker-username> \
---memory 256MB \
---disk 256MB \
+--memory 512MB \
+--disk 512MB \
 --no-route \
 --no-start
 
@@ -481,8 +539,8 @@ applications:
     buildpacks:
       - nodejs_buildpack
     instances: 1
-    memory: 256M
-    disk_quota: 256M
+    memory: 512M
+    disk_quota: 512M
     routes:
       - route: <your-app-name>.example.com
     env:

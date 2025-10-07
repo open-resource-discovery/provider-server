@@ -1,8 +1,7 @@
 import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
-import { normalizePath } from "src/util/pathUtils.js";
-import { trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/optsValidation.js";
+import { normalizePath, trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/pathUtils.js";
 import { config } from "dotenv";
 import { MtlsMode } from "../constant.js";
 import { fetchMtlsTrustedCertsFromEndpoints, mergeTrustedCerts } from "../services/mtlsEndpointService.js";
@@ -40,6 +39,7 @@ export interface ProviderServerOptions {
     trustedSubjects?: string[];
   };
   dataDir: string;
+  cors?: string[];
   webhookSecret?: string;
   updateDelay: number;
   statusDashboardEnabled: boolean;
@@ -80,6 +80,7 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
     },
     dataDir: options.dataDir || "./data",
+    cors: options.cors ? options.cors.split(",") : undefined,
     webhookSecret: process.env.WEBHOOK_SECRET,
     updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
     statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true

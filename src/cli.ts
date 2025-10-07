@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { config } from "dotenv";
-config();
+config({ override: true });
 
 import { Command, Option } from "commander";
 import packageJson from "package.json" with { type: "json" };
@@ -8,7 +8,7 @@ import { CommandLineOptions, OptAuthMethod, OptSourceType, parseAuthMethods, par
 import { startProviderServer } from "src/server.js";
 import { getBaseUrlFromVcapEnv } from "src/util/env.js";
 import { log } from "src/util/logger.js";
-import { validateAndParseOptions } from "src/util/optsValidation.js";
+import { validateOffline } from "src/util/validateOptions.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
 import { PATH_CONSTANTS } from "./constant.js";
@@ -51,6 +51,7 @@ program
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
   .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
   .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
+  .option("--cors <cors>", "CORS active: default disabled", process.env.CORS)
   .option(
     "--update-delay <updateDelay>",
     "Cooldown between webhook-triggered updates (seconds)",
@@ -97,7 +98,8 @@ program.parse();
 
 const options = program.opts<CommandLineOptions>();
 try {
-  const providerServerOptions = await validateAndParseOptions(options);
+  const validationResult = validateOffline(options);
+  const providerServerOptions = validationResult.options;
 
   startProviderServer(providerServerOptions).catch((error: unknown) => {
     if (error instanceof ValidationError) {

@@ -29,6 +29,10 @@ export class FileSystemManager {
     await fs.mkdir(this.dataDir, { recursive: true });
     await fs.mkdir(this.currentDir, { recursive: true });
     await fs.mkdir(this.tempDir, { recursive: true });
+
+    // Create documents subdirectory in current directory
+    const documentsPath = path.join(this.currentDir, this.documentsSubDirectory);
+    await fs.mkdir(documentsPath, { recursive: true });
   }
 
   public async hasCurrentContent(): Promise<boolean> {
@@ -38,9 +42,10 @@ export class FileSystemManager {
         return false;
       }
 
-      // Check if directory has any content
+      // Check if directory has any content other than the documents subdirectory
       const contents = await fs.readdir(this.currentDir);
-      return contents.length > 0;
+      const contentOtherThanDocs = contents.filter((item) => item !== this.documentsSubDirectory);
+      return contentOtherThanDocs.length > 0;
     } catch {
       return false;
     }
@@ -55,6 +60,36 @@ export class FileSystemManager {
 
     // Return the temp directory itself, not a subdirectory
     return this.tempDir;
+  }
+
+  public async prepareTempDirectoryWithGit(): Promise<string> {
+    // Check if current directory has a .git folder
+    const currentGitDir = path.join(this.currentDir, ".git");
+    const hasGit = await this.pathExists(currentGitDir);
+
+    if (hasGit) {
+      log.info("Found existing git repository in current directory, copying to temp for incremental update");
+
+      await this.cleanupTempDirectory();
+
+      await this.copyDirectory(this.currentDir, this.tempDir);
+
+      log.info("Copied current directory with git history to temp directory");
+    } else {
+      // No git repo, just prepare empty temp directory
+      await this.getTempDirectory();
+    }
+
+    return this.tempDir;
+  }
+
+  private async pathExists(p: string): Promise<boolean> {
+    try {
+      await fs.access(p);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private async copyDirectory(src: string, dest: string): Promise<void> {
@@ -84,15 +119,23 @@ export class FileSystemManager {
 
         // Backup current directory if it exists
         const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
-        if (await this.hasCurrentContent()) {
+
+        // Check if current directory exists (not just if it has content)
+        try {
+          await fs.access(this.currentDir);
           log.info("Creating backup of current directory");
           await this.copyDirectory(this.currentDir, backupDir);
+        } catch {
+          // Directory doesn't exist, nothing to backup
         }
 
         try {
-          // Remove current directory
-          if (await this.hasCurrentContent()) {
+          // Remove current directory if it exists
+          try {
+            await fs.access(this.currentDir);
             await fs.rm(this.currentDir, { recursive: true, force: true });
+          } catch {
+            // Directory doesn't exist, nothing to remove
           }
 
           // Copy temp to current
@@ -125,8 +168,13 @@ export class FileSystemManager {
         // On non-Windows systems, use rename for atomic operation
         const backupDir = path.join(this.dataDir, `backup_${Date.now()}`);
 
-        if (await this.hasCurrentContent()) {
+        // Check if current directory exists (not just if it has content)
+        try {
+          await fs.access(this.currentDir);
+          // Directory exists, rename it to backup
           await fs.rename(this.currentDir, backupDir);
+        } catch {
+          // Directory doesn't exist, nothing to backup
         }
 
         await fs.rename(tempDir, this.currentDir);
