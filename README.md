@@ -441,6 +441,15 @@ Navigate to `http://127.0.0.1:8080/status` in your browser.
 
 When disabled, `/status` will redirect to the ORD endpoint.
 
+## Caching Architecture
+
+The provider server implements a sophisticated caching system to optimize performance:
+
+- **Memory Cache**: Hash-keyed in-memory storage for instant request serving
+- **Smart Invalidation**: Automatic cache invalidation based on file modifications
+
+For detailed information about the caching architecture, cache warming process, and performance characteristics, see [ORD Provider Server Caching Architecture](internal/ORDProviderServerCacheArchitecture.md).
+
 ## License
 
 Copyright 2025 SAP SE or an SAP affiliate company and contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](.reuse/dep5).
