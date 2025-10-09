@@ -130,11 +130,10 @@ export function validateLocalDirectory(directoryPath: string, documentsSubDirect
       );
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    log.error(`Local directory validation failed for ${directoryPath}: ${errorMessage}`);
     if (error instanceof LocalDirectoryError) {
       throw error;
     }
+    const errorMessage = error instanceof Error ? error.message : String(error);
     throw LocalDirectoryError.forPath(directoryPath, `Unexpected error during validation: ${errorMessage}`);
   }
 }

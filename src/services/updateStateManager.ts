@@ -125,7 +125,6 @@ export class UpdateStateManager extends EventEmitter {
    * Mark update as failed
    */
   public failUpdate(error: string, failedCommitHash?: string): void {
-    this.logger.debug(`Update state changed to failed: ${error}`);
     this.setState({
       status: "failed",
       updateInProgress: false,

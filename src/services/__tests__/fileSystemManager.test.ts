@@ -74,17 +74,28 @@ describe("FileSystemManager", () => {
     it("should validate content with documents directory", async () => {
       const tempDir = await fsManager.getTempDirectory();
 
-      // Create documents directory
-      await fs.mkdir(path.join(tempDir, "documents"), { recursive: true });
+      // Create documents directory with a valid ORD document
+      const documentsPath = path.join(tempDir, "documents");
+      await fs.mkdir(documentsPath, { recursive: true });
 
-      const isValid = await fsManager.validateContent(tempDir);
+      // Create a minimal valid ORD document
+      const ordDoc = {
+        $schema: "https://sap.github.io/open-resource-discovery/spec-v1/interfaces/Document.schema.json",
+        openResourceDiscovery: "1.9",
+        description: "Test document",
+        policyLevel: "none" as const,
+        products: [],
+      };
+      await fs.writeFile(path.join(documentsPath, "test-document.json"), JSON.stringify(ordDoc));
+
+      const isValid = fsManager.validateContent(tempDir);
       expect(isValid).toBe(true);
     });
 
     it("should fail validation without documents directory", async () => {
       const tempDir = await fsManager.getTempDirectory();
 
-      const isValid = await fsManager.validateContent(tempDir);
+      const isValid = fsManager.validateContent(tempDir);
       expect(isValid).toBe(false);
     });
 
@@ -255,12 +266,12 @@ describe("FileSystemManager", () => {
       const filePath = path.join(testDataDir, "file.txt");
       await fs.writeFile(filePath, "not a directory");
 
-      const isValid = await fsManager.validateContent(filePath);
+      const isValid = fsManager.validateContent(filePath);
       expect(isValid).toBe(false);
     });
 
-    it("should return false when path doesn't exist", async () => {
-      const isValid = await fsManager.validateContent("/non/existent/path");
+    it("should return false when path doesn't exist", () => {
+      const isValid = fsManager.validateContent("/non/existent/path");
       expect(isValid).toBe(false);
     });
 
@@ -268,7 +279,7 @@ describe("FileSystemManager", () => {
       const tempDir = await fsManager.getTempDirectory();
       await fs.writeFile(path.join(tempDir, "documents"), "not a directory");
 
-      const isValid = await fsManager.validateContent(tempDir);
+      const isValid = fsManager.validateContent(tempDir);
       expect(isValid).toBe(false);
     });
   });

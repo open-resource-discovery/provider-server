@@ -5,6 +5,7 @@ import { CacheService } from "./interfaces/cacheService.js";
 import { Logger } from "pino";
 import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
 import { GitHubNetworkError } from "../model/error/GithubErrors.js";
+import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { createProgressHandler } from "../util/progressHandler.js";
 import { UpdateStateManager } from "./updateStateManager.js";
 import { calculateDirectoryHash } from "../util/directoryHash.js";
@@ -190,7 +191,6 @@ export class UpdateScheduler extends EventEmitter {
     try {
       await this.performUpdate();
     } catch (error) {
-      this.logger.error(`${isManualTrigger ? "Manual" : "Webhook"} update failed: ${error}`);
       this.emit("update-failed", error);
       throw error;
     }
@@ -222,7 +222,7 @@ export class UpdateScheduler extends EventEmitter {
       const metadata = await this.contentFetcher.fetchAllContent(tempDir, progressHandler);
 
       // Validate the new content
-      const isValid = await this.fileSystemManager.validateContent(tempDir);
+      const isValid = this.fileSystemManager.validateContent(tempDir);
       if (!isValid) {
         throw new Error("Content validation failed");
       }
@@ -295,6 +295,8 @@ export class UpdateScheduler extends EventEmitter {
         this.lastError = "Insufficient memory available";
       } else if (error instanceof GitHubNetworkError) {
         this.lastError = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+      } else if (error instanceof LocalDirectoryError) {
+        this.lastError = error.message;
       } else {
         // For other errors, don't expose the internal error message
         this.lastError = null;
@@ -323,6 +325,8 @@ export class UpdateScheduler extends EventEmitter {
         errorMessage = "Insufficient memory available";
       } else if (error instanceof GitHubNetworkError) {
         errorMessage = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+      } else if (error instanceof LocalDirectoryError) {
+        errorMessage = error.message;
       } else if (error instanceof Error) {
         errorMessage = error.message;
       } else {
