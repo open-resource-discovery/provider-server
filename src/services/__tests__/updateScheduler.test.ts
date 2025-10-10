@@ -95,9 +95,9 @@ class MockFileSystemManager {
     return await Promise.resolve("/tmp/test");
   }
 
-  public async validateContent(_directory: string): Promise<boolean> {
+  public validateContent(_directory: string): boolean {
     this.validateContentCalled = true;
-    return await Promise.resolve(!this.shouldValidateFail);
+    return !this.shouldValidateFail;
   }
 
   public async swapDirectories(_tempDir: string): Promise<void> {

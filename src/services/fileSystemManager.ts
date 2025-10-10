@@ -2,6 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { ContentMetadata } from "./interfaces/contentFetcher.js";
 import { log } from "../util/logger.js";
+import { validateLocalDirectory } from "../util/validateOptions.js";
 
 export interface FileSystemManagerConfig {
   dataDir: string;
@@ -206,19 +207,15 @@ export class FileSystemManager {
     await fs.mkdir(this.tempDir, { recursive: true });
   }
 
-  public async validateContent(directory: string): Promise<boolean> {
+  public validateContent(directory: string): boolean {
     try {
-      const stats = await fs.stat(directory);
-      if (!stats.isDirectory()) {
-        return false;
+      validateLocalDirectory(directory, this.documentsSubDirectory);
+      return true;
+    } catch (error) {
+      // Log the validation error for debugging
+      if (error instanceof Error) {
+        log.debug(`Content validation failed: ${error.message}`);
       }
-
-      // Check for required documents directory
-      const documentsPath = path.join(directory, this.documentsSubDirectory);
-      const documentsStats = await fs.stat(documentsPath);
-
-      return documentsStats.isDirectory();
-    } catch {
       return false;
     }
   }

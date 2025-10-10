@@ -23,9 +23,10 @@ interface FactoryOptions {
 }
 
 export class RouterFactory {
-  public static async createRouter(options: FactoryOptions): Promise<DocumentRouter> {
-    const cacheService = new CacheService();
-
+  public static async createRouter(options: FactoryOptions): Promise<{
+    router: DocumentRouter;
+    cacheService: CacheService;
+  }> {
     let repository: DocumentRepository;
     let processingContext: ProcessingContext;
     const documentsSubDirectory = options.documentsSubDirectory || PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY;
@@ -54,6 +55,8 @@ export class RouterFactory {
     } else {
       throw new Error("Invalid configuration: Missing required options for the specified source type.");
     }
+
+    const cacheService = new CacheService(processingContext, log);
 
     const documentService = new DocumentService(repository, cacheService, processingContext, documentsSubDirectory);
 
@@ -94,8 +97,13 @@ export class RouterFactory {
       documentsSubDirectory: documentsSubDirectory,
     };
 
-    return new DocumentRouter(documentService, {
+    const router = new DocumentRouter(documentService, {
       ...routerOptions,
     });
+
+    return {
+      router,
+      cacheService,
+    };
   }
 }

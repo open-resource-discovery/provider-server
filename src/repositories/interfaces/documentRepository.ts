@@ -37,4 +37,10 @@ export interface DocumentRepository {
    * @returns The file content as a string or buffer, or null if not found.
    */
   getFileContent(path: string): Promise<string | Buffer | null>;
+
+  /**
+   * Gets the base ORD directory path.
+   * @returns The absolute path to the ORD directory.
+   */
+  getOrdDirectory(): string;
 }

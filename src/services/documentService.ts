@@ -24,10 +24,34 @@ export class DocumentService implements DocumentServiceInterface {
   private readonly loadingPromises = new Map<string, Promise<void>>();
 
   // Method to ensure data (config, docs, FQN map) is loaded and cached
-  private ensureDataLoaded(dirHash: string): Promise<void> {
+  private async ensureDataLoaded(dirHash: string): Promise<void> {
     // Check if config is already cached for this hash, implying data is loaded
     if (this.cacheService.getCachedOrdConfig(dirHash)) {
       return Promise.resolve();
+    }
+
+    if (this.cacheService.isWarming()) {
+      const warmingHash = this.cacheService.getCurrentHash();
+      log.debug(`Cache warming in progress for hash ${warmingHash}, current request hash ${dirHash}`);
+
+      // If warming the same hash or any warming is happening, wait for it
+      if (
+        warmingHash === dirHash ||
+        warmingHash?.startsWith(dirHash.substring(0, 7)) ||
+        dirHash.startsWith(warmingHash?.substring(0, 7) || "")
+      ) {
+        log.debug(`Waiting for cache warming to complete...`);
+        await this.cacheService.waitForCompletion();
+
+        // After cache warming completes, check if data was actually cached
+        const cachedConfig = this.cacheService.getCachedOrdConfig(dirHash);
+        if (cachedConfig) {
+          log.debug(`Cache warming completed and data is cached for hash ${dirHash}`);
+          return;
+        } else {
+          log.debug(`Cache warming completed but data not cached for hash ${dirHash}, will load inline`);
+        }
+      }
     }
 
     // Check if already loading this hash
@@ -37,7 +61,17 @@ export class DocumentService implements DocumentServiceInterface {
       return existingPromise;
     }
 
-    // Create and store the loading promise
+    // Only use inline loading if no cache warming is happening
+    const loadingPromise = this.loadInline(dirHash).finally(() => {
+      this.loadingPromises.delete(dirHash);
+    });
+
+    this.loadingPromises.set(dirHash, loadingPromise);
+    return loadingPromise;
+  }
+
+  // Inline loading for local mode
+  private loadInline(dirHash: string): Promise<void> {
     const loadingPromise = (async (): Promise<void> => {
       try {
         log.debug(`Cache miss for hash ${dirHash}. Fetching documents, building config and FQN map.`);
@@ -59,7 +93,6 @@ export class DocumentService implements DocumentServiceInterface {
             const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
             const perspective = getDocumentPerspective(document);
 
-            // Create the document entry with perspective
             const documentEntry: ORDV1DocumentDescription = {
               url: documentUrl,
               accessStrategies,
@@ -72,7 +105,6 @@ export class DocumentService implements DocumentServiceInterface {
             log.warn(`Error processing document ${relativePath}: ${error}`);
           }
 
-          // Yield to event loop every 100 documents to keep server responsive
           count++;
           if (count % 100 === 0) {
             await new Promise((resolve) => setImmediate(resolve));
@@ -86,21 +118,17 @@ export class DocumentService implements DocumentServiceInterface {
 
         const fqnDocumentMap = getFlattenedOrdFqnDocumentMap(processedDocsForFqn);
 
-        // Cache everything associated with this hash
         this.cacheService.setCachedOrdConfig(dirHash, ordConfig);
         this.cacheService.setCachedDirectoryDocumentPaths(dirHash, documentPaths);
         this.cacheService.setCachedFqnMap(dirHash, fqnDocumentMap);
 
         log.info(`Cached config, paths, and FQN map for hash: ${dirHash}`);
       } finally {
-        // Clean up the loading promise when done
         this.loadingPromises.delete(dirHash);
       }
     })();
 
-    // Store the promise so concurrent requests can wait on it
     this.loadingPromises.set(dirHash, loadingPromise);
-
     return loadingPromise;
   }
 

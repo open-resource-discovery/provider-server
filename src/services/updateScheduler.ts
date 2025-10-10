@@ -1,11 +1,15 @@
 import { EventEmitter } from "events";
 import { ContentFetcher } from "./interfaces/contentFetcher.js";
 import { FileSystemManager } from "./fileSystemManager.js";
+import { CacheService } from "./interfaces/cacheService.js";
 import { Logger } from "pino";
 import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
 import { GitHubNetworkError } from "../model/error/GithubErrors.js";
+import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { createProgressHandler } from "../util/progressHandler.js";
 import { UpdateStateManager } from "./updateStateManager.js";
+import { calculateDirectoryHash } from "../util/directoryHash.js";
+import path from "path";
 
 export interface UpdateSchedulerConfig {
   updateDelay: number; // milliseconds - also used as webhook cooldown
@@ -28,6 +32,8 @@ export class UpdateScheduler extends EventEmitter {
   private readonly fileSystemManager: FileSystemManager;
   private readonly logger: Logger;
   private readonly stateManager: UpdateStateManager;
+  private cacheService: CacheService | null = null;
+  private documentsSubDirectory: string | null = null;
 
   private updateTimeout: NodeJS.Timeout | null = null;
   private updateInProgress = false;
@@ -57,6 +63,12 @@ export class UpdateScheduler extends EventEmitter {
     this.stateManager = stateManager;
   }
 
+  public setCacheService(cacheService: CacheService, documentsSubDirectory: string): void {
+    this.cacheService = cacheService;
+    this.documentsSubDirectory = documentsSubDirectory;
+    this.logger.debug("Cache service configured for update scheduler");
+  }
+
   public async initialize(): Promise<void> {
     // Load last update time from metadata
     const metadata = await this.fileSystemManager.getMetadata();
@@ -75,6 +87,13 @@ export class UpdateScheduler extends EventEmitter {
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);
       this.updateTimeout = null;
+    }
+
+    if (this.cacheService?.isWarming()) {
+      this.logger.info("Cancelling cache warming to schedule new update");
+      this.cacheService.cancelWarming().catch((error) => {
+        this.logger.error("Error cancelling cache warming: %s", error);
+      });
     }
 
     // Abort any running update
@@ -119,6 +138,11 @@ export class UpdateScheduler extends EventEmitter {
     if (this.webhookCooldownTimeout) {
       clearTimeout(this.webhookCooldownTimeout);
       this.webhookCooldownTimeout = null;
+    }
+
+    if (this.cacheService?.isWarming()) {
+      this.logger.info("Cancelling cache warming to start immediate update");
+      await this.cacheService.cancelWarming();
     }
 
     // Check webhook cooldown (only for actual webhooks, not manual triggers)
@@ -167,7 +191,6 @@ export class UpdateScheduler extends EventEmitter {
     try {
       await this.performUpdate();
     } catch (error) {
-      this.logger.error(`${isManualTrigger ? "Manual" : "Webhook"} update failed: ${error}`);
       this.emit("update-failed", error);
       throw error;
     }
@@ -199,11 +222,30 @@ export class UpdateScheduler extends EventEmitter {
       const metadata = await this.contentFetcher.fetchAllContent(tempDir, progressHandler);
 
       // Validate the new content
-      const isValid = await this.fileSystemManager.validateContent(tempDir);
+      const isValid = this.fileSystemManager.validateContent(tempDir);
       if (!isValid) {
         throw new Error("Content validation failed");
       }
 
+      if (metadata.commitHash === currentVersion) {
+        this.logger.info(
+          `Content unchanged (commit ${currentVersion?.substring(0, 7)}), skipping directory swap and cache warming`,
+        );
+
+        await this.fileSystemManager.cleanupTempDirectory();
+
+        this.lastUpdateTime = metadata.fetchTime;
+        this.failedUpdates = 0;
+        this.lastUpdateFailed = false;
+        this.failedCommitHash = null;
+        this.lastError = null;
+
+        this.stateManager.completeUpdate();
+        this.emit("update-completed");
+        return;
+      }
+
+      // Content changed, proceed with swap
       await this.fileSystemManager.swapDirectories(tempDir);
 
       // Save metadata
@@ -216,7 +258,30 @@ export class UpdateScheduler extends EventEmitter {
       this.lastError = null;
 
       this.logger.info(`Successfully updated content to commit ${metadata.commitHash}`);
-      this.stateManager.completeUpdate();
+
+      if (this.cacheService && this.documentsSubDirectory) {
+        const documentsPath = path.join(this.fileSystemManager.getCurrentPath(), this.documentsSubDirectory);
+
+        const newDirHash = await calculateDirectoryHash(documentsPath);
+
+        if (newDirHash) {
+          this.logger.info(`Starting cache warming for hash ${newDirHash.substring(0, 8)}...`);
+          try {
+            this.stateManager.startCacheWarming();
+            await this.cacheService.warmCache(documentsPath, newDirHash, this.documentsSubDirectory);
+            this.logger.info(`Cache warming completed successfully for commit ${metadata.commitHash.substring(0, 7)}`);
+            this.stateManager.completeCacheWarming();
+          } catch (error) {
+            this.logger.warn(`Cache warming failed: ${error}. Cache will be populated on first request.`);
+            this.stateManager.completeCacheWarming();
+          }
+        } else {
+          this.stateManager.completeUpdate();
+        }
+      } else {
+        this.stateManager.completeUpdate();
+      }
+
       this.emit("update-completed");
     } catch (error) {
       this.logger.error(`Update failed: ${error}`);
@@ -230,6 +295,8 @@ export class UpdateScheduler extends EventEmitter {
         this.lastError = "Insufficient memory available";
       } else if (error instanceof GitHubNetworkError) {
         this.lastError = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+      } else if (error instanceof LocalDirectoryError) {
+        this.lastError = error.message;
       } else {
         // For other errors, don't expose the internal error message
         this.lastError = null;
@@ -258,6 +325,8 @@ export class UpdateScheduler extends EventEmitter {
         errorMessage = "Insufficient memory available";
       } else if (error instanceof GitHubNetworkError) {
         errorMessage = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+      } else if (error instanceof LocalDirectoryError) {
+        errorMessage = error.message;
       } else if (error instanceof Error) {
         errorMessage = error.message;
       } else {

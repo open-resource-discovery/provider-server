@@ -320,7 +320,7 @@ class StatusClient {
 
       this.updateButtonState(updateStatus);
 
-      if (updateStatus === "idle") {
+      if (updateStatus === "idle" || updateStatus === "failed") {
         this.elements.buttonHint.textContent = "";
       }
 
@@ -389,6 +389,7 @@ class StatusClient {
       scheduled: "SCHEDULED",
       in_progress: "IN PROGRESS",
       failed: "FAILED",
+      cache_warming: "IN PROGRESS",
       unknown: "UNKNOWN",
     };
 
@@ -425,12 +426,16 @@ class StatusClient {
       } else if (status === "in_progress") {
         buttonText.textContent = "Fetching...";
         this.elements.buttonHint.textContent = "Starting update...";
+      } else if (status === "cache_warming") {
+        buttonText.textContent = "Warming Cache...";
+        this.elements.buttonHint.textContent = "Warming cache...";
       }
     }
 
     if (spinner && buttonText) {
-      spinner.style.display = status === "in_progress" ? "block" : "none";
-      buttonText.style.opacity = status === "in_progress" ? "0" : "1";
+      const showSpinner = status === "in_progress" || status === "cache_warming";
+      spinner.style.display = showSpinner ? "block" : "none";
+      buttonText.style.opacity = showSpinner ? "0" : "1";
     }
   }
 

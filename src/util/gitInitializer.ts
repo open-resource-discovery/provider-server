@@ -1,4 +1,5 @@
 import * as fsPromises from "fs/promises";
+import path from "path";
 import { ProviderServerOptions } from "src/model/server.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
@@ -9,6 +10,8 @@ import { buildGithubConfig } from "../model/github.js";
 import { createProgressHandler } from "./progressHandler.js";
 import { UpdateStateManager } from "../services/updateStateManager.js";
 import { validateGitContent } from "./validateGit.js";
+import { CacheService } from "../services/cacheService.js";
+import { calculateDirectoryHash } from "./directoryHash.js";
 
 /**
  * Initializes git source by checking, cloning, and validating git repository content
@@ -19,10 +22,12 @@ import { validateGitContent } from "./validateGit.js";
  * 4. Validates the cloned content
  * 5. Swaps directories if validation passes
  * 6. Saves metadata
+ * 7. Warms cache if cacheService provided
  *
  * @param options Provider server options
  * @param fileSystemManager File system manager instance
  * @param stateManager Optional update state manager for progress tracking
+ * @param cacheService Optional cache service for proactive cache population
  * @returns Content availability status and version
  * @throws ValidationError if initialization fails
  */
@@ -30,9 +35,10 @@ export async function initializeGitSource(
   options: ProviderServerOptions,
   fileSystemManager: FileSystemManager,
   stateManager?: UpdateStateManager,
+  cacheService?: CacheService | null,
 ): Promise<{ contentAvailable: boolean; version?: string }> {
   try {
-    await performGitInitialization(options, fileSystemManager, stateManager);
+    await performGitInitialization(options, fileSystemManager, stateManager, cacheService);
   } catch (error: unknown) {
     if (error instanceof BackendError) {
       throw error;
@@ -57,6 +63,7 @@ async function performGitInitialization(
   options: ProviderServerOptions,
   fileSystemManager: FileSystemManager,
   stateManager?: UpdateStateManager,
+  cacheService?: CacheService | null,
 ): Promise<void> {
   const githubApiUrl = options.githubApiUrl!;
   const githubRepository = options.githubRepository!;
@@ -121,6 +128,28 @@ async function performGitInitialization(
             log.info(`Content is up-to-date. Validating existing content...`);
             validateGitContent(currentPath, options.ordDocumentsSubDirectory);
             log.info(`Existing content is valid. Skipping repository clone.`);
+
+            if (cacheService) {
+              const documentsPath = path.join(currentPath, options.ordDocumentsSubDirectory);
+
+              const dirHash = await calculateDirectoryHash(documentsPath);
+
+              if (dirHash) {
+                log.info(`Warming cache for existing content (hash: ${dirHash.substring(0, 8)})...`);
+
+                stateManager?.startCacheWarming();
+
+                try {
+                  await cacheService.warmCache(documentsPath, dirHash, options.ordDocumentsSubDirectory);
+                  log.info(`Cache warming completed successfully for existing content`);
+                  stateManager?.completeCacheWarming();
+                } catch (error) {
+                  log.warn(`Cache warming failed: ${error}. Cache will be populated on first request.`);
+                  stateManager?.completeCacheWarming();
+                }
+              }
+            }
+
             stateManager?.completeUpdate();
             return; // Content is valid and up-to-date, no need to re-clone
           } catch (validationError) {
@@ -189,6 +218,25 @@ async function performGitInitialization(
       }
 
       log.info(`Initial content synchronized successfully`);
+
+      if (cacheService) {
+        const documentsPath = path.join(fileSystemManager.getCurrentPath(), options.ordDocumentsSubDirectory);
+
+        const dirHash = await calculateDirectoryHash(documentsPath);
+
+        if (dirHash) {
+          log.info(`Warming cache for initial content (hash: ${dirHash.substring(0, 8)})`);
+          try {
+            stateManager?.startCacheWarming();
+            await cacheService.warmCache(documentsPath, dirHash, options.ordDocumentsSubDirectory);
+            log.info(`Initial cache warming completed successfully`);
+            stateManager?.completeCacheWarming();
+          } catch (error) {
+            log.warn(`Initial cache warming failed: ${error}. Cache will be populated on first request.`);
+            stateManager?.completeCacheWarming();
+          }
+        }
+      }
 
       // Notify state manager of successful completion
       stateManager?.completeUpdate();

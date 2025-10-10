@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Automatic injection of `describedSystemVersion` field for ORD documents with perspective type `system-version`, that don't have one
 - More tests
 - Utilizing `isomorphic-git` to clone repositories instead of using GitHub API
+- Added improved warm up cache
+
+### Changed
+
+- Caching behavior: Instant cache warm up after a clone / pull (non-blocking)
 
 ## [0.9.2] - 2025-07-22
 
