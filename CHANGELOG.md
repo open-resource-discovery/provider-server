@@ -4,12 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[0.10.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v0.10.1)] - 2025-10-10
+
 ### Added
 
 - Automatic injection of `describedSystemVersion` field for ORD documents with perspective type `system-version`, that don't have one
 - More tests
 - Utilizing `isomorphic-git` to clone repositories instead of using GitHub API
-- Added improved warm up cache
 
 ### Changed
 
