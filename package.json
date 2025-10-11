@@ -53,7 +53,7 @@
     "isomorphic-git": "1.33.0",
     "p-limit": "7.1.1",
     "pino": "10.0.0",
-    "pino-pretty": "13.1.1"
+    "pino-pretty": "13.1.2"
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",
