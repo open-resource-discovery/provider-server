@@ -1,4 +1,4 @@
-import { ORDDocument } from "@open-resource-discovery/specification";
+import { OrdDocument } from "@open-resource-discovery/specification";
 import { DocumentRepository } from "./interfaces/documentRepository.js";
 import fs from "fs";
 import path from "path";
@@ -34,7 +34,7 @@ export class LocalDocumentRepository implements DocumentRepository {
     return this.ordDirectory;
   }
 
-  public getDocument(path: string): Promise<ORDDocument | null> {
+  public getDocument(path: string): Promise<OrdDocument | null> {
     const fullPath = this.getFullLocalPath(path);
     try {
       if (fs.existsSync(fullPath) && fullPath.endsWith(".json")) {
@@ -42,8 +42,8 @@ export class LocalDocumentRepository implements DocumentRepository {
         const jsonData = JSON.parse(content);
 
         if (jsonData && jsonData.openResourceDiscovery) {
-          validateOrdDocument(jsonData as ORDDocument);
-          return Promise.resolve(jsonData as ORDDocument);
+          validateOrdDocument(jsonData as OrdDocument);
+          return Promise.resolve(jsonData as OrdDocument);
         }
         log.warn(`File at ${fullPath} is not a valid ORD document.`);
       }
@@ -54,9 +54,9 @@ export class LocalDocumentRepository implements DocumentRepository {
     }
   }
 
-  public getDocuments(directoryPath: string): Promise<Map<string, ORDDocument>> {
-    return (async (): Promise<Map<string, ORDDocument>> => {
-      const documents = new Map<string, ORDDocument>();
+  public getDocuments(directoryPath: string): Promise<Map<string, OrdDocument>> {
+    return (async (): Promise<Map<string, OrdDocument>> => {
+      const documents = new Map<string, OrdDocument>();
       try {
         const files = await this.listFiles(directoryPath);
 

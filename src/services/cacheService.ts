@@ -1,11 +1,11 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import {
-  ORDConfiguration,
-  ORDDocument,
-  APIResource,
+  OrdConfiguration,
+  OrdDocument,
+  ApiResource,
   EventResource,
-  ORDV1DocumentDescription,
+  OrdV1DocumentDescription,
   SystemVersion,
 } from "@open-resource-discovery/specification";
 import { CacheService as CacheServiceInterface } from "./interfaces/cacheService.js";
@@ -22,9 +22,9 @@ import { getDocumentPerspective } from "../model/perspective.js";
 
 export class CacheService implements CacheServiceInterface {
   // Cache for individual documents, keyed by their full path
-  private readonly documentCache: Map<string, ORDDocument> = new Map();
+  private readonly documentCache: Map<string, OrdDocument> = new Map();
   // Cache for ORD configurations, keyed by directory hash
-  private readonly configCache: Map<string, ORDConfiguration> = new Map();
+  private readonly configCache: Map<string, OrdConfiguration> = new Map();
   // Cache mapping directory hash to the list of document paths it contains
   private readonly dirDocumentPathsCache: Map<string, string[]> = new Map();
   // Cache for FQN maps, keyed by directory hash
@@ -47,7 +47,7 @@ export class CacheService implements CacheServiceInterface {
    * Retrieves a cached ORD document only if the directory hash matches
    * and the document path is associated with that hash.
    */
-  public getDocumentFromCache(path: string, dirHash: string): ORDDocument | null {
+  public getDocumentFromCache(path: string, dirHash: string): OrdDocument | null {
     const cachedPaths = this.dirDocumentPathsCache.get(dirHash);
     if (cachedPaths && cachedPaths.includes(path)) {
       const doc = this.documentCache.get(path);
@@ -63,7 +63,7 @@ export class CacheService implements CacheServiceInterface {
   /**
    * Caches an ORD document and associates its path with the directory hash.
    */
-  public cacheDocument(path: string, dirHash: string, document: ORDDocument): void {
+  public cacheDocument(path: string, dirHash: string, document: OrdDocument): void {
     this.documentCache.set(path, document);
 
     // Ensure the path is associated with the directory hash
@@ -77,7 +77,7 @@ export class CacheService implements CacheServiceInterface {
   /**
    * Retrieves the cached ORD configuration for a given directory hash.
    */
-  public getCachedOrdConfig(dirHash: string): ORDConfiguration | null {
+  public getCachedOrdConfig(dirHash: string): OrdConfiguration | null {
     const config = this.configCache.get(dirHash);
     if (config) {
       log.debug(`Cache hit for ORD config with hash: ${dirHash}`);
@@ -90,7 +90,7 @@ export class CacheService implements CacheServiceInterface {
   /**
    * Caches the ORD configuration associated with a directory hash.
    */
-  public setCachedOrdConfig(dirHash: string, config: ORDConfiguration): void {
+  public setCachedOrdConfig(dirHash: string, config: OrdConfiguration): void {
     this.configCache.set(dirHash, config);
   }
 
@@ -259,9 +259,9 @@ export class CacheService implements CacheServiceInterface {
 
       this.logger.info(`Cache warming: processing ${jsonFiles.length} documents`);
 
-      const documents: { relativePath: string; document: ORDDocument }[] = [];
-      const processedDocsForFqn: ORDDocument[] = [];
-      const ordConfig: ORDConfiguration = emptyOrdConfig(baseUrl);
+      const documents: { relativePath: string; document: OrdDocument }[] = [];
+      const processedDocsForFqn: OrdDocument[] = [];
+      const ordConfig: OrdConfiguration = emptyOrdConfig(baseUrl);
       const accessStrategies = getOrdDocumentAccessStrategies(authMethods);
       const documentPaths: string[] = [];
 
@@ -280,7 +280,7 @@ export class CacheService implements CacheServiceInterface {
 
           // Validate as ORD document
           if (jsonData && jsonData.openResourceDiscovery) {
-            validateOrdDocument(jsonData as ORDDocument);
+            validateOrdDocument(jsonData as OrdDocument);
 
             // Calculate relative path
             // Prepend documentsSubDirectory to match the path structure expected by URLs
@@ -290,7 +290,7 @@ export class CacheService implements CacheServiceInterface {
               : fileRelativePath;
 
             // Process the document
-            const processedDoc = this.processDocument(jsonData as ORDDocument, dirHash);
+            const processedDoc = this.processDocument(jsonData as OrdDocument, dirHash);
 
             documents.push({
               relativePath,
@@ -302,9 +302,9 @@ export class CacheService implements CacheServiceInterface {
 
             // Add to ORD config
             const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
-            const perspective = getDocumentPerspective(jsonData as ORDDocument);
+            const perspective = getDocumentPerspective(jsonData as OrdDocument);
 
-            const documentEntry: ORDV1DocumentDescription = {
+            const documentEntry: OrdV1DocumentDescription = {
               url: documentUrl,
               accessStrategies,
               perspective,
@@ -358,7 +358,7 @@ export class CacheService implements CacheServiceInterface {
     }
   }
 
-  private processDocument(document: ORDDocument, directoryHash: string): ORDDocument {
+  private processDocument(document: OrdDocument, directoryHash: string): OrdDocument {
     const eventResources = this.processResourceDefinition(document.eventResources || []);
     const apiResources = this.processResourceDefinition(document.apiResources || []);
 
@@ -382,7 +382,7 @@ export class CacheService implements CacheServiceInterface {
     };
   }
 
-  private processResourceDefinition<T extends EventResource | APIResource>(resources: T[]): T[] {
+  private processResourceDefinition<T extends EventResource | ApiResource>(resources: T[]): T[] {
     const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext?.authMethods || []);
 
     return resources.map((resource) => ({

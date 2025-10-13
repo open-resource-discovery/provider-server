@@ -1,4 +1,9 @@
-import { APIResource, ORDConfiguration, ORDDocument, AccessStrategy } from "@open-resource-discovery/specification";
+import {
+  ApiResource,
+  OrdConfiguration,
+  OrdDocument,
+  OrdV1DocumentAccessStrategy,
+} from "@open-resource-discovery/specification";
 import { OptAuthMethod } from "src/model/cli.js";
 import { ProcessingContext } from "src/services/interfaces/processingContext.js";
 import { PATH_CONSTANTS } from "../../constant.js";
@@ -27,7 +32,7 @@ const mockContext: ProcessingContext = {
   authMethods: [OptAuthMethod.Open],
 };
 
-const mockApiResource: APIResource = {
+const mockApiResource: ApiResource = {
   ordId: "test:api:resource:v1",
   title: "Test API Resource",
   shortDescription: "A test API resource",
@@ -46,7 +51,7 @@ const mockApiResource: APIResource = {
   ],
 };
 
-const mockDocument: ORDDocument = {
+const mockDocument: OrdDocument = {
   openResourceDiscovery: "1.6",
   describedSystemInstance: {
     baseUrl: "http://example.com/system",
@@ -102,14 +107,14 @@ describe("DocumentService", () => {
     });
 
     it("should return cached document on cache hit", async () => {
-      const processedDocForCache: ORDDocument = {
+      const processedDocForCache: OrdDocument = {
         ...mockDocument,
         apiResources: mockDocument.apiResources?.map((api) => ({
           ...api,
           resourceDefinitions: api.resourceDefinitions?.map((rd) => ({
             ...rd,
             url: `${PATH_CONSTANTS.SERVER_PREFIX}/test-openapi.json`,
-            accessStrategies: [{ type: "open" }] as [AccessStrategy, ...AccessStrategy[]],
+            accessStrategies: [{ type: "open" }] as [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]],
           })),
         })),
       };
@@ -154,13 +159,13 @@ describe("DocumentService", () => {
       const doc1Path = "documents/doc1.json";
       const doc2Path = "documents/doc2.json";
 
-      const mockDocument2: ORDDocument = JSON.parse(JSON.stringify(mockDocument));
+      const mockDocument2: OrdDocument = JSON.parse(JSON.stringify(mockDocument));
 
       if (mockDocument2.apiResources && mockDocument2.apiResources.length > 0) {
         mockDocument2.apiResources[0].ordId = "test:api:resource:v2";
       }
 
-      const documentsMap = new Map<string, ORDDocument>([
+      const documentsMap = new Map<string, OrdDocument>([
         [doc1Path, mockDocument],
         [doc2Path, mockDocument2],
       ]);
@@ -189,7 +194,7 @@ describe("DocumentService", () => {
     });
 
     it("should return cached config on cache hit", async () => {
-      const mockCachedConfig: ORDConfiguration = {
+      const mockCachedConfig: OrdConfiguration = {
         openResourceDiscoveryV1: { documents: [{ url: "cached", accessStrategies: [{ type: "open" }] }] }, // Added strategy
       };
 
@@ -220,7 +225,7 @@ describe("DocumentService", () => {
 
     it("should fetch docs and return generated FQN map on cache miss", async () => {
       const doc1Path = "documents/doc1.json";
-      const documentsMap = new Map<string, ORDDocument>([[doc1Path, mockDocument]]);
+      const documentsMap = new Map<string, OrdDocument>([[doc1Path, mockDocument]]);
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocuments.mockResolvedValue(documentsMap);
@@ -237,7 +242,7 @@ describe("DocumentService", () => {
     it("should return cached FQN map on cache hit", async () => {
       const mockCachedMap: FqnDocumentMap = { "test:id": [] };
 
-      const mockMinimalConfig: ORDConfiguration = { openResourceDiscoveryV1: { documents: [] } };
+      const mockMinimalConfig: OrdConfiguration = { openResourceDiscoveryV1: { documents: [] } };
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       cacheService.setCachedFqnMap(testHash, mockCachedMap);
       cacheService.setCachedOrdConfig(testHash, mockMinimalConfig);
@@ -255,7 +260,7 @@ describe("DocumentService", () => {
       const testPath = "documents/remote.json";
       const testHash = "hash-remote-rewrite";
       const remoteUrl = "https://example.com/someresource.json";
-      const docWithRemoteUrl: ORDDocument = JSON.parse(JSON.stringify(mockDocument));
+      const docWithRemoteUrl: OrdDocument = JSON.parse(JSON.stringify(mockDocument));
       docWithRemoteUrl.apiResources![0].resourceDefinitions![0].url = remoteUrl;
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
@@ -271,7 +276,7 @@ describe("DocumentService", () => {
       const testHash = "hash-local-rewrite";
       const localRelativeUrl = `../${mockApiResource.ordId}/openapi-v3.json`;
       const expectedRewrittenUrl = `${PATH_CONSTANTS.SERVER_PREFIX}/${mockApiResource.ordId}/openapi-v3.json`;
-      const docWithLocalUrl: ORDDocument = JSON.parse(JSON.stringify(mockDocument));
+      const docWithLocalUrl: OrdDocument = JSON.parse(JSON.stringify(mockDocument));
 
       docWithLocalUrl.apiResources![0].ordId = mockApiResource.ordId;
       docWithLocalUrl.apiResources![0].resourceDefinitions![0].url = localRelativeUrl;
@@ -290,7 +295,7 @@ describe("DocumentService", () => {
       const testPath = "documents/existing-version.json";
       const testHash = "hash-existing-version";
       const existingVersion = { version: "2.5.0" };
-      const docWithVersion: ORDDocument = {
+      const docWithVersion: OrdDocument = {
         ...mockDocument,
         describedSystemVersion: existingVersion,
       };
@@ -306,7 +311,7 @@ describe("DocumentService", () => {
     it("should inject describedSystemVersion when missing", async () => {
       const testPath = "documents/no-version.json";
       const testHash = "1234567890abcdef";
-      const docWithoutVersion: ORDDocument = {
+      const docWithoutVersion: OrdDocument = {
         ...mockDocument,
         perspective: "system-version",
       };
@@ -323,7 +328,7 @@ describe("DocumentService", () => {
     it("should inject describedSystemVersion when missing (with specific hash)", async () => {
       const testPath = "documents/no-version-build.json";
       const testHash = "abcdef1234567890fedcba0987654321";
-      const docWithoutVersion: ORDDocument = {
+      const docWithoutVersion: OrdDocument = {
         ...mockDocument,
         perspective: "system-version",
       };
@@ -340,7 +345,7 @@ describe("DocumentService", () => {
     it("should inject describedSystemVersion when hash returns null", async () => {
       const testPath = "documents/null-version.json";
       const testHash = "somevalidhash";
-      const docWithNullVersion: ORDDocument = {
+      const docWithNullVersion: OrdDocument = {
         ...mockDocument,
         perspective: "system-version",
       };
@@ -360,7 +365,7 @@ describe("DocumentService", () => {
     it("should inject version for system-version perspective when missing", async () => {
       const testPath = "documents/system-version-no-version.json";
       const testHash = "abcdef1234567890";
-      const docWithSystemVersionPerspective: ORDDocument = {
+      const docWithSystemVersionPerspective: OrdDocument = {
         ...mockDocument,
         perspective: "system-version",
       };
@@ -378,7 +383,7 @@ describe("DocumentService", () => {
     it("should NOT inject version for system-instance perspective when missing", async () => {
       const testPath = "documents/system-instance-no-version.json";
       const testHash = "abcdef1234567890";
-      const docWithSystemInstancePerspective: ORDDocument = {
+      const docWithSystemInstancePerspective: OrdDocument = {
         ...mockDocument,
         perspective: "system-instance",
       };
@@ -396,7 +401,7 @@ describe("DocumentService", () => {
     it("should NOT inject version for system-independent perspective when missing", async () => {
       const testPath = "documents/system-independent-no-version.json";
       const testHash = "abcdef1234567890";
-      const docWithSystemIndependentPerspective: ORDDocument = {
+      const docWithSystemIndependentPerspective: OrdDocument = {
         ...mockDocument,
         perspective: "system-independent",
       };
@@ -414,7 +419,7 @@ describe("DocumentService", () => {
     it("should NOT inject version for default perspective (system-instance) when missing", async () => {
       const testPath = "documents/default-perspective-no-version.json";
       const testHash = "abcdef1234567890";
-      const docWithoutPerspective: ORDDocument = {
+      const docWithoutPerspective: OrdDocument = {
         ...mockDocument,
         // no perspective property - should default to system-instance
       };
@@ -433,7 +438,7 @@ describe("DocumentService", () => {
       const testPath = "documents/has-version-sv.json";
       const testHash = "abcdef1234567890";
       const existingVersion = { version: "2.5.0" };
-      const docWithVersion: ORDDocument = {
+      const docWithVersion: OrdDocument = {
         ...mockDocument,
         perspective: "system-version",
         describedSystemVersion: existingVersion,
@@ -452,7 +457,7 @@ describe("DocumentService", () => {
       const testPath = "documents/has-version-si.json";
       const testHash = "abcdef1234567890";
       const existingVersion = { version: "2.5.0" };
-      const docWithVersion: ORDDocument = {
+      const docWithVersion: OrdDocument = {
         ...mockDocument,
         perspective: "system-instance",
         describedSystemVersion: existingVersion,
@@ -471,7 +476,7 @@ describe("DocumentService", () => {
       const testPath = "documents/has-version-sind.json";
       const testHash = "abcdef1234567890";
       const existingVersion = { version: "2.5.0" };
-      const docWithVersion: ORDDocument = {
+      const docWithVersion: OrdDocument = {
         ...mockDocument,
         perspective: "system-independent",
         describedSystemVersion: existingVersion,

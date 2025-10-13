@@ -1,4 +1,4 @@
-import { ORDConfiguration } from "@open-resource-discovery/specification";
+import { OrdConfiguration } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
@@ -7,11 +7,11 @@ import { Perspective } from "src/model/perspective.js";
 export interface RouterOptions {
   baseUrl: string;
   authMethods: OptAuthMethod[];
-  ordConfig: (perspective?: Perspective) => Promise<ORDConfiguration>;
+  ordConfig: (perspective?: Perspective) => Promise<OrdConfiguration>;
 }
 
 export abstract class BaseRouter {
-  private getOrdConfig: (perspective?: Perspective) => Promise<ORDConfiguration>;
+  private getOrdConfig: (perspective?: Perspective) => Promise<OrdConfiguration>;
   protected baseUrl: string;
   protected authMethods: OptAuthMethod[];
 

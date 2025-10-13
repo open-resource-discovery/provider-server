@@ -1,4 +1,4 @@
-import { type ORDDocument } from "@open-resource-discovery/specification";
+import { type OrdDocument } from "@open-resource-discovery/specification";
 import { type FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../fqnHelpers.js";
 
 jest.mock("fs", () => ({
@@ -36,7 +36,7 @@ jest.mock("fs", () => ({
 describe("FQN Helpers", () => {
   describe("getFlattenedOrdFqnDocumentMap", () => {
     it("should merge multiple FqnDocumentMaps from multiple ORDDocuments", () => {
-      const doc1: ORDDocument = {
+      const doc1: OrdDocument = {
         apiResources: [
           {
             ordId: "urn:apiResource:example:v1",
@@ -46,7 +46,7 @@ describe("FQN Helpers", () => {
         ],
       };
 
-      const doc2: ORDDocument = {
+      const doc2: OrdDocument = {
         eventResources: [
           {
             ordId: "urn:apiResource:example:v1",

@@ -1,9 +1,9 @@
 import {
-  ORDConfiguration,
-  ORDDocument,
-  APIResource,
+  OrdConfiguration,
+  OrdDocument,
+  ApiResource,
   EventResource,
-  ORDV1DocumentDescription,
+  OrdV1DocumentDescription,
   SystemVersion,
 } from "@open-resource-discovery/specification";
 import { DocumentService as DocumentServiceInterface } from "./interfaces/documentService.js";
@@ -76,11 +76,11 @@ export class DocumentService implements DocumentServiceInterface {
       try {
         log.debug(`Cache miss for hash ${dirHash}. Fetching documents, building config and FQN map.`);
         const documentsMap = await this.repository.getDocuments(this.documentsDirectoryPath);
-        const ordConfig: ORDConfiguration = emptyOrdConfig(this.processingContext.baseUrl);
+        const ordConfig: OrdConfiguration = emptyOrdConfig(this.processingContext.baseUrl);
         const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext.authMethods);
         const documentPaths: string[] = [];
 
-        const processedDocsForFqn: ORDDocument[] = [];
+        const processedDocsForFqn: OrdDocument[] = [];
 
         let count = 0;
         for (const [relativePath, document] of documentsMap.entries()) {
@@ -93,7 +93,7 @@ export class DocumentService implements DocumentServiceInterface {
             const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
             const perspective = getDocumentPerspective(document);
 
-            const documentEntry: ORDV1DocumentDescription = {
+            const documentEntry: OrdV1DocumentDescription = {
               url: documentUrl,
               accessStrategies,
               perspective,
@@ -139,7 +139,7 @@ export class DocumentService implements DocumentServiceInterface {
     private readonly documentsDirectoryPath: string,
   ) {}
 
-  public async getProcessedDocument(relativePath: string): Promise<ORDDocument> {
+  public async getProcessedDocument(relativePath: string): Promise<OrdDocument> {
     log.debug(`Getting processed document for path: ${relativePath}`);
     const currentDirHash = await this.repository.getDirectoryHash(this.documentsDirectoryPath);
 
@@ -169,7 +169,7 @@ export class DocumentService implements DocumentServiceInterface {
     return processedDoc;
   }
 
-  public async getOrdConfiguration(perspective?: Perspective): Promise<ORDConfiguration> {
+  public async getOrdConfiguration(perspective?: Perspective): Promise<OrdConfiguration> {
     log.debug(`Getting ORD configuration${perspective ? ` with perspective filter: ${perspective}` : ""}`);
     const currentDirHash = await this.repository.getDirectoryHash(this.documentsDirectoryPath);
 
@@ -193,7 +193,7 @@ export class DocumentService implements DocumentServiceInterface {
     }
 
     // Filter documents by perspective
-    const filteredConfig: ORDConfiguration = {
+    const filteredConfig: OrdConfiguration = {
       ...config,
       openResourceDiscoveryV1: {
         ...config.openResourceDiscoveryV1,
@@ -236,7 +236,7 @@ export class DocumentService implements DocumentServiceInterface {
     return map;
   }
 
-  private processDocument(document: ORDDocument, directoryHash: string | null): ORDDocument {
+  private processDocument(document: OrdDocument, directoryHash: string | null): OrdDocument {
     const eventResources = this.processResourceDefinition(document.eventResources || []);
     const apiResources = this.processResourceDefinition(document.apiResources || []);
 
@@ -260,7 +260,7 @@ export class DocumentService implements DocumentServiceInterface {
     };
   }
 
-  private processResourceDefinition<T extends EventResource | APIResource>(resources: T[]): T[] {
+  private processResourceDefinition<T extends EventResource | ApiResource>(resources: T[]): T[] {
     return resources.map((resource) => ({
       ...resource,
       resourceDefinitions: (resource.resourceDefinitions || []).map((definition) => {

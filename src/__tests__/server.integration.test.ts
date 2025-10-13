@@ -1,4 +1,4 @@
-import { ORDConfiguration, ORDDocument, ORDV1DocumentDescription } from "@open-resource-discovery/specification";
+import { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
 import path from "path";
 import * as fs from "fs/promises";
 import { PATH_CONSTANTS } from "src/constant.js";
@@ -70,13 +70,13 @@ describe("Server Integration", () => {
 
     it("should list all available documents in configuration", async () => {
       const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
-      const data = (await response.json()) as ORDConfiguration;
+      const data = (await response.json()) as OrdConfiguration;
 
       expect(data.openResourceDiscoveryV1.documents).toBeDefined();
       expect(Array.isArray(data.openResourceDiscoveryV1.documents)).toBe(true);
       expect(data.openResourceDiscoveryV1.documents?.length).toBeGreaterThan(0);
 
-      data.openResourceDiscoveryV1.documents?.forEach((doc: ORDV1DocumentDescription) => {
+      data.openResourceDiscoveryV1.documents?.forEach((doc: OrdV1DocumentDescription) => {
         expect(doc).toHaveProperty("url");
         expect(doc).toHaveProperty("accessStrategies");
       });
@@ -88,7 +88,7 @@ describe("Server Integration", () => {
         `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-version`,
       );
       expect(versionResponse.status).toBe(200);
-      const versionData = (await versionResponse.json()) as ORDConfiguration;
+      const versionData = (await versionResponse.json()) as OrdConfiguration;
 
       expect(versionData.openResourceDiscoveryV1.documents?.length).toBe(0);
 
@@ -96,14 +96,14 @@ describe("Server Integration", () => {
         `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-instance`,
       );
       expect(instanceResponse.status).toBe(200);
-      const instanceData = (await instanceResponse.json()) as ORDConfiguration;
+      const instanceData = (await instanceResponse.json()) as OrdConfiguration;
       expect(instanceData.openResourceDiscoveryV1.documents?.length).toBe(2);
 
       const independentResponse = await fetch(
         `${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}?perspective=system-independent`,
       );
       expect(independentResponse.status).toBe(200);
-      const independentData = (await independentResponse.json()) as ORDConfiguration;
+      const independentData = (await independentResponse.json()) as OrdConfiguration;
       expect(independentData.openResourceDiscoveryV1.documents?.length).toBe(0);
     });
   });
@@ -123,7 +123,7 @@ describe("Server Integration", () => {
       });
 
       expect(response.status).toBe(200);
-      const document = (await response.json()) as ORDDocument;
+      const document = (await response.json()) as OrdDocument;
       expect(document).toHaveProperty("openResourceDiscovery");
       expect(document.openResourceDiscovery).toBe("1.6");
     });
@@ -133,7 +133,7 @@ describe("Server Integration", () => {
       const headers = { Authorization: `Basic ${credentials}` };
 
       const configResponse = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
-      const config = (await configResponse.json()) as ORDConfiguration;
+      const config = (await configResponse.json()) as OrdConfiguration;
       const documents = config.openResourceDiscoveryV1.documents!;
 
       for (const doc of documents) {
@@ -165,7 +165,7 @@ describe("Server Integration", () => {
       });
 
       expect(response.status).toBe(200);
-      const document = (await response.json()) as ORDDocument;
+      const document = (await response.json()) as OrdDocument;
       expect(document).toHaveProperty("openResourceDiscovery");
       expect(document.openResourceDiscovery).toBe("1.6");
     });
@@ -179,7 +179,7 @@ describe("Server Integration", () => {
       });
 
       expect(response.status).toBe(200);
-      const document = (await response.json()) as ORDDocument;
+      const document = (await response.json()) as OrdDocument;
       expect(document).toHaveProperty("openResourceDiscovery");
       expect(document.openResourceDiscovery).toBe("1.6");
     });
