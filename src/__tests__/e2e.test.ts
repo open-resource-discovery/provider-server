@@ -1,4 +1,4 @@
-import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
+import { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
 import path from "path";
 import * as fs from "fs/promises";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
@@ -60,7 +60,7 @@ describe("End-to-End Testing", () => {
     // 1. Discover API
     const configResponse = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
     expect(configResponse.status).toBe(200);
-    const config = (await configResponse.json()) as ORDConfiguration;
+    const config = (await configResponse.json()) as OrdConfiguration;
 
     // 2. Get document
     const credentials = Buffer.from("admin:secret").toString("base64");
@@ -72,7 +72,7 @@ describe("End-to-End Testing", () => {
       headers: { Authorization: `Basic ${credentials}` },
     });
     expect(documentResponse.status).toBe(200);
-    const document = (await documentResponse.json()) as ORDDocument;
+    const document = (await documentResponse.json()) as OrdDocument;
     expect(document.apiResources).not.toHaveLength(0);
 
     // 3. Access API resource

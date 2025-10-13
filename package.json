@@ -43,7 +43,7 @@
     "@fastify/static": "8.2.0",
     "@fastify/websocket": "11.2.0",
     "@octokit/rest": "22.0.0",
-    "@open-resource-discovery/specification": "1.12.2",
+    "@open-resource-discovery/specification": "1.12.3",
     "bcryptjs": "3.0.2",
     "commander": "14.0.1",
     "dotenv": "17.2.3",

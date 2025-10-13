@@ -1,4 +1,4 @@
-import { ORDConfiguration, ORDDocument } from "@open-resource-discovery/specification";
+import { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js"; // Import FqnDocumentMap
 
 export interface CacheService {
@@ -8,7 +8,7 @@ export interface CacheService {
    * @param dirHash The hash of the directory containing the document.
    * @returns The cached ORD document or null if not found or hash mismatch.
    */
-  getDocumentFromCache(path: string, dirHash: string): ORDDocument | null;
+  getDocumentFromCache(path: string, dirHash: string): OrdDocument | null;
 
   /**
    * Caches an ORD document with its path and associated directory hash.
@@ -16,21 +16,21 @@ export interface CacheService {
    * @param dirHash The hash of the directory.
    * @param document The ORD document to cache.
    */
-  cacheDocument(path: string, dirHash: string, document: ORDDocument): void;
+  cacheDocument(path: string, dirHash: string, document: OrdDocument): void;
 
   /**
    * Retrieves the cached ORD configuration for a given directory hash.
    * @param dirHash The hash of the directory.
    * @returns The cached ORD configuration or null if not found.
    */
-  getCachedOrdConfig(dirHash: string): ORDConfiguration | null;
+  getCachedOrdConfig(dirHash: string): OrdConfiguration | null;
 
   /**
    * Caches the ORD configuration associated with a directory hash.
    * @param dirHash The hash of the directory.
    * @param config The ORD configuration to cache.
    */
-  setCachedOrdConfig(dirHash: string, config: ORDConfiguration): void;
+  setCachedOrdConfig(dirHash: string, config: OrdConfiguration): void;
 
   /**
    * Retrieves the cached list of document paths for a given directory hash.

@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 
 - Rename access strategy `sap.businesshub:basic-auth:v1` to `basic-auth`
+- Update ORD schema to v1.12.3
 
 ## [[0.10.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v0.10.1)] - 2025-10-10
 

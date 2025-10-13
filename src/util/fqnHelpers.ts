@@ -1,13 +1,11 @@
-import { ordDocumentSchema, type ORDDocument } from "@open-resource-discovery/specification";
+import { ordDocumentSchema, type OrdDocument } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "../constant.js";
 import { ordIdToPathSegment } from "./pathUtils.js";
 
 export const apiResourceOrdIdPattern = new RegExp(
-  /* @ts-expect-error ordId pattern selection */
   ordDocumentSchema.definitions.ApiResource.properties["ordId"]["pattern"],
 );
 export const eventResourceOrdIdPattern = new RegExp(
-  /* @ts-expect-error ordId pattern selection */
   ordDocumentSchema.definitions.EventResource.properties["ordId"]["pattern"],
 );
 
@@ -39,7 +37,7 @@ function getRelativePathForResource(ordId: string, path: string): FqnResourceMap
   };
 }
 
-function getOrdFqnDocumentMap(document: ORDDocument): FqnDocumentMap {
+function getOrdFqnDocumentMap(document: OrdDocument): FqnDocumentMap {
   const { apiResources, eventResources } = document;
   const result: FqnDocumentMap = {};
   const combinedResources = [...(apiResources || []), ...(eventResources || [])];
@@ -60,7 +58,7 @@ function getOrdFqnDocumentMap(document: ORDDocument): FqnDocumentMap {
 }
 
 // Creates a merged map of resources from multiple ord documents
-export function getFlattenedOrdFqnDocumentMap(documents: ORDDocument[]): FqnDocumentMap {
+export function getFlattenedOrdFqnDocumentMap(documents: OrdDocument[]): FqnDocumentMap {
   return flattenOrdFqnDocumentMaps(documents.map(getOrdFqnDocumentMap));
 }
 

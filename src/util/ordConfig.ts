@@ -1,5 +1,4 @@
-import { ORDConfiguration } from "@open-resource-discovery/specification";
-import { AccessStrategy } from "@open-resource-discovery/specification/dist/types/v1/Configuration.js";
+import { OrdConfiguration, OrdV1DocumentAccessStrategy } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { joinFilePaths, normalizePath } from "src/util/pathUtils.js";
 import { mapOptAuthToOrdAccessStrategy, OptAuthMethod } from "src/model/cli.js";
@@ -26,21 +25,23 @@ export async function listGithubOrdDirectory(githubOpts: GithubOpts, ordSubDirec
     .map((item) => item.path);
 }
 
-export function getOrdDocumentAccessStrategies(authOpts: OptAuthMethod[]): [AccessStrategy, ...AccessStrategy[]] {
+export function getOrdDocumentAccessStrategies(
+  authOpts: OptAuthMethod[],
+): [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]] {
   if (authOpts.length === 0) {
     throw new Error("No authentication options passed for ORD config access strategies");
   }
 
   return authOpts.map((ao) => {
-    const accessStrategy: AccessStrategy = {
+    const accessStrategy: OrdV1DocumentAccessStrategy = {
       type: mapOptAuthToOrdAccessStrategy(ao),
     };
     return accessStrategy;
-  }) as [AccessStrategy, ...AccessStrategy[]];
+  }) as [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]];
 }
 
-export function emptyOrdConfig(baseUrl?: string): ORDConfiguration {
-  const config: ORDConfiguration = {
+export function emptyOrdConfig(baseUrl?: string): OrdConfiguration {
+  const config: OrdConfiguration = {
     openResourceDiscoveryV1: {
       documents: [],
     },

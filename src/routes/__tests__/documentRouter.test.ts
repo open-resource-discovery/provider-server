@@ -1,7 +1,7 @@
 import { DocumentRouter } from "../documentRouter.js";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { DocumentService } from "../../services/interfaces/documentService.js";
-import { ORDDocument, ORDConfiguration } from "@open-resource-discovery/specification";
+import { OrdDocument, OrdConfiguration } from "@open-resource-discovery/specification";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js";
 import { OptAuthMethod } from "../../model/cli.js";
 import { NotFoundError } from "../../model/error/NotFoundError.js";
@@ -19,7 +19,7 @@ describe("DocumentRouter", () => {
   let mockReply: jest.Mocked<FastifyReply>;
   let mockFqnMap: FqnDocumentMap;
 
-  const mockOrdConfig: ORDConfiguration = {
+  const mockOrdConfig: OrdConfiguration = {
     $schema: "https://github.com/open-resource-discovery/spec-v1/interfaces/Configuration.schema.json",
     openResourceDiscoveryV1: {
       documents: [
@@ -28,13 +28,13 @@ describe("DocumentRouter", () => {
         },
       ],
     },
-  } as unknown as ORDConfiguration;
+  } as unknown as OrdConfiguration;
 
-  const mockOrdDocument: ORDDocument = {
+  const mockOrdDocument: OrdDocument = {
     $schema: "https://github.com/open-resource-discovery/spec-v1/interfaces/Document.schema.json",
     openResourceDiscovery: "1.9",
     description: "Test document",
-  } as unknown as ORDDocument;
+  } as unknown as OrdDocument;
 
   beforeEach(() => {
     jest.clearAllMocks();

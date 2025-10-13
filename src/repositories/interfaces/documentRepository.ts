@@ -1,4 +1,4 @@
-import { ORDDocument } from "@open-resource-discovery/specification";
+import { OrdDocument } from "@open-resource-discovery/specification";
 
 export interface DocumentRepository {
   /**
@@ -6,14 +6,14 @@ export interface DocumentRepository {
    * @param path The path to the document.
    * @returns The ORD document or null if not found.
    */
-  getDocument(path: string): Promise<ORDDocument | null>;
+  getDocument(path: string): Promise<OrdDocument | null>;
 
   /**
    * Fetches all ORD documents within a specified directory.
    * @param directoryPath The path to the directory containing documents.
    * @returns A map where keys are document paths and values are ORD documents.
    */
-  getDocuments(directoryPath: string): Promise<Map<string, ORDDocument>>;
+  getDocuments(directoryPath: string): Promise<Map<string, OrdDocument>>;
 
   /**
    * Gets the hash (e.g., SHA) of a directory to detect changes.

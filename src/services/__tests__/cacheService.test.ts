@@ -1,5 +1,5 @@
 import { CacheService } from "../cacheService.js";
-import { ORDDocument, ORDConfiguration } from "@open-resource-discovery/specification";
+import { OrdDocument, OrdConfiguration } from "@open-resource-discovery/specification";
 import { FqnDocumentMap } from "../../util/fqnHelpers.js";
 import { log } from "../../util/logger.js";
 
@@ -7,8 +7,8 @@ jest.mock("../../util/logger.js");
 
 describe("CacheService", () => {
   let cacheService: CacheService;
-  let mockDocument: ORDDocument;
-  let mockConfig: ORDConfiguration;
+  let mockDocument: OrdDocument;
+  let mockConfig: OrdConfiguration;
   let mockFqnMap: FqnDocumentMap;
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe("CacheService", () => {
       $schema: "https://github.com/open-resource-discovery/spec-v1/interfaces/Document.schema.json",
       openResourceDiscovery: "1.9",
       description: "Test document",
-    } as unknown as ORDDocument;
+    } as unknown as OrdDocument;
 
     mockConfig = {
       $schema: "https://github.com/open-resource-discovery/spec-v1/interfaces/Configuration.schema.json",
@@ -30,7 +30,7 @@ describe("CacheService", () => {
           },
         ],
       },
-    } as unknown as ORDConfiguration;
+    } as unknown as OrdConfiguration;
 
     mockFqnMap = {
       "sap.test:apiResource:TestAPI:v1": [
@@ -73,8 +73,8 @@ describe("CacheService", () => {
 
     it("should handle multiple documents with same hash", () => {
       const dirHash = "hash123";
-      const doc1 = { ...mockDocument, description: "Doc 1" } as unknown as ORDDocument;
-      const doc2 = { ...mockDocument, description: "Doc 2" } as unknown as ORDDocument;
+      const doc1 = { ...mockDocument, description: "Doc 1" } as unknown as OrdDocument;
+      const doc2 = { ...mockDocument, description: "Doc 2" } as unknown as OrdDocument;
 
       cacheService.cacheDocument("/documents/doc1.json", dirHash, doc1);
       cacheService.cacheDocument("/documents/doc2.json", dirHash, doc2);
@@ -304,7 +304,7 @@ describe("CacheService", () => {
     });
 
     it("should handle undefined document description", () => {
-      const doc = { ...mockDocument, description: undefined } as unknown as ORDDocument;
+      const doc = { ...mockDocument, description: undefined } as unknown as OrdDocument;
       const dirHash = "hashUndef";
 
       cacheService.cacheDocument("/doc.json", dirHash, doc);

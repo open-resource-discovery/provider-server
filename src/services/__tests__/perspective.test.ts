@@ -1,4 +1,4 @@
-import { ORDDocument } from "@open-resource-discovery/specification";
+import { OrdDocument } from "@open-resource-discovery/specification";
 import { DocumentService } from "../documentService.js";
 import { CacheService } from "../cacheService.js";
 import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
@@ -23,7 +23,7 @@ const mockContext: ProcessingContext = {
   authMethods: [OptAuthMethod.Open],
 };
 
-const createMockDocument = (perspective?: Perspective): ORDDocument => ({
+const createMockDocument = (perspective?: Perspective): OrdDocument => ({
   openResourceDiscovery: "1.12",
   describedSystemInstance: {
     baseUrl: "http://example.com",

@@ -1,4 +1,4 @@
-import { ordConfigurationSchema, type ORDDocument } from "@open-resource-discovery/specification";
+import { ordConfigurationSchema, type OrdDocument } from "@open-resource-discovery/specification";
 import fs from "fs";
 import path from "path";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
@@ -11,7 +11,6 @@ import { validateOrdDocument } from "./validateOrdDocument.js";
 import { isBcryptHash } from "./passwordHash.js";
 import { getBaseUrl } from "./ordConfig.js";
 
-// @ts-expect-error baseUrl pattern selection
 export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
 
 interface BasicAuthUsers {
@@ -114,7 +113,7 @@ export function validateLocalDirectory(directoryPath: string, documentsSubDirect
         if (!fs.statSync(filePath).isFile()) continue;
 
         const contents = fs.readFileSync(filePath).toString();
-        const document = JSON.parse(contents) as ORDDocument;
+        const document = JSON.parse(contents) as OrdDocument;
         validateOrdDocument(document);
         hasValidOrdDocument = true;
         break;

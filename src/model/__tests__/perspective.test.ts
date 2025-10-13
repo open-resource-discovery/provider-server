@@ -1,5 +1,5 @@
 import { getDocumentPerspective, hasPerspecive, DEFAULT_PERSPECTIVE } from "../perspective.js";
-import { ORDDocument } from "@open-resource-discovery/specification";
+import { OrdDocument } from "@open-resource-discovery/specification";
 
 describe("Perspective Model", () => {
   describe("DEFAULT_PERSPECTIVE", () => {
@@ -10,7 +10,7 @@ describe("Perspective Model", () => {
 
   describe("hasPerspecive", () => {
     it("should return true when document has perspective property", () => {
-      const doc: ORDDocument = {
+      const doc: OrdDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
           baseUrl: "http://example.com",
@@ -22,7 +22,7 @@ describe("Perspective Model", () => {
     });
 
     it("should return false when document does not have perspective property", () => {
-      const doc: ORDDocument = {
+      const doc: OrdDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
           baseUrl: "http://example.com",
@@ -33,7 +33,7 @@ describe("Perspective Model", () => {
     });
 
     it("should return false when perspective is undefined", () => {
-      const doc: ORDDocument = {
+      const doc: OrdDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
           baseUrl: "http://example.com",
@@ -47,7 +47,7 @@ describe("Perspective Model", () => {
 
   describe("getDocumentPerspective", () => {
     it("should return the document's perspective when set", () => {
-      const doc: ORDDocument = {
+      const doc: OrdDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
           baseUrl: "http://example.com",
@@ -59,7 +59,7 @@ describe("Perspective Model", () => {
     });
 
     it("should return 'system-instance' when perspective is not set", () => {
-      const doc: ORDDocument = {
+      const doc: OrdDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
           baseUrl: "http://example.com",
@@ -70,7 +70,7 @@ describe("Perspective Model", () => {
     });
 
     it("should return 'system-instance' when perspective is undefined", () => {
-      const doc: ORDDocument = {
+      const doc: OrdDocument = {
         openResourceDiscovery: "1.12",
         describedSystemInstance: {
           baseUrl: "http://example.com",
@@ -85,7 +85,7 @@ describe("Perspective Model", () => {
       const perspectives = ["system-version", "system-instance", "system-independent"] as const;
 
       perspectives.forEach((perspective) => {
-        const doc: ORDDocument = {
+        const doc: OrdDocument = {
           openResourceDiscovery: "1.12",
           describedSystemInstance: {
             baseUrl: "http://example.com",
