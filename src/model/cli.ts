@@ -16,7 +16,7 @@ export enum OptAuthMethod {
 
 export enum OrdAccessStrategy {
   Open = "open",
-  Basic = "sap.businesshub:basic-auth:v1",
+  Basic = "basic-auth",
 }
 
 const optAuthToOrdAccessStrategyMap = {
