@@ -62,33 +62,11 @@ program
     "Enable/disable status dashboard (true/false)",
     process.env.STATUS_DASHBOARD_ENABLED || "true",
   )
+  .option("--mtls-mode <mode>", "mTLS mode (only sap:cmp-mtls supported)", process.env.MTLS_MODE || "sap:cmp-mtls")
   .option(
-    "--mtls-ca-path <path>",
-    "Path to CA certificate for validating client certificates",
-    process.env.MTLS_CA_PATH,
-  )
-  .option("--mtls-cert-path <path>", "Path to server certificate", process.env.MTLS_CERT_PATH)
-  .option("--mtls-key-path <path>", "Path to server private key", process.env.MTLS_KEY_PATH)
-  .option(
-    "--mtls-reject-unauthorized",
-    "Reject unauthorized clients (defaults to true)",
-    process.env.MTLS_REJECT_UNAUTHORIZED !== "false",
-  )
-  .option("--mtls-mode <mode>", "mTLS mode (standard or sap:cmp-mtls)", process.env.MTLS_MODE || "standard")
-  .option(
-    "--mtls-trusted-issuers <issuers>",
-    "Semicolon-separated list of trusted certificate issuers (DN format)",
-    process.env.MTLS_TRUSTED_ISSUERS,
-  )
-  .option(
-    "--mtls-trusted-subjects <subjects>",
-    "Semicolon-separated list of trusted certificate subjects (DN format)",
-    process.env.MTLS_TRUSTED_SUBJECTS,
-  )
-  .option(
-    "--mtls-config-endpoints <endpoints>",
-    "Semicolon-separated list of URLs to fetch certificate configuration from",
-    process.env.MTLS_CONFIG_ENDPOINTS,
+    "--mtls-ca-chain-file <value>",
+    'CA certificate chain: file path or inline JSON array (e.g., \'[{"name":"CA","url":"https://..."}]\')',
+    process.env.MTLS_CA_CHAIN_FILE,
   );
 
 program.version(packageJson.version);
@@ -98,7 +76,7 @@ program.parse();
 
 const options = program.opts<CommandLineOptions>();
 try {
-  const validationResult = validateOffline(options);
+  const validationResult = await validateOffline(options);
   const providerServerOptions = validationResult.options;
 
   startProviderServer(providerServerOptions).catch((error: unknown) => {

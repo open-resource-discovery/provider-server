@@ -28,15 +28,8 @@ export interface ProviderServerOptions {
       trustedIssuers?: string[];
       trustedSubjects?: string[];
       decodeBase64Headers?: boolean;
+      caChainFilePath?: string;
     };
-  };
-  mtls?: {
-    caPath: string;
-    certPath: string;
-    keyPath: string;
-    rejectUnauthorized: boolean;
-    trustedIssuers?: string[];
-    trustedSubjects?: string[];
   };
   dataDir: string;
   cors?: string[];
@@ -87,112 +80,66 @@ export async function buildProviderServerOptions(options: CommandLineOptions): P
   };
 
   if (options.auth.includes(OptAuthMethod.MTLS)) {
-    // Check if SAP CF mTLS mode is enabled
-    const mtlsMode = options.mtlsMode || MtlsMode.Standard;
+    // Only SAP CF mTLS mode is supported
+    const mtlsMode = options.mtlsMode || MtlsMode.SapCmpMtls;
 
-    if (mtlsMode === MtlsMode.SapCmpMtls) {
-      // In SAP CF mode, certificate files are not required
-      // Parse configured trusted issuers and subjects
-      const configuredTrustedCerts = {
-        trustedIssuers: options.mtlsTrustedIssuers?.split(";") || undefined,
-        trustedSubjects: options.mtlsTrustedSubjects?.split(";") || undefined,
-      };
-
-      let finalTrustedIssuers = configuredTrustedCerts.trustedIssuers;
-      let finalTrustedSubjects = configuredTrustedCerts.trustedSubjects;
-
-      // Fetch from endpoints if configured
-      const configEndpoints = options.mtlsConfigEndpoints;
-      if (configEndpoints) {
-        const endpoints = configEndpoints.split(";").filter((e) => e.trim());
-        if (endpoints.length > 0) {
-          log.info(`SAP CF mTLS: Fetching trusted certificates from ${endpoints.length} endpoints...`);
-          try {
-            const endpointCerts = await fetchMtlsTrustedCertsFromEndpoints(endpoints);
-            const mergedCerts = mergeTrustedCerts(endpointCerts, configuredTrustedCerts);
-
-            finalTrustedIssuers = mergedCerts.trustedIssuers;
-            finalTrustedSubjects = mergedCerts.trustedSubjects;
-
-            log.info(
-              `SAP CF mTLS: Loaded ${finalTrustedIssuers?.length || 0} trusted issuers and ${finalTrustedSubjects?.length || 0} trusted subjects`,
-            );
-          } catch (error) {
-            log.error(
-              `SAP CF mTLS: Failed to fetch certificates from endpoints: ${error instanceof Error ? error.message : String(error)}`,
-            );
-            // Fall back to configured values
-          }
-        }
-      }
-
-      // Validate that we have at least one trusted issuer and subject configured
-      if (
-        !finalTrustedIssuers ||
-        finalTrustedIssuers.length === 0 ||
-        !finalTrustedSubjects ||
-        finalTrustedSubjects.length === 0
-      ) {
-        throw ValidationError.fromErrors([
-          "SAP CF mTLS mode requires at least one trusted issuer or trusted subject to be configured (from environment variables or config endpoints)",
-        ]);
-      }
-
-      providerOpts.authentication.sapCfMtls = {
-        enabled: true,
-        trustedIssuers: finalTrustedIssuers,
-        trustedSubjects: finalTrustedSubjects,
-        decodeBase64Headers: process.env.MTLS_DECODE_BASE64_HEADERS !== "false",
-      };
+    if (mtlsMode !== MtlsMode.SapCmpMtls) {
+      throw ValidationError.fromErrors(["Only 'sap:cmp-mtls' mode is supported. Standard mTLS mode has been removed."]);
     }
 
-    // Initialize base mTLS configuration
-    providerOpts.mtls = {
-      caPath: options.mtlsCaPath!,
-      certPath: options.mtlsCertPath!,
-      keyPath: options.mtlsKeyPath!,
-      rejectUnauthorized: options.mtlsRejectUnauthorized !== undefined ? options.mtlsRejectUnauthorized : true,
+    // SAP CF mTLS mode - parse configured trusted issuers and subjects
+    const configuredTrustedCerts = {
+      trustedIssuers: options.mtlsTrustedIssuers?.split(";") || undefined,
+      trustedSubjects: options.mtlsTrustedSubjects?.split(";") || undefined,
     };
 
-    // For standard mTLS mode, handle trusted issuers and subjects
-    if (mtlsMode !== MtlsMode.SapCmpMtls) {
-      // Parse configured trusted issuers and subjects
-      const configuredTrustedCerts = {
-        trustedIssuers: options.mtlsTrustedIssuers?.split(";") || undefined,
-        trustedSubjects: options.mtlsTrustedSubjects?.split(";") || undefined,
-      };
+    let finalTrustedIssuers = configuredTrustedCerts.trustedIssuers;
+    let finalTrustedSubjects = configuredTrustedCerts.trustedSubjects;
 
-      // Fetch from endpoints if configured
-      const configEndpoints = options.mtlsConfigEndpoints || process.env.MTLS_CONFIG_ENDPOINTS;
-      if (configEndpoints) {
-        const endpoints = configEndpoints.split(";").filter((e) => e.trim());
-        if (endpoints.length > 0) {
-          log.info(`Fetching MTLS trusted certificates from ${endpoints.length} endpoints...`);
-          try {
-            const endpointCerts = await fetchMtlsTrustedCertsFromEndpoints(endpoints);
-            const mergedCerts = mergeTrustedCerts(endpointCerts, configuredTrustedCerts);
+    // Fetch from endpoints if configured
+    const configEndpoints = options.mtlsConfigEndpoints || process.env.MTLS_CONFIG_ENDPOINTS;
+    if (configEndpoints) {
+      const endpoints = configEndpoints.split(";").filter((e) => e.trim());
+      if (endpoints.length > 0) {
+        log.info(`SAP CF mTLS: Fetching trusted certificates from ${endpoints.length} endpoints...`);
+        try {
+          const endpointCerts = await fetchMtlsTrustedCertsFromEndpoints(endpoints);
+          const mergedCerts = mergeTrustedCerts(endpointCerts, configuredTrustedCerts);
 
-            providerOpts.mtls.trustedIssuers = mergedCerts.trustedIssuers;
-            providerOpts.mtls.trustedSubjects = mergedCerts.trustedSubjects;
+          finalTrustedIssuers = mergedCerts.trustedIssuers;
+          finalTrustedSubjects = mergedCerts.trustedSubjects;
 
-            log.info(
-              `Loaded ${providerOpts.mtls.trustedIssuers?.length || 0} trusted issuers and ${providerOpts.mtls.trustedSubjects?.length || 0} trusted subjects`,
-            );
-          } catch (error) {
-            log.error(
-              `Failed to fetch MTLS certificates from endpoints: ${error instanceof Error ? error.message : String(error)}`,
-            );
-            // Fall back to configured values
-            providerOpts.mtls.trustedIssuers = configuredTrustedCerts.trustedIssuers;
-            providerOpts.mtls.trustedSubjects = configuredTrustedCerts.trustedSubjects;
-          }
+          log.info(
+            `SAP CF mTLS: Loaded ${finalTrustedIssuers?.length || 0} trusted issuers and ${finalTrustedSubjects?.length || 0} trusted subjects`,
+          );
+        } catch (error) {
+          log.error(
+            `SAP CF mTLS: Failed to fetch certificates from endpoints: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          // Fall back to configured values
         }
-      } else {
-        // Use only configured values
-        providerOpts.mtls.trustedIssuers = configuredTrustedCerts.trustedIssuers;
-        providerOpts.mtls.trustedSubjects = configuredTrustedCerts.trustedSubjects;
       }
     }
+
+    // Validate that we have at least one trusted issuer and subject configured
+    if (
+      !finalTrustedIssuers ||
+      finalTrustedIssuers.length === 0 ||
+      !finalTrustedSubjects ||
+      finalTrustedSubjects.length === 0
+    ) {
+      throw ValidationError.fromErrors([
+        "SAP CF mTLS mode requires at least one trusted issuer or trusted subject to be configured (from environment variables or config endpoints)",
+      ]);
+    }
+
+    providerOpts.authentication.sapCfMtls = {
+      enabled: true,
+      trustedIssuers: finalTrustedIssuers,
+      trustedSubjects: finalTrustedSubjects,
+      decodeBase64Headers: process.env.MTLS_DECODE_BASE64_HEADERS !== "false",
+      caChainFilePath: options.mtlsCaChainFile,
+    };
   }
 
   return providerOpts;

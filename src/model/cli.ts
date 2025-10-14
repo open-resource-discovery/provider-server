@@ -55,11 +55,8 @@ export interface CommandLineOptions {
   cors?: string;
   updateDelay?: string;
   statusDashboardEnabled?: string;
-  mtlsCaPath?: string;
-  mtlsCertPath?: string;
-  mtlsKeyPath?: string;
-  mtlsRejectUnauthorized?: boolean;
   mtlsMode?: string;
+  mtlsCaChainFile?: string;
   mtlsTrustedIssuers?: string;
   mtlsTrustedSubjects?: string;
   mtlsConfigEndpoints?: string;

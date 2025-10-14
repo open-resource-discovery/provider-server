@@ -155,7 +155,7 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
   }
 }
 
-function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], options?: CommandLineOptions): void {
+function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], _options?: CommandLineOptions): void {
   const isOpen = authMethods.includes(OptAuthMethod.Open);
   const isBasicAuth = authMethods.includes(OptAuthMethod.Basic);
   const isMtls = authMethods.includes(OptAuthMethod.MTLS);
@@ -191,54 +191,41 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[], opt
     }
   }
 
-  // Validate mTLS options if mTLS is enabled and options are provided
-  if (isMtls && options) {
-    // Check if SAP CF mode is enabled
-    const mtlsMode = process.env.MTLS_MODE || MtlsMode.Standard;
+  // Validate mTLS options if mTLS is enabled
+  if (isMtls) {
+    const mtlsMode = process.env.MTLS_MODE || MtlsMode.SapCmpMtls;
 
-    if (mtlsMode === MtlsMode.SapCmpMtls) {
-      // In SAP CF mode, certificate files are not required but we need trusted issuers or subjects
-      log.info("SAP CF mTLS mode detected - certificate files not required");
-
-      const trustedIssuers = process.env.MTLS_TRUSTED_ISSUERS;
-      const trustedSubjects = process.env.MTLS_TRUSTED_SUBJECTS;
-      const configEndpoints = process.env.MTLS_CONFIG_ENDPOINTS;
-
-      // MTLS_CONFIG_ENDPOINTS is mandatory in sap:cmp-mtls mode
-      if (!configEndpoints || configEndpoints.trim() === "") {
-        errors.push("SAP CF mTLS mode requires MTLS_CONFIG_ENDPOINTS to be configured");
-      }
-
-      // Validate optional trusted issuers and subjects if provided
-      if (trustedIssuers && trustedIssuers.trim() === "") {
-        errors.push("MTLS_TRUSTED_ISSUERS cannot be empty when configured");
-      }
-      if (trustedSubjects && trustedSubjects.trim() === "") {
-        errors.push("MTLS_TRUSTED_SUBJECTS cannot be empty when configured");
-      }
-    } else {
-      // Standard mTLS mode requires certificate files
-      const missingParams: string[] = [];
-      if (!options.mtlsCaPath) missingParams.push("--mtls-ca-path");
-      if (!options.mtlsCertPath) missingParams.push("--mtls-cert-path");
-      if (!options.mtlsKeyPath) missingParams.push("--mtls-key-path");
-
-      if (missingParams.length > 0) {
-        errors.push(`Detected missing parameters for mTLS authentication: ${missingParams.join(", ")}`);
-        return;
-      }
-
-      // Validate file existence
-      if (options.mtlsCaPath && !fs.existsSync(options.mtlsCaPath)) {
-        errors.push(`CA certificate file not found: ${options.mtlsCaPath}`);
-      }
-      if (options.mtlsCertPath && !fs.existsSync(options.mtlsCertPath)) {
-        errors.push(`Server certificate file not found: ${options.mtlsCertPath}`);
-      }
-      if (options.mtlsKeyPath && !fs.existsSync(options.mtlsKeyPath)) {
-        errors.push(`Server private key file not found: ${options.mtlsKeyPath}`);
-      }
+    if (mtlsMode !== MtlsMode.SapCmpMtls) {
+      errors.push("Only 'sap:cmp-mtls' mode is supported.");
+      return;
     }
+
+    log.info("SAP CF mTLS mode detected - certificate files not required");
+
+    const trustedIssuers = process.env.MTLS_TRUSTED_ISSUERS;
+    const trustedSubjects = process.env.MTLS_TRUSTED_SUBJECTS;
+    const configEndpoints = process.env.MTLS_CONFIG_ENDPOINTS;
+
+    // EITHER config endpoints OR manual configuration must be provided
+    const hasConfigEndpoints = configEndpoints && configEndpoints.trim() !== "";
+    const hasManualConfig =
+      (trustedIssuers && trustedIssuers.trim() !== "") || (trustedSubjects && trustedSubjects.trim() !== "");
+
+    if (!hasConfigEndpoints && !hasManualConfig) {
+      errors.push(
+        "SAP CF mTLS mode requires either MTLS_CONFIG_ENDPOINTS or MTLS_TRUSTED_ISSUERS/MTLS_TRUSTED_SUBJECTS to be configured",
+      );
+    }
+
+    // Validate optional trusted issuers and subjects if provided
+    if (trustedIssuers && trustedIssuers.trim() === "") {
+      errors.push("MTLS_TRUSTED_ISSUERS cannot be empty when configured");
+    }
+    if (trustedSubjects && trustedSubjects.trim() === "") {
+      errors.push("MTLS_TRUSTED_SUBJECTS cannot be empty when configured");
+    }
+
+    log.info("SAP CF mTLS mode detected");
   }
 }
 
