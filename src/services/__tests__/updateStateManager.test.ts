@@ -380,4 +380,66 @@ describe("UpdateStateManager", () => {
       expect(actualState.status).toBe("idle");
     });
   });
+
+  describe("cache warming", () => {
+    it("should start cache warming", () => {
+      const stateChangedSpy = jest.fn();
+      stateManager.on("state-changed", stateChangedSpy);
+
+      stateManager.startCacheWarming();
+
+      const state = stateManager.getState();
+      expect(state.status).toBe("cache_warming");
+      expect(state.phase).toBe("Warming cache");
+      expect(state.updateInProgress).toBe(true);
+      expect(stateChangedSpy).toHaveBeenCalled();
+    });
+
+    it("should complete cache warming and transition to idle", () => {
+      stateManager.startCacheWarming();
+      expect(stateManager.getState().status).toBe("cache_warming");
+
+      const stateChangedSpy = jest.fn();
+      stateManager.on("state-changed", stateChangedSpy);
+
+      stateManager.completeCacheWarming();
+
+      const state = stateManager.getState();
+      expect(state.status).toBe("idle");
+      expect(state.phase).toBeUndefined();
+      expect(state.updateInProgress).toBe(false);
+      expect(stateChangedSpy).toHaveBeenCalled();
+    });
+
+    it("should handle cache warming with state changes", () => {
+      stateManager.startCacheWarming();
+      expect(stateManager.getState().updateInProgress).toBe(true);
+
+      stateManager.completeCacheWarming();
+      expect(stateManager.getState().updateInProgress).toBe(false);
+    });
+
+    it("should emit events during cache warming lifecycle", () => {
+      const eventSpy = jest.fn();
+      stateManager.on("state-changed", eventSpy);
+
+      // Start warming
+      stateManager.startCacheWarming();
+      expect(eventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentState: expect.objectContaining({ status: "cache_warming" }),
+        }),
+      );
+
+      eventSpy.mockClear();
+
+      // Complete warming
+      stateManager.completeCacheWarming();
+      expect(eventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentState: expect.objectContaining({ status: "idle" }),
+        }),
+      );
+    });
+  });
 });
