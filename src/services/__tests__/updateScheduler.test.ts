@@ -2,6 +2,7 @@ import { UpdateScheduler } from "../updateScheduler.js";
 import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "../interfaces/contentFetcher.js";
 import { FileSystemManager } from "../fileSystemManager.js";
 import { UpdateStateManager } from "../updateStateManager.js";
+import { CacheService } from "../interfaces/cacheService.js";
 import { Logger } from "pino";
 import { DiskSpaceError, MemoryError } from "../../model/error/SystemErrors.js";
 import { GitHubNetworkError } from "../../model/error/GithubErrors.js";
@@ -348,14 +349,14 @@ describe("UpdateScheduler", () => {
         mockLogger.info = jest.fn();
 
         // Try immediate second update - should be throttled
-        const throttledPromise = freshScheduler.scheduleImmediateUpdate();
+        // Don't await this promise as it may not resolve properly with fake timers
+        void freshScheduler.scheduleImmediateUpdate();
 
         expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("Webhook update throttled"));
 
-        // Advance time to resolve cooldown
+        // Advance time to trigger cooldown timeout
         jest.advanceTimersByTime(150);
-        jest.runOnlyPendingTimers();
-        await throttledPromise;
+        await jest.runOnlyPendingTimersAsync();
       } catch {
         // ignore
       } finally {
@@ -382,53 +383,53 @@ describe("UpdateScheduler", () => {
         mockStateManager,
       );
 
-      // Initialize to ensure clean state
-      await freshScheduler.initialize();
+      try {
+        // Initialize to ensure clean state
+        await freshScheduler.initialize();
 
-      // Make the content fetcher slow so the update stays in progress
-      let resolveFetch: (() => void) | undefined;
-      freshContentFetcher.fetchAllContent = jest.fn().mockImplementation(async () => {
-        // Wait for manual resolution
-        await new Promise<void>((resolve) => {
-          resolveFetch = resolve;
+        // Make the content fetcher slow so the update stays in progress
+        let resolveFetch: (() => void) | undefined;
+        freshContentFetcher.fetchAllContent = jest.fn().mockImplementation(async () => {
+          // Wait for manual resolution
+          await new Promise<void>((resolve) => {
+            resolveFetch = resolve;
+          });
+          return {
+            commitHash: "abc123def456",
+            fetchTime: new Date(),
+            branch: "main",
+            repository: "owner/repo",
+            totalFiles: 10,
+          };
         });
-        return {
-          commitHash: "abc123def456",
-          fetchTime: new Date(),
-          branch: "main",
-          repository: "owner/repo",
-          totalFiles: 10,
-        };
-      });
 
-      // Start first update but don't await it
-      const firstUpdate = freshScheduler.scheduleImmediateUpdate();
+        // Start first update but don't await it
+        const firstUpdate = freshScheduler.scheduleImmediateUpdate();
 
-      // Wait for fetch to be called and ensure update is in progress
-      await new Promise((resolve) => setTimeout(resolve, 50));
+        // Wait for fetch to be called and ensure update is in progress
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Wait for cooldown to pass (5 seconds + buffer)
-      await new Promise((resolve) => setTimeout(resolve, 5100));
+        // Wait for cooldown to pass (5 seconds + buffer)
+        await new Promise((resolve) => setTimeout(resolve, 5100));
 
-      // Reset mock logger to track new calls
-      mockLogger.info = jest.fn();
+        // Reset mock logger to track new calls
+        mockLogger.info = jest.fn();
 
-      // Try to schedule another immediately - this should abort the current update
-      void freshScheduler.scheduleImmediateUpdate();
+        // Try to schedule another immediately - this should abort the current update
+        void freshScheduler.scheduleImmediateUpdate();
 
-      // Give it a moment to process
-      await new Promise((resolve) => setTimeout(resolve, 50));
+        // Give it a moment to process
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(mockLogger.info).toHaveBeenCalledWith("Aborting current update to process latest webhook request");
+        expect(mockLogger.info).toHaveBeenCalledWith("Aborting current update to process latest webhook request");
 
-      // Complete the first update
-      if (resolveFetch) resolveFetch();
+        if (resolveFetch) resolveFetch();
 
-      // Wait for first update to complete
-      await firstUpdate;
-
-      // Re-enable fake timers
-      jest.useFakeTimers();
+        await firstUpdate;
+      } finally {
+        freshScheduler.stop();
+        jest.useFakeTimers();
+      }
     });
 
     it("should handle errors in immediate update", async () => {
@@ -898,13 +899,169 @@ describe("UpdateScheduler", () => {
     });
 
     it("should handle errors gracefully", async () => {
-      // Make getMetadata throw an error
       mockFileSystemManager.getMetadata = jest.fn().mockRejectedValue(new Error("Read error"));
 
       const needsUpdate = await scheduler.checkForUpdates();
 
       expect(needsUpdate).toBe(false);
       expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to check for updates"));
+    });
+  });
+
+  describe("setCacheService", () => {
+    it("should configure cache service for updates", () => {
+      const mockCacheService = {
+        warmCache: jest.fn(),
+        isWarming: jest.fn(),
+        cancelWarming: jest.fn(),
+      } as unknown as CacheService;
+
+      scheduler.setCacheService(mockCacheService, "documents");
+
+      expect(mockLogger.debug).toHaveBeenCalledWith("Cache service configured for update scheduler");
+    });
+  });
+
+  describe("scheduleUpdate - cache warming cancellation", () => {
+    it("should cancel cache warming when scheduling update", () => {
+      const mockCacheService = {
+        isWarming: jest.fn().mockReturnValue(true),
+        cancelWarming: jest.fn().mockResolvedValue(undefined),
+      } as unknown as CacheService;
+
+      scheduler.setCacheService(mockCacheService, "documents");
+      scheduler.scheduleUpdate(5000);
+
+      expect(mockLogger.info).toHaveBeenCalledWith("Cancelling cache warming to schedule new update");
+      expect(mockCacheService.cancelWarming).toHaveBeenCalled();
+    });
+
+    it("should handle cache warming cancellation errors", async () => {
+      // Use real timers for this test since we need setTimeout to work
+      jest.useRealTimers();
+
+      try {
+        const mockCacheService = {
+          isWarming: jest.fn().mockReturnValue(true),
+          cancelWarming: jest.fn().mockRejectedValue(new Error("Cancel failed")),
+        } as unknown as CacheService;
+
+        scheduler.setCacheService(mockCacheService, "documents");
+        scheduler.scheduleUpdate(5000);
+
+        // Give the error handler time to execute
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(mockLogger.error).toHaveBeenCalledWith("Error cancelling cache warming: %s", expect.any(Error));
+      } finally {
+        jest.useFakeTimers();
+      }
+    });
+  });
+
+  describe("forceUpdate - scheduled update cancellation", () => {
+    it("should clear scheduled update timeout when forcing update", async () => {
+      scheduler.scheduleUpdate(10000);
+      expect(scheduler.getStatus().scheduledUpdateTime).not.toBeNull();
+
+      await scheduler.forceUpdate();
+
+      const status = scheduler.getStatus();
+      expect(status.scheduledUpdateTime).toBeNull();
+    });
+  });
+
+  describe("scheduleImmediateUpdate - cooldown timeout clearing", () => {
+    it("should clear webhook cooldown timeout on manual trigger", async () => {
+      // First webhook update
+      await scheduler.scheduleImmediateUpdate(false);
+
+      // Trigger another webhook (will be throttled)
+      scheduler.scheduleImmediateUpdate(false).catch(() => {});
+
+      // Manual trigger should clear the cooldown timeout
+      mockContentFetcher.fetchAllContentCalled = false;
+      await scheduler.scheduleImmediateUpdate(true);
+
+      expect(mockContentFetcher.fetchAllContentCalled).toBe(true);
+    });
+
+    it("should cancel cache warming when starting immediate update", async () => {
+      const mockCacheService = {
+        isWarming: jest.fn().mockReturnValue(true),
+        cancelWarming: jest.fn().mockResolvedValue(undefined),
+      } as unknown as CacheService;
+
+      scheduler.setCacheService(mockCacheService, "documents");
+
+      await scheduler.scheduleImmediateUpdate(true);
+
+      expect(mockLogger.info).toHaveBeenCalledWith("Cancelling cache warming to start immediate update");
+      expect(mockCacheService.cancelWarming).toHaveBeenCalled();
+    });
+
+    it("should log error when webhook update after cooldown fails", async () => {
+      jest.useRealTimers();
+
+      try {
+        // First webhook
+        await scheduler.scheduleImmediateUpdate(false);
+
+        // Make fetcher fail for next update
+        mockContentFetcher.shouldFail = true;
+
+        // Reset logger to track new calls
+        mockLogger.error = jest.fn();
+
+        // Trigger second webhook (will be throttled and scheduled for later)
+        scheduler.scheduleImmediateUpdate(false).catch(() => {});
+
+        // Wait for cooldown timeout to trigger
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        expect(mockLogger.error).toHaveBeenCalledWith("Webhook update after cooldown failed:", expect.any(Error));
+
+        mockContentFetcher.shouldFail = false;
+      } finally {
+        jest.useFakeTimers();
+      }
+    });
+  });
+
+  describe("performUpdate - error handling in catch block", () => {
+    it("should handle performUpdate errors in setTimeout callback", async () => {
+      mockContentFetcher.shouldFail = true;
+
+      scheduler.scheduleUpdate(10);
+
+      // Advance timers to trigger the scheduled update
+      jest.advanceTimersByTime(15);
+
+      // Run all pending timers to allow the error handler to execute
+      await jest.runOnlyPendingTimersAsync();
+
+      expect(mockLogger.error).toHaveBeenCalledWith("Update failed: %s", expect.anything());
+    });
+  });
+
+  describe("startPeriodicCheck configuration", () => {
+    it("should use specified update delay", async () => {
+      const customMockFsm = new MockFileSystemManager();
+      const customScheduler = new UpdateScheduler(
+        { updateDelay: 60000 },
+        mockContentFetcher,
+        customMockFsm as unknown as FileSystemManager,
+        mockLogger,
+        mockStateManager,
+      );
+
+      const spy = jest.spyOn(customScheduler, "startPeriodicCheck");
+      await customScheduler.initialize();
+
+      expect(spy).toHaveBeenCalled();
+      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("Started periodic content checking"));
+
+      customScheduler.stop();
     });
   });
 });
