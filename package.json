@@ -63,7 +63,7 @@
     "@types/jest": "30.0.0",
     "@types/js-yaml": "4.0.9",
     "@types/ws": "8.18.1",
-    "@types/node": "24.8.1",
+    "@types/node": "24.9.1",
     "eslint": "9.38.0",
     "fetch-mock": "12.5.5",
     "husky": "9.1.7",
