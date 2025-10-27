@@ -19,6 +19,17 @@ jest.mock("p-limit", () => ({
       fn(),
 }));
 
+jest.mock("../util/gitInitializer.js", () => ({
+  initializeGitSource: jest.fn(),
+}));
+
+jest.mock("../services/gitCloneContentFetcher.js", () => ({
+  GitCloneContentFetcher: jest.fn().mockImplementation(() => ({
+    fetchAllContent: jest.fn(),
+    getWorkerCount: jest.fn().mockReturnValue(1),
+  })),
+}));
+
 describe("Server Integration", () => {
   const TEST_PORT = 8081;
   const TEST_HOST = "127.0.0.1";
@@ -370,6 +381,229 @@ describe("Server Integration", () => {
       });
 
       expect(response.headers.get("etag")).toBeTruthy();
+    });
+  });
+
+  describe("Health Endpoint", () => {
+    it("should return health check with authentication", async () => {
+      const credentials = Buffer.from("admin:secret").toString("base64");
+      const response = await fetch(`${SERVER_URL}/health`, {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+      expect(data).toHaveProperty("status", "ok");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+  });
+});
+
+describe("GitHub Source Type Integration", () => {
+  const GITHUB_PORT = 8083;
+  const GITHUB_HOST = "127.0.0.1";
+  const GITHUB_SERVER_URL = `http://${GITHUB_HOST}:${GITHUB_PORT}`;
+
+  let shutdownGithubServer: () => Promise<void>;
+  let initializeGitSourceMock: jest.Mock;
+
+  beforeAll(async () => {
+    // Get the mocked function
+    const { initializeGitSource } = await import("../util/gitInitializer.js");
+    initializeGitSourceMock = initializeGitSource as jest.Mock;
+
+    // Mock successful validation
+    initializeGitSourceMock.mockResolvedValue({
+      contentAvailable: true,
+      version: "test-sha-123",
+    });
+
+    const options: ProviderServerOptions = {
+      ordDirectory: "docs",
+      ordDocumentsSubDirectory: PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
+      sourceType: OptSourceType.Github,
+      host: GITHUB_HOST,
+      port: GITHUB_PORT,
+      baseUrl: GITHUB_SERVER_URL,
+      authentication: {
+        methods: [OptAuthMethod.Open],
+      },
+      githubApiUrl: "https://api.github.com",
+      githubRepository: "test-org/test-repo",
+      githubBranch: "main",
+      githubToken: "test-token",
+      webhookSecret: "test-webhook-secret",
+      dataDir: "./test-data-github",
+      updateDelay: 30000,
+      statusDashboardEnabled: true,
+    };
+
+    shutdownGithubServer = await startProviderServer(options);
+
+    // Wait a bit for background validation to complete
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+
+  afterAll(async () => {
+    await shutdownGithubServer();
+    // Clean up test data directory
+    try {
+      await fs.rm("./test-data-github", { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  describe("GitHub Server Initialization", () => {
+    it("should initialize UpdateScheduler for GitHub source type", () => {
+      // Server should have started successfully with UpdateScheduler
+      expect(shutdownGithubServer).toBeDefined();
+    });
+
+    it("should call initializeGitSource during online validation", () => {
+      // The performOnlineValidation function should have called initializeGitSource
+      expect(initializeGitSourceMock).toHaveBeenCalled();
+    });
+
+    it("should serve well-known endpoint for GitHub source", async () => {
+      const response = await fetch(`${GITHUB_SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toHaveProperty("openResourceDiscoveryV1");
+    });
+  });
+
+  describe("Webhook Endpoint", () => {
+    it("should register webhook router for GitHub source type", async () => {
+      // Try to access webhook endpoint (should exist for GitHub source)
+      const response = await fetch(`${GITHUB_SERVER_URL}${PATH_CONSTANTS.WEBHOOK_ENDPOINT}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Hub-Signature-256": "invalid",
+        },
+        body: JSON.stringify({ ref: "refs/heads/main" }),
+      });
+
+      // Should return 401 for invalid signature, not 404 (proves webhook is registered)
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe("Status Dashboard", () => {
+    it("should redirect root to /status when statusDashboardEnabled is true", async () => {
+      const response = await fetch(GITHUB_SERVER_URL, {
+        redirect: "manual",
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe("/status");
+    });
+  });
+
+  describe("Health Endpoint for GitHub", () => {
+    it("should return health check with GitHub sync status", async () => {
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+      expect(data).toHaveProperty("status", "ok");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+  });
+});
+
+describe("GitHub Source Type - Error Handling", () => {
+  const GITHUB_ERROR_PORT = 8084;
+  const GITHUB_ERROR_HOST = "127.0.0.1";
+  const GITHUB_ERROR_SERVER_URL = `http://${GITHUB_ERROR_HOST}:${GITHUB_ERROR_PORT}`;
+
+  let shutdownErrorServer: () => Promise<void>;
+  let initializeGitSourceMock: jest.Mock;
+
+  beforeAll(async () => {
+    // Get the mocked function
+    const { initializeGitSource } = await import("../util/gitInitializer.js");
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { GitHubRepositoryNotFoundError } = await import("../model/error/GithubErrors.js");
+    initializeGitSourceMock = initializeGitSource as jest.Mock;
+
+    // Mock repository not found error
+    initializeGitSourceMock.mockRejectedValue(
+      new GitHubRepositoryNotFoundError("test-org/test-repo", "Repository not found"),
+    );
+
+    const options: ProviderServerOptions = {
+      ordDirectory: "docs",
+      ordDocumentsSubDirectory: PATH_CONSTANTS.DOCUMENTS_SUBDIRECTORY,
+      sourceType: OptSourceType.Github,
+      host: GITHUB_ERROR_HOST,
+      port: GITHUB_ERROR_PORT,
+      baseUrl: GITHUB_ERROR_SERVER_URL,
+      authentication: {
+        methods: [OptAuthMethod.Open],
+      },
+      githubApiUrl: "https://api.github.com",
+      githubRepository: "test-org/invalid-repo",
+      githubBranch: "main",
+      githubToken: "test-token",
+      dataDir: "./test-data-github-error",
+      updateDelay: 30000,
+      statusDashboardEnabled: false,
+    };
+
+    shutdownErrorServer = await startProviderServer(options);
+
+    // Wait for background validation to complete
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+
+  afterAll(async () => {
+    await shutdownErrorServer();
+    // Clean up test data directory
+    try {
+      await fs.rm("./test-data-github-error", { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  describe("Online Validation Error Handling", () => {
+    it("should handle GitHub repository not found error gracefully", () => {
+      // Server should still start even with validation error
+      expect(shutdownErrorServer).toBeDefined();
+    });
+
+    it("should redirect root to well-known when statusDashboardEnabled is false", async () => {
+      const response = await fetch(GITHUB_ERROR_SERVER_URL, {
+        redirect: "manual",
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT);
+    });
+
+    it("should still serve well-known endpoint despite validation error", async () => {
+      const response = await fetch(`${GITHUB_ERROR_SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
+
+      expect(response.status).toBe(200);
     });
   });
 });
