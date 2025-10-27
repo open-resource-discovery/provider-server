@@ -1,4 +1,4 @@
-FROM node:22.20.0-alpine AS builder
+FROM node:22.21.0-alpine AS builder
 
 ARG GIT_COMMIT_HASH=unknown
 ENV ORD_PROVIDER_SERVER_VERSION_HASH=${GIT_COMMIT_HASH}
@@ -19,7 +19,7 @@ RUN npm run build \
     && npm prune --production \
     && chown -R nodejs:nodejs /app
 
-FROM node:22.20.0-alpine
+FROM node:22.21.0-alpine
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
