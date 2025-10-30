@@ -131,7 +131,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
 
         if (
           error.message.includes("404") ||
-          error.message.includes("not found") ||
+          (error.message.includes("not found") && !error.message.includes("Configuration error")) ||
           error.message.includes("Repository not found") ||
           error.message.includes("repository does not exist")
         ) {
@@ -369,6 +369,12 @@ export class GitCloneContentFetcher implements ContentFetcher {
     // After pull, extract rootDirectory if needed
     if (this.config.rootDirectory !== ".") {
       log.debug(`Re-extracting content from rootDirectory: ${this.config.rootDirectory}`);
+
+      // Ensure working tree is clean and matches HEAD before extraction
+      // This is necessary because previous extractions modify the working tree
+      log.debug("Restoring working tree to match HEAD commit before extraction");
+      await this.gitWorker.checkout(targetDir, "HEAD", true);
+
       progress.currentFile = `Extracting ${this.config.rootDirectory}...`;
       onProgress?.(progress);
       await this.extractRootDirectory(targetDir, progress, onProgress);
@@ -466,7 +472,9 @@ export class GitCloneContentFetcher implements ContentFetcher {
 
     // Check if the source path exists
     if (!(await this.pathExists(sourcePath))) {
-      throw new Error(`Root directory '${this.config.rootDirectory}' not found in repository`);
+      throw new Error(
+        `Configuration error: Root directory '${this.config.rootDirectory}' does not exist in the cloned repository at path '${sourcePath}'. Please check your ORD_DIRECTORY configuration.`,
+      );
     }
 
     // Create a staging directory
@@ -513,7 +521,9 @@ export class GitCloneContentFetcher implements ContentFetcher {
         // Ignore cleanup errors
       }
 
-      throw new Error(`Failed to extract root directory: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error(`Extraction failed: ${errorMessage}`);
+      throw new Error(`Failed to extract root directory '${this.config.rootDirectory}': ${errorMessage}`);
     }
   }
 
