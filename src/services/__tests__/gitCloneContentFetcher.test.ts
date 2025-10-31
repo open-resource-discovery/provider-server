@@ -621,7 +621,7 @@ describe("GitCloneContentFetcher", () => {
       mockFs.access.mockRejectedValue(new Error("ENOENT"));
 
       await expect(fetcherWithSubdir["extractRootDirectory"](targetDir)).rejects.toThrow(
-        "Root directory 'nonexistent' not found in repository",
+        "Configuration error: Root directory 'nonexistent' does not exist in the cloned repository at path '/test/target/nonexistent'. Please check your ORD_DIRECTORY configuration.",
       );
 
       fetcherWithSubdir.destroy();
