@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+
+- Clean up directory for retrigger
+
 ## [[0.11.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v0.11.0)] - 2025-10-13
 
 - Rename access strategy `sap.businesshub:basic-auth:v1` to `basic-auth`
