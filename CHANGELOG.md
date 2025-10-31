@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[0.11.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v0.11.1)] - 2025-10-31
+
 ### Changed
 
 - Fixed manual trigger, caused by missing clean up
