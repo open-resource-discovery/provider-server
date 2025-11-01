@@ -75,7 +75,7 @@
     "jest-watch-typeahead": "3.0.1",
     "lint-staged": "16.2.6",
     "prettier": "3.6.2",
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.0",
     "ts-jest": "29.4.5",
     "tsc-alias": "1.8.16",
     "tsx": "4.20.6",
