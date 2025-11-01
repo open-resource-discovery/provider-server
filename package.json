@@ -65,7 +65,7 @@
     "@types/ws": "8.18.1",
     "@types/node": "24.9.2",
     "eslint": "9.38.0",
-    "fetch-mock": "12.5.5",
+    "fetch-mock": "12.6.0",
     "husky": "9.1.7",
     "is-ci": "4.1.0",
     "jest": "30.2.0",
