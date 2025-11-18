@@ -153,13 +153,14 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
 function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): void {
   const isOpen = authMethods.includes(OptAuthMethod.Open);
   const isBasicAuth = authMethods.includes(OptAuthMethod.Basic);
+  const isMtls = authMethods.includes(OptAuthMethod.MTLS);
 
-  if (isOpen && isBasicAuth) {
+  if (isOpen && (isBasicAuth || isMtls)) {
     errors.push('Authentication method "open" cannot be used together with other options.');
     return;
   }
 
-  if (!isOpen && !isBasicAuth) {
+  if (!isOpen && !isBasicAuth && !isMtls) {
     errors.push("No valid authentication method specified.");
     return;
   }
@@ -181,6 +182,22 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
     } catch (error) {
       errors.push(
         `Invalid JSON in environment variable "BASIC_AUTH": ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  if (isMtls) {
+    const trustedIssuers = process.env.MTLS_TRUSTED_ISSUERS;
+    const trustedSubjects = process.env.MTLS_TRUSTED_SUBJECTS;
+    const configEndpoints = process.env.MTLS_CONFIG_ENDPOINTS;
+
+    const hasConfigEndpoints = configEndpoints && configEndpoints.trim() !== "";
+    const hasManualConfig =
+      (trustedIssuers && trustedIssuers.trim() !== "") || (trustedSubjects && trustedSubjects.trim() !== "");
+
+    if (!hasConfigEndpoints && !hasManualConfig) {
+      errors.push(
+        "SAP mTLS authentication requires either MTLS_CONFIG_ENDPOINTS or MTLS_TRUSTED_ISSUERS/MTLS_TRUSTED_SUBJECTS to be configured.",
       );
     }
   }

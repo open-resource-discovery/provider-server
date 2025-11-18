@@ -12,16 +12,19 @@ export function parseSourceType(value: string): OptSourceType {
 export enum OptAuthMethod {
   Open = "open",
   Basic = "basic",
+  MTLS = "sap-mtls",
 }
 
 export enum OrdAccessStrategy {
   Open = "open",
   Basic = "basic-auth",
+  MTLS = "sap:cmp-mtls:v1",
 }
 
-const optAuthToOrdAccessStrategyMap = {
+const optAuthToOrdAccessStrategyMap: Record<OptAuthMethod, OrdAccessStrategy> = {
   [OptAuthMethod.Open]: OrdAccessStrategy.Open,
   [OptAuthMethod.Basic]: OrdAccessStrategy.Basic,
+  [OptAuthMethod.MTLS]: OrdAccessStrategy.MTLS,
 };
 
 export function mapOptAuthToOrdAccessStrategy(optAuthMethod: OptAuthMethod): OrdAccessStrategy {
