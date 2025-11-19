@@ -61,9 +61,8 @@
     "@tsconfig/node22": "22.0.5",
     "@types/got": "9.6.12",
     "@types/jest": "30.0.0",
-    "@types/js-yaml": "4.0.9",
-    "@types/ws": "8.18.1",
     "@types/node": "24.10.1",
+    "@types/ws": "8.18.1",
     "eslint": "9.39.1",
     "fetch-mock": "12.6.0",
     "husky": "9.1.7",
@@ -88,5 +87,8 @@
     "**/*.{json,yml,yaml,md}": [
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "glob": ">=11.1.0"
   }
 }

@@ -34,7 +34,7 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
     authMethods.push(server.basicAuth);
   }
 
-  if (options.authMethods.includes(OptAuthMethod.MTLS)) {
+  if (options.authMethods.includes(OptAuthMethod.CfMtls)) {
     let trustedIssuers = options.trustedIssuers || [];
     let trustedSubjects = options.trustedSubjects || [];
 

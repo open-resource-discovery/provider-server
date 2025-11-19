@@ -2,6 +2,7 @@ import { FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 import { tokenizeDn, dnTokensMatch } from "src/util/certificateHelpers.js";
 import { log } from "src/util/logger.js";
+import { CERT_ISSUER_DN_HEADER, CERT_SUBJECT_DN_HEADER } from "../constant.js";
 
 export interface MtlsValidationOptions {
   trustedIssuers: string[];
@@ -16,18 +17,26 @@ export interface MtlsValidationOptions {
 export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
   const { trustedIssuers, trustedSubjects } = options;
 
+  if (trustedIssuers.length === 0) {
+    throw new Error("mTLS validation requires at least one trusted issuer");
+  }
+
+  if (trustedSubjects.length === 0) {
+    throw new Error("mTLS validation requires at least one trusted subject");
+  }
+
   return function mtlsAuth(request: FastifyRequest, _reply: unknown, done: HookHandlerDoneFunction): void {
     try {
-      const issuerDnHeader = request.headers["x-ssl-client-issuer-dn"];
-      const subjectDnHeader = request.headers["x-ssl-client-subject-dn"];
+      const issuerDnHeader = request.headers[CERT_ISSUER_DN_HEADER];
+      const subjectDnHeader = request.headers[CERT_SUBJECT_DN_HEADER];
 
       if (!issuerDnHeader) {
-        log.warn("Missing mTLS headers: x-ssl-client-issuer-dn");
+        log.warn(`Missing mTLS headers: ${CERT_ISSUER_DN_HEADER}`);
         return done(new UnauthorizedError("Missing mTLS client certificate headers"));
       }
 
       if (!subjectDnHeader) {
-        log.warn("Missing mTLS headers: x-ssl-client-subject-dn");
+        log.warn(`Missing mTLS headers: ${CERT_SUBJECT_DN_HEADER}`);
         return done(new UnauthorizedError("Missing mTLS client certificate headers"));
       }
 
@@ -46,30 +55,26 @@ export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
         return done(new UnauthorizedError("Invalid mTLS header encoding"));
       }
 
-      if (trustedIssuers.length > 0) {
-        const issuerTokens = tokenizeDn(issuerDn);
-        const isTrustedIssuer = trustedIssuers.some((trustedIssuer) => {
-          const trustedTokens = tokenizeDn(trustedIssuer);
-          return dnTokensMatch(issuerTokens, trustedTokens);
-        });
+      const issuerTokens = tokenizeDn(issuerDn);
+      const isTrustedIssuer = trustedIssuers.some((trustedIssuer) => {
+        const trustedTokens = tokenizeDn(trustedIssuer);
+        return dnTokensMatch(issuerTokens, trustedTokens);
+      });
 
-        if (!isTrustedIssuer) {
-          log.warn(`Untrusted certificate issuer: ${issuerDn}`);
-          return done(new UnauthorizedError("Untrusted certificate issuer"));
-        }
+      if (!isTrustedIssuer) {
+        log.warn(`Untrusted certificate issuer: ${issuerDn}`);
+        return done(new UnauthorizedError("Untrusted certificate issuer"));
       }
 
-      if (trustedSubjects.length > 0) {
-        const subjectTokens = tokenizeDn(subjectDn);
-        const isTrustedSubject = trustedSubjects.some((trustedSubject) => {
-          const trustedTokens = tokenizeDn(trustedSubject);
-          return dnTokensMatch(subjectTokens, trustedTokens);
-        });
+      const subjectTokens = tokenizeDn(subjectDn);
+      const isTrustedSubject = trustedSubjects.some((trustedSubject) => {
+        const trustedTokens = tokenizeDn(trustedSubject);
+        return dnTokensMatch(subjectTokens, trustedTokens);
+      });
 
-        if (!isTrustedSubject) {
-          log.warn(`Untrusted certificate subject: ${subjectDn}`);
-          return done(new UnauthorizedError("Untrusted certificate subject"));
-        }
+      if (!isTrustedSubject) {
+        log.warn(`Untrusted certificate subject: ${subjectDn}`);
+        return done(new UnauthorizedError("Untrusted certificate subject"));
       }
 
       log.debug(`mTLS authentication successful for subject: ${subjectDn}`);

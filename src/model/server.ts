@@ -57,7 +57,7 @@ function parseSemicolonSeparated(value: string | undefined): string[] | undefine
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
 
-  const isMtls = options.auth.includes(OptAuthMethod.MTLS);
+  const isMtls = options.auth.includes(OptAuthMethod.CfMtls);
 
   return {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),

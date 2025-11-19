@@ -153,7 +153,7 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
 function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): void {
   const isOpen = authMethods.includes(OptAuthMethod.Open);
   const isBasicAuth = authMethods.includes(OptAuthMethod.Basic);
-  const isMtls = authMethods.includes(OptAuthMethod.MTLS);
+  const isMtls = authMethods.includes(OptAuthMethod.CfMtls);
 
   if (isOpen && (isBasicAuth || isMtls)) {
     errors.push('Authentication method "open" cannot be used together with other options.');
@@ -197,7 +197,7 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
 
     if (!hasConfigEndpoints && !hasManualConfig) {
       errors.push(
-        "SAP mTLS authentication requires either MTLS_CONFIG_ENDPOINTS or MTLS_TRUSTED_ISSUERS/MTLS_TRUSTED_SUBJECTS to be configured.",
+        "SAP BTP (CloudFoundry runtime) authentication requires either MTLS_CONFIG_ENDPOINTS or MTLS_TRUSTED_ISSUERS/MTLS_TRUSTED_SUBJECTS to be configured.",
       );
     }
   }
