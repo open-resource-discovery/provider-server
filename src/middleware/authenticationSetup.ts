@@ -14,6 +14,7 @@ export interface AuthSetupOptions {
   validUsers?: Record<string, string>;
   trustedIssuers?: string[];
   trustedSubjects?: string[];
+  trustedRootCas?: string[];
   mtlsConfigEndpoints?: string[];
 }
 
@@ -37,6 +38,7 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
   if (options.authMethods.includes(OptAuthMethod.CfMtls)) {
     let trustedIssuers = options.trustedIssuers || [];
     let trustedSubjects = options.trustedSubjects || [];
+    let trustedRootCas = options.trustedRootCas || [];
 
     if (options.mtlsConfigEndpoints && options.mtlsConfigEndpoints.length > 0) {
       log.info(`Fetching mTLS trusted certificates from ${options.mtlsConfigEndpoints.length} endpoint(s)...`);
@@ -45,22 +47,27 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
       const merged = mergeTrustedCerts(fromEndpoints, {
         trustedIssuers,
         trustedSubjects,
+        trustedRootCas,
       });
 
       trustedIssuers = merged.trustedIssuers;
       trustedSubjects = merged.trustedSubjects;
+      trustedRootCas = merged.trustedRootCas;
 
-      log.info(`Loaded ${trustedIssuers.length} trusted issuer(s) and ${trustedSubjects.length} trusted subject(s)`);
+      log.info(
+        `Loaded ${trustedIssuers.length} trusted issuer(s), ${trustedSubjects.length} trusted subject(s), and ${trustedRootCas.length} trusted root CA(s)`,
+      );
     }
 
-    if (trustedIssuers.length === 0 && trustedSubjects.length === 0) {
-      log.error("mTLS authentication enabled but no trusted issuers or subjects configured");
+    if (trustedIssuers.length === 0 && trustedSubjects.length === 0 && trustedRootCas.length === 0) {
+      log.error("mTLS authentication enabled but no trusted issuers, subjects, or root CAs configured");
       throw new Error("mTLS authentication misconfiguration");
     }
 
     const mtlsValidator = createSapCfMtlsValidator({
       trustedIssuers,
       trustedSubjects,
+      trustedRootCas,
     });
 
     authMethods.push(mtlsValidator);

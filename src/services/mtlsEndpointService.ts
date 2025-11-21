@@ -8,6 +8,7 @@ export interface MtlsCertInfo {
 export interface MtlsTrustedCerts {
   trustedIssuers: string[];
   trustedSubjects: string[];
+  trustedRootCas: string[];
 }
 
 /**
@@ -45,6 +46,7 @@ export async function fetchMtlsTrustedCertsFromEndpoints(
   return {
     trustedIssuers: Array.from(trustedIssuers),
     trustedSubjects: Array.from(trustedSubjects),
+    trustedRootCas: [], // Root CAs are not fetched from endpoints, only from env config
   };
 }
 
@@ -105,9 +107,11 @@ async function fetchMtlsCertInfo(endpoint: string, timeoutMs: number): Promise<M
 export function mergeTrustedCerts(fromEndpoints: MtlsTrustedCerts, fromConfig: MtlsTrustedCerts): MtlsTrustedCerts {
   const issuers = new Set([...fromEndpoints.trustedIssuers, ...fromConfig.trustedIssuers]);
   const subjects = new Set([...fromEndpoints.trustedSubjects, ...fromConfig.trustedSubjects]);
+  const rootCas = new Set([...fromEndpoints.trustedRootCas, ...fromConfig.trustedRootCas]);
 
   return {
     trustedIssuers: Array.from(issuers),
     trustedSubjects: Array.from(subjects),
+    trustedRootCas: Array.from(rootCas),
   };
 }

@@ -102,6 +102,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     validUsers: opts.authentication.basicAuthUsers,
     trustedIssuers: opts.authentication.trustedIssuers,
     trustedSubjects: opts.authentication.trustedSubjects,
+    trustedRootCas: opts.authentication.trustedRootCas,
     mtlsConfigEndpoints: opts.authentication.mtlsConfigEndpoints,
   });
 

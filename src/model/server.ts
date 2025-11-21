@@ -19,6 +19,7 @@ export interface ProviderServerOptions {
     basicAuthUsers?: Record<string, string>;
     trustedIssuers?: string[];
     trustedSubjects?: string[];
+    trustedRootCas?: string[];
     mtlsConfigEndpoints?: string[];
   };
   dataDir: string;
@@ -75,6 +76,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
       trustedIssuers: isMtls ? parseSemicolonSeparated(process.env.MTLS_TRUSTED_ISSUERS) : undefined,
       trustedSubjects: isMtls ? parseSemicolonSeparated(process.env.MTLS_TRUSTED_SUBJECTS) : undefined,
+      trustedRootCas: isMtls ? parseSemicolonSeparated(process.env.MTLS_TRUSTED_ROOT_CAS) : undefined,
       mtlsConfigEndpoints: isMtls ? parseSemicolonSeparated(process.env.MTLS_CONFIG_ENDPOINTS) : undefined,
     },
     dataDir: options.dataDir || "./data",
