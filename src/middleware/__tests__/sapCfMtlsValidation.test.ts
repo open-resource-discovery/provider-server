@@ -1,0 +1,376 @@
+import fastify from "fastify";
+import { createSapCfMtlsValidator } from "src/middleware/sapCfMtlsValidation.js";
+import { setupAuthentication } from "src/middleware/authenticationSetup.js";
+import { errorHandler } from "src/middleware/errorHandler.js";
+import { FastifyInstanceType } from "src/model/fastify.js";
+import { OptAuthMethod } from "src/model/cli.js";
+import { CERT_ISSUER_DN_HEADER, CERT_SUBJECT_DN_HEADER, CERT_ROOT_CA_DN_HEADER } from "../../constant.js";
+
+const encodeBase64 = (value: string): string => Buffer.from(value).toString("base64");
+
+describe("sapCfMtlsValidation", () => {
+  let server: FastifyInstanceType;
+
+  const trustedIssuers = ["CN=ACME Root CA,O=ACME Inc,L=San Francisco,C=US"];
+  const trustedSubjects = ["CN=test-service,O=ACME Inc,C=US"];
+  const trustedRootCas = ["CN=Global Root CA,O=ACME Inc,C=US"];
+
+  beforeEach(() => {
+    server = fastify() as FastifyInstanceType;
+    server.setErrorHandler(errorHandler);
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  describe("header validation", () => {
+    beforeEach(async () => {
+      const mtlsValidator = createSapCfMtlsValidator({
+        trustedIssuers,
+        trustedSubjects,
+        trustedRootCas,
+      });
+
+      server.addHook("onRequest", mtlsValidator);
+
+      server.get("/test", () => ({ success: true }));
+
+      await server.ready();
+    });
+
+    it("should authenticate with valid base64 encoded headers", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({ success: true });
+    });
+
+    it("should authenticate with different DN order", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=ACME Root CA,O=ACME Inc,L=San Francisco,C=US"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=test-service,O=ACME Inc,C=US"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Global Root CA,O=ACME Inc,C=US"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should reject request with missing issuer header", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should reject request with missing subject header", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should reject request with missing root CA header", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should reject request with untrusted issuer", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=DE/O=Untrusted CA/CN=Fake CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should reject request with untrusted subject", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=DE/O=Untrusted Org/CN=BadActor"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should reject request with untrusted root CA", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=DE/O=Untrusted Root/CN=Fake Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
+  describe("with empty trusted lists", () => {
+    it("should throw error when no trusted issuers configured", () => {
+      expect(() => {
+        createSapCfMtlsValidator({
+          trustedIssuers: [],
+          trustedSubjects,
+          trustedRootCas,
+        });
+      }).toThrow("mTLS validation requires at least one trusted issuer");
+    });
+
+    it("should throw error when no trusted subjects configured", () => {
+      expect(() => {
+        createSapCfMtlsValidator({
+          trustedIssuers,
+          trustedSubjects: [],
+          trustedRootCas,
+        });
+      }).toThrow("mTLS validation requires at least one trusted subject");
+    });
+
+    it("should throw error when no trusted root CAs configured", () => {
+      expect(() => {
+        createSapCfMtlsValidator({
+          trustedIssuers,
+          trustedSubjects,
+          trustedRootCas: [],
+        });
+      }).toThrow("mTLS validation requires at least one trusted root CA");
+    });
+
+    it("should throw error when all lists are empty", () => {
+      expect(() => {
+        createSapCfMtlsValidator({
+          trustedIssuers: [],
+          trustedSubjects: [],
+          trustedRootCas: [],
+        });
+      }).toThrow("mTLS validation requires at least one trusted issuer");
+    });
+  });
+
+  describe("with multiple trusted values", () => {
+    beforeEach(async () => {
+      const mtlsValidator = createSapCfMtlsValidator({
+        trustedIssuers: ["CN=CA1,O=Org1,C=DE", "CN=CA2,O=Org2,C=US"],
+        trustedSubjects: ["CN=Service1,O=Org1,C=DE", "CN=Service2,O=Org2,C=US"],
+        trustedRootCas: ["CN=RootCA1,O=Org1,C=DE", "CN=RootCA2,O=Org2,C=US"],
+      });
+
+      server.addHook("onRequest", mtlsValidator);
+      server.get("/test", () => ({ success: true }));
+      await server.ready();
+    });
+
+    it("should authenticate with first trusted issuer", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA1,O=Org1,C=DE"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service1,O=Org1,C=DE"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA1,O=Org1,C=DE"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should authenticate with second trusted issuer", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA2,O=Org2,C=US"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service2,O=Org2,C=US"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA2,O=Org2,C=US"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should allow mixing trusted issuers, subjects, and root CAs", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA1,O=Org1,C=DE"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service2,O=Org2,C=US"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA1,O=Org1,C=DE"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+  });
+
+  describe("with config endpoints", () => {
+    const mockFetch = jest.fn();
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      global.fetch = mockFetch;
+      mockFetch.mockReset();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("should authenticate using issuer/subject fetched from endpoint and rootCa from config", async () => {
+      const certIssuer = "CN=ACME PKI CA,OU=ACME Clients,O=ACME Inc,L=Denver,C=US";
+      const certSubject = "CN=acme-service,OU=Cloud Clients,OU=Staging,O=ACME Inc,L=Denver,C=US";
+      const certRootCa = "CN=ACME Global Root CA,O=ACME Inc,C=US";
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => ({
+          certIssuer,
+          certSubject,
+        }),
+      });
+
+      // Setup authentication with config endpoint and manual root CA
+      await setupAuthentication(server, {
+        authMethods: [OptAuthMethod.CfMtls],
+        mtlsConfigEndpoints: ["https://ucl.acme.com/cert-info"],
+        trustedRootCas: [certRootCa], // Root CAs only from config
+      });
+
+      server.get("/ord/v1/documents/document-1", () => ({ success: true }));
+      await server.ready();
+
+      // Request with matching issuer/subject from endpoint and rootCa from config should succeed
+      const response = await server.inject({
+        method: "GET",
+        url: "/ord/v1/documents/document-1",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64(certIssuer),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64(certSubject),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64(certRootCa),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://ucl.acme.com/cert-info",
+        expect.objectContaining({
+          method: "GET",
+        }),
+      );
+    });
+
+    it("should reject request with non-matching issuer from endpoint", async () => {
+      const certIssuer = "CN=Expected CA,O=ACME Inc,C=US";
+      const certSubject = "CN=expected-service,O=ACME Inc,C=US";
+      const certRootCa = "CN=Expected Root CA,O=ACME Inc,C=US";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => ({
+          certIssuer,
+          certSubject,
+        }),
+      });
+
+      await setupAuthentication(server, {
+        authMethods: [OptAuthMethod.CfMtls],
+        mtlsConfigEndpoints: ["https://config.example.com/cert-info"],
+        trustedRootCas: [certRootCa], // Root CAs only from config
+      });
+
+      server.get("/test", () => ({ success: true }));
+      await server.ready();
+
+      // Request with different issuer should fail
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64(certIssuer + "modified"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64(certSubject),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64(certRootCa),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should merge endpoint config with manual config", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => ({
+          certIssuer: "CN=Endpoint CA,O=ACME Inc,C=US",
+          certSubject: "CN=endpoint-service,O=ACME Inc,C=US",
+        }),
+      });
+
+      await setupAuthentication(server, {
+        authMethods: [OptAuthMethod.CfMtls],
+        mtlsConfigEndpoints: ["https://config.example.com/cert-info"],
+        trustedIssuers: ["CN=Manual CA,O=Manual Org,C=DE"],
+        trustedSubjects: ["CN=manual-service,O=Manual Org,C=DE"],
+        trustedRootCas: ["CN=Manual Root CA,O=Manual Org,C=DE"],
+      });
+
+      server.get("/test", () => ({ success: true }));
+      await server.ready();
+
+      // Request with manual issuer/subject/rootCa should also succeed
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Manual CA,O=Manual Org,C=DE"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=manual-service,O=Manual Org,C=DE"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Manual Root CA,O=Manual Org,C=DE"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+  });
+});

@@ -16,3 +16,7 @@ export const PATH_CONSTANTS = {
   GITHUB_DEFAULT_ROOT: "data",
   GITHUB_DOCUMENTS_PATH: "data/documents",
 };
+
+export const CERT_ISSUER_DN_HEADER = "x-ssl-client-issuer-dn";
+export const CERT_SUBJECT_DN_HEADER = "x-ssl-client-subject-dn";
+export const CERT_ROOT_CA_DN_HEADER = "x-ssl-client-root-ca-dn";
