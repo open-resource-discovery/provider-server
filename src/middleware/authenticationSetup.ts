@@ -12,10 +12,9 @@ import { log } from "src/util/logger.js";
 export interface AuthSetupOptions {
   authMethods: OptAuthMethod[];
   validUsers?: Record<string, string>;
-  trustedIssuers?: string[];
-  trustedSubjects?: string[];
-  trustedRootCas?: string[];
-  mtlsConfigEndpoints?: string[];
+  trustedCerts?: { issuer: string; subject: string }[];
+  trustedRootCaDns?: string[];
+  cfMtlsConfigEndpoints?: string[];
 }
 
 export async function setupAuthentication(server: FastifyInstanceType, options: AuthSetupOptions): Promise<void> {
@@ -36,38 +35,34 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
   }
 
   if (options.authMethods.includes(OptAuthMethod.CfMtls)) {
-    let trustedIssuers = options.trustedIssuers || [];
-    let trustedSubjects = options.trustedSubjects || [];
-    let trustedRootCas = options.trustedRootCas || [];
+    let trustedCerts = options.trustedCerts || [];
+    let trustedRootCaDns = options.trustedRootCaDns || [];
 
-    if (options.mtlsConfigEndpoints && options.mtlsConfigEndpoints.length > 0) {
-      log.info(`Fetching mTLS trusted certificates from ${options.mtlsConfigEndpoints.length} endpoint(s)...`);
-      const fromEndpoints = await fetchMtlsTrustedCertsFromEndpoints(options.mtlsConfigEndpoints);
+    if (options.cfMtlsConfigEndpoints && options.cfMtlsConfigEndpoints.length > 0) {
+      log.info(`Fetching mTLS trusted certificates from ${options.cfMtlsConfigEndpoints.length} endpoint(s)...`);
+      const fromEndpoints = await fetchMtlsTrustedCertsFromEndpoints(options.cfMtlsConfigEndpoints);
 
       const merged = mergeTrustedCerts(fromEndpoints, {
-        trustedIssuers,
-        trustedSubjects,
-        trustedRootCas,
+        trustedCerts,
+        trustedRootCaDns,
       });
 
-      trustedIssuers = merged.trustedIssuers;
-      trustedSubjects = merged.trustedSubjects;
-      trustedRootCas = merged.trustedRootCas;
+      trustedCerts = merged.trustedCerts;
+      trustedRootCaDns = merged.trustedRootCaDns;
 
       log.info(
-        `Loaded ${trustedIssuers.length} trusted issuer(s), ${trustedSubjects.length} trusted subject(s), and ${trustedRootCas.length} trusted root CA(s)`,
+        `Loaded ${trustedCerts.length} trusted certificate pair(s) and ${trustedRootCaDns.length} trusted root CA DN(s)`,
       );
     }
 
-    if (trustedIssuers.length === 0 && trustedSubjects.length === 0 && trustedRootCas.length === 0) {
-      log.error("mTLS authentication enabled but no trusted issuers, subjects, or root CAs configured");
+    if (trustedCerts.length === 0 && trustedRootCaDns.length === 0) {
+      log.error("mTLS authentication enabled but no trusted certificate pairs or root CA DNs configured");
       throw new Error("mTLS authentication misconfiguration");
     }
 
     const mtlsValidator = createSapCfMtlsValidator({
-      trustedIssuers,
-      trustedSubjects,
-      trustedRootCas,
+      trustedCerts,
+      trustedRootCaDns,
     });
 
     authMethods.push(mtlsValidator);

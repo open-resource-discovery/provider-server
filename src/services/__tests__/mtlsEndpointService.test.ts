@@ -20,9 +20,10 @@ describe("mtlsEndpointService", () => {
 
       const result = await fetchMtlsTrustedCertsFromEndpoints(["https://config.example.com/cert-info"]);
 
-      expect(result.trustedIssuers).toEqual(["CN=Test CA,O=Test,C=DE"]);
-      expect(result.trustedSubjects).toEqual(["CN=test-service,O=Test,C=DE"]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([
+        { issuer: "CN=Test CA,O=Test,C=DE", subject: "CN=test-service,O=Test,C=DE" },
+      ]);
+      expect(result.trustedRootCaDns).toEqual([]);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -48,13 +49,10 @@ describe("mtlsEndpointService", () => {
         "https://endpoint2.com/cert",
       ]);
 
-      expect(result.trustedIssuers).toHaveLength(2);
-      expect(result.trustedIssuers).toContain("CN=CA1,O=Org1,C=DE");
-      expect(result.trustedIssuers).toContain("CN=CA2,O=Org2,C=US");
-      expect(result.trustedSubjects).toHaveLength(2);
-      expect(result.trustedSubjects).toContain("CN=service1,O=Org1,C=DE");
-      expect(result.trustedSubjects).toContain("CN=service2,O=Org2,C=US");
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toHaveLength(2);
+      expect(result.trustedCerts).toContainEqual({ issuer: "CN=CA1,O=Org1,C=DE", subject: "CN=service1,O=Org1,C=DE" });
+      expect(result.trustedCerts).toContainEqual({ issuer: "CN=CA2,O=Org2,C=US", subject: "CN=service2,O=Org2,C=US" });
+      expect(result.trustedRootCaDns).toEqual([]);
     });
 
     it("should deduplicate identical cert info from multiple endpoints", async () => {
@@ -78,9 +76,10 @@ describe("mtlsEndpointService", () => {
         "https://endpoint2.com/cert",
       ]);
 
-      expect(result.trustedIssuers).toEqual(["CN=Shared CA,O=Test,C=DE"]);
-      expect(result.trustedSubjects).toEqual(["CN=shared-service,O=Test,C=DE"]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([
+        { issuer: "CN=Shared CA,O=Test,C=DE", subject: "CN=shared-service,O=Test,C=DE" },
+      ]);
+      expect(result.trustedRootCaDns).toEqual([]);
     });
 
     it("should handle failed endpoint gracefully", async () => {
@@ -99,9 +98,8 @@ describe("mtlsEndpointService", () => {
         "https://bad-endpoint.com/cert",
       ]);
 
-      expect(result.trustedIssuers).toEqual(["CN=CA1,O=Org1,C=DE"]);
-      expect(result.trustedSubjects).toEqual(["CN=service1,O=Org1,C=DE"]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([{ issuer: "CN=CA1,O=Org1,C=DE", subject: "CN=service1,O=Org1,C=DE" }]);
+      expect(result.trustedRootCaDns).toEqual([]);
     });
 
     it("should handle HTTP error response", async () => {
@@ -113,9 +111,8 @@ describe("mtlsEndpointService", () => {
 
       const result = await fetchMtlsTrustedCertsFromEndpoints(["https://error-endpoint.com/cert"]);
 
-      expect(result.trustedIssuers).toEqual([]);
-      expect(result.trustedSubjects).toEqual([]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([]);
+      expect(result.trustedRootCaDns).toEqual([]);
     });
 
     it("should handle invalid response format", async () => {
@@ -129,17 +126,15 @@ describe("mtlsEndpointService", () => {
 
       const result = await fetchMtlsTrustedCertsFromEndpoints(["https://invalid-endpoint.com/cert"]);
 
-      expect(result.trustedIssuers).toEqual([]);
-      expect(result.trustedSubjects).toEqual([]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([]);
+      expect(result.trustedRootCaDns).toEqual([]);
     });
 
     it("should return empty arrays for empty endpoints list", async () => {
       const result = await fetchMtlsTrustedCertsFromEndpoints([]);
 
-      expect(result.trustedIssuers).toEqual([]);
-      expect(result.trustedSubjects).toEqual([]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([]);
+      expect(result.trustedRootCaDns).toEqual([]);
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -164,109 +159,140 @@ describe("mtlsEndpointService", () => {
   });
 
   describe("mergeTrustedCerts", () => {
-    it("should merge certs from endpoints and config", () => {
+    it("should merge cert pairs from endpoints and config", () => {
       const fromEndpoints: MtlsTrustedCerts = {
-        trustedIssuers: ["CN=Endpoint CA,O=Test,C=DE"],
-        trustedSubjects: ["CN=endpoint-service,O=Test,C=DE"],
-        trustedRootCas: [], // Endpoints don't provide root CAs
+        trustedCerts: [{ issuer: "CN=Endpoint CA,O=Test,C=DE", subject: "CN=endpoint-service,O=Test,C=DE" }],
+        trustedRootCaDns: [],
       };
 
       const fromConfig: MtlsTrustedCerts = {
-        trustedIssuers: ["CN=Config CA,O=Test,C=US"],
-        trustedSubjects: ["CN=config-service,O=Test,C=US"],
-        trustedRootCas: ["CN=Config Root CA,O=Test,C=US"],
+        trustedCerts: [{ issuer: "CN=Config CA,O=Test,C=US", subject: "CN=config-service,O=Test,C=US" }],
+        trustedRootCaDns: ["CN=Config Root CA,O=Test,C=US"],
       };
 
       const result = mergeTrustedCerts(fromEndpoints, fromConfig);
 
-      expect(result.trustedIssuers).toHaveLength(2);
-      expect(result.trustedIssuers).toContain("CN=Endpoint CA,O=Test,C=DE");
-      expect(result.trustedIssuers).toContain("CN=Config CA,O=Test,C=US");
-      expect(result.trustedSubjects).toHaveLength(2);
-      expect(result.trustedSubjects).toContain("CN=endpoint-service,O=Test,C=DE");
-      expect(result.trustedSubjects).toContain("CN=config-service,O=Test,C=US");
-      expect(result.trustedRootCas).toHaveLength(1); // Only from config
-      expect(result.trustedRootCas).toContain("CN=Config Root CA,O=Test,C=US");
+      expect(result.trustedCerts).toHaveLength(2);
+      expect(result.trustedCerts).toContainEqual({
+        issuer: "CN=Endpoint CA,O=Test,C=DE",
+        subject: "CN=endpoint-service,O=Test,C=DE",
+      });
+      expect(result.trustedCerts).toContainEqual({
+        issuer: "CN=Config CA,O=Test,C=US",
+        subject: "CN=config-service,O=Test,C=US",
+      });
+      expect(result.trustedRootCaDns).toHaveLength(1); // Only from config
+      expect(result.trustedRootCaDns).toContain("CN=Config Root CA,O=Test,C=US");
     });
 
-    it("should deduplicate identical values", () => {
+    it("should deduplicate identical cert pairs", () => {
       const fromEndpoints: MtlsTrustedCerts = {
-        trustedIssuers: ["CN=Shared CA,O=Test,C=DE"],
-        trustedSubjects: ["CN=shared-service,O=Test,C=DE"],
-        trustedRootCas: [], // Endpoints don't provide root CAs
+        trustedCerts: [{ issuer: "CN=Shared CA,O=Test,C=DE", subject: "CN=shared-service,O=Test,C=DE" }],
+        trustedRootCaDns: [],
       };
 
       const fromConfig: MtlsTrustedCerts = {
-        trustedIssuers: ["CN=Shared CA,O=Test,C=DE"],
-        trustedSubjects: ["CN=shared-service,O=Test,C=DE"],
-        trustedRootCas: ["CN=Shared Root CA,O=Test,C=DE"],
+        trustedCerts: [{ issuer: "CN=Shared CA,O=Test,C=DE", subject: "CN=shared-service,O=Test,C=DE" }],
+        trustedRootCaDns: ["CN=Shared Root CA,O=Test,C=DE"],
       };
 
       const result = mergeTrustedCerts(fromEndpoints, fromConfig);
 
-      expect(result.trustedIssuers).toEqual(["CN=Shared CA,O=Test,C=DE"]);
-      expect(result.trustedSubjects).toEqual(["CN=shared-service,O=Test,C=DE"]);
-      expect(result.trustedRootCas).toEqual(["CN=Shared Root CA,O=Test,C=DE"]); // Only from config
+      expect(result.trustedCerts).toEqual([
+        { issuer: "CN=Shared CA,O=Test,C=DE", subject: "CN=shared-service,O=Test,C=DE" },
+      ]);
+      expect(result.trustedRootCaDns).toEqual(["CN=Shared Root CA,O=Test,C=DE"]); // Only from config
     });
 
     it("should handle empty endpoints", () => {
       const fromEndpoints: MtlsTrustedCerts = {
-        trustedIssuers: [],
-        trustedSubjects: [],
-        trustedRootCas: [],
+        trustedCerts: [],
+        trustedRootCaDns: [],
       };
 
       const fromConfig: MtlsTrustedCerts = {
-        trustedIssuers: ["CN=Config CA,O=Test,C=DE"],
-        trustedSubjects: ["CN=config-service,O=Test,C=DE"],
-        trustedRootCas: ["CN=Config Root CA,O=Test,C=DE"],
+        trustedCerts: [{ issuer: "CN=Config CA,O=Test,C=DE", subject: "CN=config-service,O=Test,C=DE" }],
+        trustedRootCaDns: ["CN=Config Root CA,O=Test,C=DE"],
       };
 
       const result = mergeTrustedCerts(fromEndpoints, fromConfig);
 
-      expect(result.trustedIssuers).toEqual(["CN=Config CA,O=Test,C=DE"]);
-      expect(result.trustedSubjects).toEqual(["CN=config-service,O=Test,C=DE"]);
-      expect(result.trustedRootCas).toEqual(["CN=Config Root CA,O=Test,C=DE"]);
+      expect(result.trustedCerts).toEqual([
+        { issuer: "CN=Config CA,O=Test,C=DE", subject: "CN=config-service,O=Test,C=DE" },
+      ]);
+      expect(result.trustedRootCaDns).toEqual(["CN=Config Root CA,O=Test,C=DE"]);
     });
 
     it("should handle empty config", () => {
       const fromEndpoints: MtlsTrustedCerts = {
-        trustedIssuers: ["CN=Endpoint CA,O=Test,C=DE"],
-        trustedSubjects: ["CN=endpoint-service,O=Test,C=DE"],
-        trustedRootCas: [], // Endpoints don't provide root CAs
+        trustedCerts: [{ issuer: "CN=Endpoint CA,O=Test,C=DE", subject: "CN=endpoint-service,O=Test,C=DE" }],
+        trustedRootCaDns: [],
       };
 
       const fromConfig: MtlsTrustedCerts = {
-        trustedIssuers: [],
-        trustedSubjects: [],
-        trustedRootCas: [],
+        trustedCerts: [],
+        trustedRootCaDns: [],
       };
 
       const result = mergeTrustedCerts(fromEndpoints, fromConfig);
 
-      expect(result.trustedIssuers).toEqual(["CN=Endpoint CA,O=Test,C=DE"]);
-      expect(result.trustedSubjects).toEqual(["CN=endpoint-service,O=Test,C=DE"]);
-      expect(result.trustedRootCas).toEqual([]); // No root CAs from either source
+      expect(result.trustedCerts).toEqual([
+        { issuer: "CN=Endpoint CA,O=Test,C=DE", subject: "CN=endpoint-service,O=Test,C=DE" },
+      ]);
+      expect(result.trustedRootCaDns).toEqual([]); // No root CAs from either source
     });
 
     it("should handle both empty", () => {
       const fromEndpoints: MtlsTrustedCerts = {
-        trustedIssuers: [],
-        trustedSubjects: [],
-        trustedRootCas: [],
+        trustedCerts: [],
+        trustedRootCaDns: [],
       };
 
       const fromConfig: MtlsTrustedCerts = {
-        trustedIssuers: [],
-        trustedSubjects: [],
-        trustedRootCas: [],
+        trustedCerts: [],
+        trustedRootCaDns: [],
       };
 
       const result = mergeTrustedCerts(fromEndpoints, fromConfig);
 
-      expect(result.trustedIssuers).toEqual([]);
-      expect(result.trustedSubjects).toEqual([]);
-      expect(result.trustedRootCas).toEqual([]); // Root CAs not fetched from endpoints
+      expect(result.trustedCerts).toEqual([]);
+      expect(result.trustedRootCaDns).toEqual([]);
+    });
+
+    it("should deduplicate root CAs with same DN components in different order", () => {
+      const fromEndpoints: MtlsTrustedCerts = {
+        trustedCerts: [],
+        trustedRootCaDns: ["CN=Root CA,O=Test,C=DE"],
+      };
+
+      const fromConfig: MtlsTrustedCerts = {
+        trustedCerts: [],
+        trustedRootCaDns: ["/C=DE/O=Test/CN=Root CA"],
+      };
+
+      const result = mergeTrustedCerts(fromEndpoints, fromConfig);
+
+      // Should deduplicate because DN components match despite different order/format
+      expect(result.trustedRootCaDns).toHaveLength(1);
+      expect(result.trustedRootCaDns[0]).toBe("CN=Root CA,O=Test,C=DE");
+    });
+
+    it("should keep unique root CAs with different DN components", () => {
+      const fromEndpoints: MtlsTrustedCerts = {
+        trustedCerts: [],
+        trustedRootCaDns: ["CN=Root CA 1,O=Org1,C=DE"],
+      };
+
+      const fromConfig: MtlsTrustedCerts = {
+        trustedCerts: [],
+        trustedRootCaDns: ["CN=Root CA 2,O=Org2,C=US"],
+      };
+
+      const result = mergeTrustedCerts(fromEndpoints, fromConfig);
+
+      expect(result.trustedRootCaDns).toHaveLength(2);
+      expect(result.trustedRootCaDns).toContain("CN=Root CA 1,O=Org1,C=DE");
+      expect(result.trustedRootCaDns).toContain("CN=Root CA 2,O=Org2,C=US");
     });
   });
 });

@@ -1,4 +1,5 @@
 import { log } from "../util/logger.js";
+import { tokenizeDn, dnTokensMatch } from "../util/certificateHelpers.js";
 
 export interface MtlsCertInfo {
   certIssuer: string;
@@ -6,32 +7,32 @@ export interface MtlsCertInfo {
 }
 
 export interface MtlsTrustedCerts {
-  trustedIssuers: string[];
-  trustedSubjects: string[];
-  trustedRootCas: string[];
+  trustedCerts: { issuer: string; subject: string }[];
+  trustedRootCaDns: string[];
 }
 
 /**
  * Fetches MTLS trusted certificate information from endpoints
  * @param endpoints Array of endpoint URLs to fetch from
  * @param timeoutMs Timeout for each request in milliseconds
- * @returns Combined lists of trusted issuers and subjects
+ * @returns Combined list of trusted certificate pairs (issuer/subject)
  */
 export async function fetchMtlsTrustedCertsFromEndpoints(
   endpoints: string[],
   timeoutMs: number = 10000,
 ): Promise<MtlsTrustedCerts> {
-  const trustedIssuers = new Set<string>();
-  const trustedSubjects = new Set<string>();
+  const trustedCertsMap = new Map<string, { issuer: string; subject: string }>();
 
   const fetchPromises = endpoints.map(async (endpoint) => {
     try {
       const certInfo = await fetchMtlsCertInfo(endpoint, timeoutMs);
-      if (certInfo.certIssuer) {
-        trustedIssuers.add(certInfo.certIssuer);
-      }
-      if (certInfo.certSubject) {
-        trustedSubjects.add(certInfo.certSubject);
+      if (certInfo.certIssuer && certInfo.certSubject) {
+        // Use issuer+subject as key for deduplication
+        const key = `${certInfo.certIssuer}|${certInfo.certSubject}`;
+        trustedCertsMap.set(key, {
+          issuer: certInfo.certIssuer,
+          subject: certInfo.certSubject,
+        });
       }
       log.info(`Successfully fetched MTLS cert info from ${endpoint}`);
     } catch (error) {
@@ -44,9 +45,8 @@ export async function fetchMtlsTrustedCertsFromEndpoints(
   await Promise.all(fetchPromises);
 
   return {
-    trustedIssuers: Array.from(trustedIssuers),
-    trustedSubjects: Array.from(trustedSubjects),
-    trustedRootCas: [], // Root CAs are not fetched from endpoints, only from env config
+    trustedCerts: Array.from(trustedCertsMap.values()),
+    trustedRootCaDns: [], // Root CAs are not fetched from endpoints, only from env config
   };
 }
 
@@ -105,13 +105,25 @@ async function fetchMtlsCertInfo(endpoint: string, timeoutMs: number): Promise<M
  * @returns Merged and deduplicated certificates
  */
 export function mergeTrustedCerts(fromEndpoints: MtlsTrustedCerts, fromConfig: MtlsTrustedCerts): MtlsTrustedCerts {
-  const issuers = new Set([...fromEndpoints.trustedIssuers, ...fromConfig.trustedIssuers]);
-  const subjects = new Set([...fromEndpoints.trustedSubjects, ...fromConfig.trustedSubjects]);
-  const rootCas = new Set([...fromEndpoints.trustedRootCas, ...fromConfig.trustedRootCas]);
+  const certsMap = new Map<string, { issuer: string; subject: string }>();
+
+  for (const cert of [...fromEndpoints.trustedCerts, ...fromConfig.trustedCerts]) {
+    const key = `${cert.issuer}|${cert.subject}`;
+    certsMap.set(key, cert);
+  }
+
+  // Use DN-aware deduplication for root CAs (order-independent matching)
+  const rootCaDns: string[] = [];
+  for (const dn of [...fromEndpoints.trustedRootCaDns, ...fromConfig.trustedRootCaDns]) {
+    const dnTokens = tokenizeDn(dn);
+    const isDuplicate = rootCaDns.some((existing) => dnTokensMatch(tokenizeDn(existing), dnTokens));
+    if (!isDuplicate) {
+      rootCaDns.push(dn);
+    }
+  }
 
   return {
-    trustedIssuers: Array.from(issuers),
-    trustedSubjects: Array.from(subjects),
-    trustedRootCas: Array.from(rootCas),
+    trustedCerts: Array.from(certsMap.values()),
+    trustedRootCaDns: rootCaDns,
   };
 }

@@ -18,13 +18,13 @@ export enum OptAuthMethod {
 export enum OrdAccessStrategy {
   Open = "open",
   Basic = "basic-auth",
-  MTLS = "sap:cmp-mtls:v1",
+  CfMtls = "sap:cmp-mtls:v1",
 }
 
 const optAuthToOrdAccessStrategyMap: Record<OptAuthMethod, OrdAccessStrategy> = {
   [OptAuthMethod.Open]: OrdAccessStrategy.Open,
   [OptAuthMethod.Basic]: OrdAccessStrategy.Basic,
-  [OptAuthMethod.CfMtls]: OrdAccessStrategy.MTLS,
+  [OptAuthMethod.CfMtls]: OrdAccessStrategy.CfMtls,
 };
 
 export function mapOptAuthToOrdAccessStrategy(optAuthMethod: OptAuthMethod): OrdAccessStrategy {

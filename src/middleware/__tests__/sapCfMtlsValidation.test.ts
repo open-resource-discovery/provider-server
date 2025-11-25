@@ -11,9 +11,13 @@ const encodeBase64 = (value: string): string => Buffer.from(value).toString("bas
 describe("sapCfMtlsValidation", () => {
   let server: FastifyInstanceType;
 
-  const trustedIssuers = ["CN=ACME Root CA,O=ACME Inc,L=San Francisco,C=US"];
-  const trustedSubjects = ["CN=test-service,O=ACME Inc,C=US"];
-  const trustedRootCas = ["CN=Global Root CA,O=ACME Inc,C=US"];
+  const trustedCerts = [
+    {
+      issuer: "CN=ACME Root CA,O=ACME Inc,L=San Francisco,C=US",
+      subject: "CN=test-service,O=ACME Inc,C=US",
+    },
+  ];
+  const trustedRootCaDns = ["CN=Global Root CA,O=ACME Inc,C=US"];
 
   beforeEach(() => {
     server = fastify() as FastifyInstanceType;
@@ -27,9 +31,8 @@ describe("sapCfMtlsValidation", () => {
   describe("header validation", () => {
     beforeEach(async () => {
       const mtlsValidator = createSapCfMtlsValidator({
-        trustedIssuers,
-        trustedSubjects,
-        trustedRootCas,
+        trustedCerts,
+        trustedRootCaDns,
       });
 
       server.addHook("onRequest", mtlsValidator);
@@ -148,56 +151,74 @@ describe("sapCfMtlsValidation", () => {
 
       expect(response.statusCode).toBe(401);
     });
+
+    it("should reject request with garbage base64 (invalid DN)", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: "not-valid-base64!!!",
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(JSON.parse(response.body).error.message).toBe("Untrusted certificate (issuer/subject pair not found)");
+    });
+
+    it("should handle array headers by using first value", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
   });
 
   describe("with empty trusted lists", () => {
-    it("should throw error when no trusted issuers configured", () => {
+    it("should throw error when no trusted certs configured", () => {
       expect(() => {
         createSapCfMtlsValidator({
-          trustedIssuers: [],
-          trustedSubjects,
-          trustedRootCas,
+          trustedCerts: [],
+          trustedRootCaDns,
         });
-      }).toThrow("mTLS validation requires at least one trusted issuer");
+      }).toThrow("mTLS validation requires at least one trusted certificate (issuer/subject pair)");
     });
 
-    it("should throw error when no trusted subjects configured", () => {
+    it("should throw error when no trusted root CA DNs configured", () => {
       expect(() => {
         createSapCfMtlsValidator({
-          trustedIssuers,
-          trustedSubjects: [],
-          trustedRootCas,
+          trustedCerts,
+          trustedRootCaDns: [],
         });
-      }).toThrow("mTLS validation requires at least one trusted subject");
-    });
-
-    it("should throw error when no trusted root CAs configured", () => {
-      expect(() => {
-        createSapCfMtlsValidator({
-          trustedIssuers,
-          trustedSubjects,
-          trustedRootCas: [],
-        });
-      }).toThrow("mTLS validation requires at least one trusted root CA");
+      }).toThrow("mTLS validation requires at least one trusted root CA DN");
     });
 
     it("should throw error when all lists are empty", () => {
       expect(() => {
         createSapCfMtlsValidator({
-          trustedIssuers: [],
-          trustedSubjects: [],
-          trustedRootCas: [],
+          trustedCerts: [],
+          trustedRootCaDns: [],
         });
-      }).toThrow("mTLS validation requires at least one trusted issuer");
+      }).toThrow("mTLS validation requires at least one trusted certificate (issuer/subject pair)");
     });
   });
 
-  describe("with multiple trusted values", () => {
+  describe("with multiple trusted certificate pairs", () => {
     beforeEach(async () => {
       const mtlsValidator = createSapCfMtlsValidator({
-        trustedIssuers: ["CN=CA1,O=Org1,C=DE", "CN=CA2,O=Org2,C=US"],
-        trustedSubjects: ["CN=Service1,O=Org1,C=DE", "CN=Service2,O=Org2,C=US"],
-        trustedRootCas: ["CN=RootCA1,O=Org1,C=DE", "CN=RootCA2,O=Org2,C=US"],
+        trustedCerts: [
+          { issuer: "CN=CA1,O=Org1,C=DE", subject: "CN=Service1,O=Org1,C=DE" },
+          { issuer: "CN=CA2,O=Org2,C=US", subject: "CN=Service2,O=Org2,C=US" },
+        ],
+        trustedRootCaDns: ["CN=RootCA1,O=Org1,C=DE", "CN=RootCA2,O=Org2,C=US"],
       });
 
       server.addHook("onRequest", mtlsValidator);
@@ -205,7 +226,7 @@ describe("sapCfMtlsValidation", () => {
       await server.ready();
     });
 
-    it("should authenticate with first trusted issuer", async () => {
+    it("should authenticate with first trusted certificate pair", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/test",
@@ -219,7 +240,7 @@ describe("sapCfMtlsValidation", () => {
       expect(response.statusCode).toBe(200);
     });
 
-    it("should authenticate with second trusted issuer", async () => {
+    it("should authenticate with second trusted certificate pair", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/test",
@@ -233,18 +254,18 @@ describe("sapCfMtlsValidation", () => {
       expect(response.statusCode).toBe(200);
     });
 
-    it("should allow mixing trusted issuers, subjects, and root CAs", async () => {
+    it("should reject when issuer and subject are not from the same certificate pair", async () => {
       const response = await server.inject({
         method: "GET",
         url: "/test",
         headers: {
           [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA1,O=Org1,C=DE"),
-          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service2,O=Org2,C=US"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service2,O=Org2,C=US"), // Different pair!
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA1,O=Org1,C=DE"),
         },
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(401);
     });
   });
 
@@ -261,7 +282,7 @@ describe("sapCfMtlsValidation", () => {
       global.fetch = originalFetch;
     });
 
-    it("should authenticate using issuer/subject fetched from endpoint and rootCa from config", async () => {
+    it("should authenticate using issuer/subject pair fetched from endpoint and rootCa from config", async () => {
       const certIssuer = "CN=ACME PKI CA,OU=ACME Clients,O=ACME Inc,L=Denver,C=US";
       const certSubject = "CN=acme-service,OU=Cloud Clients,OU=Staging,O=ACME Inc,L=Denver,C=US";
       const certRootCa = "CN=ACME Global Root CA,O=ACME Inc,C=US";
@@ -276,14 +297,14 @@ describe("sapCfMtlsValidation", () => {
       // Setup authentication with config endpoint and manual root CA
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        mtlsConfigEndpoints: ["https://ucl.acme.com/cert-info"],
-        trustedRootCas: [certRootCa], // Root CAs only from config
+        cfMtlsConfigEndpoints: ["https://ucl.acme.com/cert-info"],
+        trustedRootCaDns: [certRootCa], // Root CAs only from config
       });
 
       server.get("/ord/v1/documents/document-1", () => ({ success: true }));
       await server.ready();
 
-      // Request with matching issuer/subject from endpoint and rootCa from config should succeed
+      // Request with matching issuer/subject pair from endpoint and rootCa from config should succeed
       const response = await server.inject({
         method: "GET",
         url: "/ord/v1/documents/document-1",
@@ -303,7 +324,7 @@ describe("sapCfMtlsValidation", () => {
       );
     });
 
-    it("should reject request with non-matching issuer from endpoint", async () => {
+    it("should reject request with non-matching issuer/subject pair from endpoint", async () => {
       const certIssuer = "CN=Expected CA,O=ACME Inc,C=US";
       const certSubject = "CN=expected-service,O=ACME Inc,C=US";
       const certRootCa = "CN=Expected Root CA,O=ACME Inc,C=US";
@@ -318,14 +339,14 @@ describe("sapCfMtlsValidation", () => {
 
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        mtlsConfigEndpoints: ["https://config.example.com/cert-info"],
-        trustedRootCas: [certRootCa], // Root CAs only from config
+        cfMtlsConfigEndpoints: ["https://config.example.com/cert-info"],
+        trustedRootCaDns: [certRootCa], // Root CAs only from config
       });
 
       server.get("/test", () => ({ success: true }));
       await server.ready();
 
-      // Request with different issuer should fail
+      // Request with different issuer should fail (pair doesn't match)
       const response = await server.inject({
         method: "GET",
         url: "/test",
@@ -350,16 +371,15 @@ describe("sapCfMtlsValidation", () => {
 
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        mtlsConfigEndpoints: ["https://config.example.com/cert-info"],
-        trustedIssuers: ["CN=Manual CA,O=Manual Org,C=DE"],
-        trustedSubjects: ["CN=manual-service,O=Manual Org,C=DE"],
-        trustedRootCas: ["CN=Manual Root CA,O=Manual Org,C=DE"],
+        cfMtlsConfigEndpoints: ["https://config.example.com/cert-info"],
+        trustedCerts: [{ issuer: "CN=Manual CA,O=Manual Org,C=DE", subject: "CN=manual-service,O=Manual Org,C=DE" }],
+        trustedRootCaDns: ["CN=Manual Root CA,O=Manual Org,C=DE"],
       });
 
       server.get("/test", () => ({ success: true }));
       await server.ready();
 
-      // Request with manual issuer/subject/rootCa should also succeed
+      // Request with manual issuer/subject pair and rootCa should also succeed
       const response = await server.inject({
         method: "GET",
         url: "/test",

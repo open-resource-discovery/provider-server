@@ -100,10 +100,9 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   await setupAuthentication(server, {
     authMethods: opts.authentication.methods,
     validUsers: opts.authentication.basicAuthUsers,
-    trustedIssuers: opts.authentication.trustedIssuers,
-    trustedSubjects: opts.authentication.trustedSubjects,
-    trustedRootCas: opts.authentication.trustedRootCas,
-    mtlsConfigEndpoints: opts.authentication.mtlsConfigEndpoints,
+    trustedCerts: opts.authentication.trustedCerts,
+    trustedRootCaDns: opts.authentication.trustedRootCaDns,
+    cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
   });
 
   // Setup readiness gate for GitHub source type

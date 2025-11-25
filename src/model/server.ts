@@ -17,10 +17,9 @@ export interface ProviderServerOptions {
   authentication: {
     methods: OptAuthMethod[];
     basicAuthUsers?: Record<string, string>;
-    trustedIssuers?: string[];
-    trustedSubjects?: string[];
-    trustedRootCas?: string[];
-    mtlsConfigEndpoints?: string[];
+    trustedCerts?: { issuer: string; subject: string }[];
+    trustedRootCaDns?: string[];
+    cfMtlsConfigEndpoints?: string[];
   };
   dataDir: string;
   cors?: string[];
@@ -45,20 +44,38 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
   return ordDirectory;
 }
 
-function parseSemicolonSeparated(value: string | undefined): string[] | undefined {
+interface MtlsTrustedCertsConfig {
+  certs: { issuer: string; subject: string }[];
+  rootCaDn: string[];
+  configEndpoints?: string[];
+}
+
+function parseMtlsTrustedCerts(
+  value: string | undefined,
+): { certs: { issuer: string; subject: string }[]; rootCaDns: string[]; configEndpoints: string[] } | undefined {
   if (!value || value.trim() === "") {
     return undefined;
   }
-  return value
-    .split(";")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+
+  try {
+    const parsed = JSON.parse(value) as MtlsTrustedCertsConfig;
+
+    return {
+      certs: parsed.certs,
+      rootCaDns: parsed.rootCaDn,
+      configEndpoints: parsed.configEndpoints || [],
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse CF_MTLS_TRUSTED_CERTS: ${errorMessage}`);
+  }
 }
 
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
 
   const isMtls = options.auth.includes(OptAuthMethod.CfMtls);
+  const mtlsConfig = isMtls ? parseMtlsTrustedCerts(process.env.CF_MTLS_TRUSTED_CERTS) : undefined;
 
   return {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
@@ -74,10 +91,9 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     authentication: {
       methods: options.auth,
       basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
-      trustedIssuers: isMtls ? parseSemicolonSeparated(process.env.MTLS_TRUSTED_ISSUERS) : undefined,
-      trustedSubjects: isMtls ? parseSemicolonSeparated(process.env.MTLS_TRUSTED_SUBJECTS) : undefined,
-      trustedRootCas: isMtls ? parseSemicolonSeparated(process.env.MTLS_TRUSTED_ROOT_CAS) : undefined,
-      mtlsConfigEndpoints: isMtls ? parseSemicolonSeparated(process.env.MTLS_CONFIG_ENDPOINTS) : undefined,
+      trustedCerts: mtlsConfig?.certs,
+      trustedRootCaDns: mtlsConfig?.rootCaDns,
+      cfMtlsConfigEndpoints: mtlsConfig?.configEndpoints,
     },
     dataDir: options.dataDir || "./data",
     cors: options.cors ? options.cors.split(",") : undefined,

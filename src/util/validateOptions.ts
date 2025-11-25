@@ -187,18 +187,75 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
   }
 
   if (isMtls) {
-    const trustedIssuers = process.env.MTLS_TRUSTED_ISSUERS;
-    const trustedSubjects = process.env.MTLS_TRUSTED_SUBJECTS;
-    const configEndpoints = process.env.MTLS_CONFIG_ENDPOINTS;
+    const trustedCerts = process.env.CF_MTLS_TRUSTED_CERTS;
 
-    const hasConfigEndpoints = configEndpoints && configEndpoints.trim() !== "";
-    const hasManualConfig =
-      (trustedIssuers && trustedIssuers.trim() !== "") || (trustedSubjects && trustedSubjects.trim() !== "");
+    if (!trustedCerts || trustedCerts.trim() === "") {
+      errors.push("SAP BTP (CloudFoundry runtime) authentication requires CF_MTLS_TRUSTED_CERTS to be configured.");
+      return;
+    }
 
-    if (!hasConfigEndpoints && !hasManualConfig) {
-      errors.push(
-        "SAP BTP (CloudFoundry runtime) authentication requires either MTLS_CONFIG_ENDPOINTS or MTLS_TRUSTED_ISSUERS/MTLS_TRUSTED_SUBJECTS to be configured.",
-      );
+    // Validate CF_MTLS_TRUSTED_CERTS JSON structure
+    try {
+      const parsed = JSON.parse(trustedCerts) as {
+        certs: { issuer: string; subject: string }[];
+        rootCaDn: string[];
+        configEndpoints?: string[];
+      };
+
+      if (!parsed || typeof parsed !== "object") {
+        errors.push("CF_MTLS_TRUSTED_CERTS must be a JSON object");
+        return;
+      }
+
+      if (!Array.isArray(parsed.certs)) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.certs must be an array");
+        return;
+      }
+
+      if (!Array.isArray(parsed.rootCaDn)) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.rootCaDn must be an array");
+        return;
+      }
+
+      const hasConfigEndpoints = parsed.configEndpoints && parsed.configEndpoints.length > 0;
+      if (parsed.certs.length === 0 && parsed.rootCaDn.length === 0 && !hasConfigEndpoints) {
+        errors.push("CF_MTLS_TRUSTED_CERTS must contain at least one certificate pair, root CA DN, or config endpoint");
+        return;
+      }
+
+      for (const cert of parsed.certs) {
+        if (!cert.issuer || typeof cert.issuer !== "string") {
+          errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'issuer' string");
+          return;
+        }
+        if (!cert.subject || typeof cert.subject !== "string") {
+          errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'subject' string");
+          return;
+        }
+      }
+
+      for (const dn of parsed.rootCaDn) {
+        if (typeof dn !== "string") {
+          errors.push("Each rootCaDn entry in CF_MTLS_TRUSTED_CERTS must be a string");
+          return;
+        }
+      }
+
+      // Validate configEndpoints if present
+      if (parsed.configEndpoints !== undefined) {
+        if (!Array.isArray(parsed.configEndpoints)) {
+          errors.push("CF_MTLS_TRUSTED_CERTS.configEndpoints must be an array");
+          return;
+        }
+        for (const endpoint of parsed.configEndpoints) {
+          if (typeof endpoint !== "string" || endpoint.trim() === "") {
+            errors.push("Each configEndpoint in CF_MTLS_TRUSTED_CERTS must be a non-empty string");
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      errors.push(`Invalid JSON in CF_MTLS_TRUSTED_CERTS: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

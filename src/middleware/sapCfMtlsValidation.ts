@@ -5,29 +5,24 @@ import { log } from "src/util/logger.js";
 import { CERT_ISSUER_DN_HEADER, CERT_SUBJECT_DN_HEADER, CERT_ROOT_CA_DN_HEADER } from "../constant.js";
 
 export interface MtlsValidationOptions {
-  trustedIssuers: string[];
-  trustedSubjects: string[];
-  trustedRootCas: string[];
+  trustedCerts: { issuer: string; subject: string }[];
+  trustedRootCaDns: string[];
 }
 
 /**
  * Creates a Fastify authentication hook for SAP Cloud Foundry mTLS validation
- * Validates the client certificate issuer, subject, and root CA from headers
+ * Validates the client certificate issuer and subject as a pair, and root CA from headers
  * Headers are always base64 encoded
  */
 export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
-  const { trustedIssuers, trustedSubjects, trustedRootCas } = options;
+  const { trustedCerts, trustedRootCaDns } = options;
 
-  if (trustedIssuers.length === 0) {
-    throw new Error("mTLS validation requires at least one trusted issuer");
+  if (trustedCerts.length === 0) {
+    throw new Error("mTLS validation requires at least one trusted certificate (issuer/subject pair)");
   }
 
-  if (trustedSubjects.length === 0) {
-    throw new Error("mTLS validation requires at least one trusted subject");
-  }
-
-  if (trustedRootCas.length === 0) {
-    throw new Error("mTLS validation requires at least one trusted root CA");
+  if (trustedRootCaDns.length === 0) {
+    throw new Error("mTLS validation requires at least one trusted root CA DN");
   }
 
   return function mtlsAuth(request: FastifyRequest, _reply: unknown, done: HookHandlerDoneFunction): void {
@@ -70,30 +65,26 @@ export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
       }
 
       const issuerTokens = tokenizeDn(issuerDn);
-      const isTrustedIssuer = trustedIssuers.some((trustedIssuer) => {
-        const trustedTokens = tokenizeDn(trustedIssuer);
-        return dnTokensMatch(issuerTokens, trustedTokens);
-      });
-
-      if (!isTrustedIssuer) {
-        log.warn(`Untrusted certificate issuer: ${issuerDn}`);
-        return done(new UnauthorizedError("Untrusted certificate issuer"));
-      }
-
       const subjectTokens = tokenizeDn(subjectDn);
-      const isTrustedSubject = trustedSubjects.some((trustedSubject) => {
-        const trustedTokens = tokenizeDn(trustedSubject);
-        return dnTokensMatch(subjectTokens, trustedTokens);
+
+      const isTrustedCert = trustedCerts.some((trustedCert) => {
+        const trustedIssuerTokens = tokenizeDn(trustedCert.issuer);
+        const trustedSubjectTokens = tokenizeDn(trustedCert.subject);
+
+        const issuerMatches = dnTokensMatch(issuerTokens, trustedIssuerTokens);
+        const subjectMatches = dnTokensMatch(subjectTokens, trustedSubjectTokens);
+
+        return issuerMatches && subjectMatches;
       });
 
-      if (!isTrustedSubject) {
-        log.warn(`Untrusted certificate subject: ${subjectDn}`);
-        return done(new UnauthorizedError("Untrusted certificate subject"));
+      if (!isTrustedCert) {
+        log.warn(`Untrusted certificate pair - issuer: ${issuerDn}, subject: ${subjectDn}`);
+        return done(new UnauthorizedError("Untrusted certificate (issuer/subject pair not found)"));
       }
 
       const rootCaTokens = tokenizeDn(rootCaDn);
-      const isTrustedRootCa = trustedRootCas.some((trustedRootCa) => {
-        const trustedTokens = tokenizeDn(trustedRootCa);
+      const isTrustedRootCa = trustedRootCaDns.some((trustedRootCaDn) => {
+        const trustedTokens = tokenizeDn(trustedRootCaDn);
         return dnTokensMatch(rootCaTokens, trustedTokens);
       });
 
