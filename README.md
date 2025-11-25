@@ -86,7 +86,7 @@ npx @open-resource-discovery/provider-server --help
 | -------------------------------------- | ------------------------ | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-b, --base-url <type>`                | `local`                  | Yes              | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
 | `-s, --source-type <type>`             | `local`                  | No               | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
-| `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`)                                                                                                     |
+| `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`, `cf-mtls`)                                                                                          |
 | `-d, --directory <path>`               | -                        | Yes (for local)  | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
 | `-ds, --documents-subdirectory <path>` | `documents`              | No               | `ORD_DOCUMENTS_SUBDIRECTORY` | Directory containing the ORD Documents with at least one ORD document. Supports nested folder structures. Can also be applied to a GitHub Repository. |
 | `--host <host>`                        | `0.0.0.0`                | No               | `SERVER_HOST`                | Host for server, without port                                                                                                                         |
@@ -102,10 +102,11 @@ npx @open-resource-discovery/provider-server --help
 
 Some configuration options are only available as environment variables for security reasons:
 
-| Environment Variable | Description                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `WEBHOOK_SECRET`     | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
-| `BASIC_AUTH`         | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
+| Environment Variable    | Description                                                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET`        | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
+| `BASIC_AUTH`            | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
+| `CF_MTLS_TRUSTED_CERTS` | JSON config for CF mTLS authentication (see [CF mTLS Authentication](#cf-mtls-authentication))       |
 
 ## System Requirements
 
@@ -311,6 +312,29 @@ This will output something like `admin:$2y$05$...` - use only the hash part (sta
   ```
 
 </details>
+
+#### Cloud Foundry mTLS Authentication
+
+For SAP BTP CloudFoundry environments, the server supports mTLS (mutual TLS) authentication using client certificate headers.
+
+Set the `CF_MTLS_TRUSTED_CERTS` environment variable with a JSON object:
+
+```json
+{
+  "certs": [{ "issuer": "CN=CA,O=Org,C=DE", "subject": "CN=service,O=Org,C=DE" }],
+  "rootCaDn": ["CN=Root CA,O=Org,C=DE"],
+  "configEndpoints": ["https://config.example.com/mtls-info"]
+}
+```
+
+| Field             | Required | Description                                       |
+| ----------------- | -------- | ------------------------------------------------- |
+| `certs`           | Yes      | Array of trusted issuer/subject certificate pairs |
+| `rootCaDn`        | Yes      | Array of trusted root CA Distinguished Names      |
+| `configEndpoints` | No       | Array of URLs to fetch additional cert info from  |
+
+> [!NOTE]
+> Root CA DNs are only read from `CF_MTLS_TRUSTED_CERTS`, not from config endpoints (security by design).
 
 ### Cloud Foundry Deployment
 

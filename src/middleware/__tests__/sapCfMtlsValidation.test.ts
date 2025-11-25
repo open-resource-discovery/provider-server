@@ -297,7 +297,7 @@ describe("sapCfMtlsValidation", () => {
       // Setup authentication with config endpoint and manual root CA
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        cfMtlsConfigEndpoints: ["https://ucl.acme.com/cert-info"],
+        cfMtlsConfigEndpoints: ["https://ucl.example.com/cert-info"],
         trustedRootCaDns: [certRootCa], // Root CAs only from config
       });
 
@@ -317,7 +317,7 @@ describe("sapCfMtlsValidation", () => {
 
       expect(response.statusCode).toBe(200);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://ucl.acme.com/cert-info",
+        "https://ucl.example.com/cert-info",
         expect.objectContaining({
           method: "GET",
         }),
