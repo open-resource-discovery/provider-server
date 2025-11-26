@@ -4,9 +4,23 @@ import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 import { OptAuthMethod } from "src/model/cli.js";
-import { CERT_ISSUER_DN_HEADER, CERT_SUBJECT_DN_HEADER, CERT_ROOT_CA_DN_HEADER } from "../../constant.js";
+import {
+  CERT_ISSUER_DN_HEADER,
+  CERT_SUBJECT_DN_HEADER,
+  CERT_ROOT_CA_DN_HEADER,
+  CERT_XFCC_HEADER,
+  CERT_CLIENT_HEADER,
+  CERT_CLIENT_VERIFY_HEADER,
+} from "../../constant.js";
 
 const encodeBase64 = (value: string): string => Buffer.from(value).toString("base64");
+
+// Valid XFCC headers indicating proxy has verified the client certificate
+const validXfccHeaders = {
+  [CERT_XFCC_HEADER]: "Hash=abc123;Subject=CN=test",
+  [CERT_CLIENT_HEADER]: "1",
+  [CERT_CLIENT_VERIFY_HEADER]: "0",
+};
 
 describe("sapCfMtlsValidation", () => {
   let server: FastifyInstanceType;
@@ -47,6 +61,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
@@ -62,6 +77,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=ACME Root CA,O=ACME Inc,L=San Francisco,C=US"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=test-service,O=ACME Inc,C=US"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Global Root CA,O=ACME Inc,C=US"),
@@ -76,6 +92,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
         },
@@ -89,6 +106,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
         },
@@ -102,6 +120,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
         },
@@ -115,6 +134,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=DE/O=Untrusted CA/CN=Fake CA"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
@@ -129,6 +149,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=DE/O=Untrusted Org/CN=BadActor"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
@@ -143,6 +164,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=DE/O=Untrusted Root/CN=Fake Root CA"),
@@ -157,6 +179,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: "not-valid-base64!!!",
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
@@ -172,6 +195,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
@@ -231,6 +255,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA1,O=Org1,C=DE"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service1,O=Org1,C=DE"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA1,O=Org1,C=DE"),
@@ -245,6 +270,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA2,O=Org2,C=US"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service2,O=Org2,C=US"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA2,O=Org2,C=US"),
@@ -259,6 +285,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=CA1,O=Org1,C=DE"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=Service2,O=Org2,C=US"), // Different pair!
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=RootCA1,O=Org1,C=DE"),
@@ -309,6 +336,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/ord/v1/documents/document-1",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64(certIssuer),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64(certSubject),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64(certRootCa),
@@ -351,6 +379,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64(certIssuer + "modified"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64(certSubject),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64(certRootCa),
@@ -384,6 +413,7 @@ describe("sapCfMtlsValidation", () => {
         method: "GET",
         url: "/test",
         headers: {
+          ...validXfccHeaders,
           [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Manual CA,O=Manual Org,C=DE"),
           [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=manual-service,O=Manual Org,C=DE"),
           [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Manual Root CA,O=Manual Org,C=DE"),
@@ -391,6 +421,106 @@ describe("sapCfMtlsValidation", () => {
       });
 
       expect(response.statusCode).toBe(200);
+    });
+  });
+
+  describe("XFCC (X-Forwarded-Client-Cert) proxy verification", () => {
+    beforeEach(async () => {
+      const mtlsValidator = createSapCfMtlsValidator({
+        trustedCerts,
+        trustedRootCaDns,
+      });
+
+      server.addHook("onRequest", mtlsValidator);
+
+      server.get("/test", () => ({ success: true }));
+
+      await server.ready();
+    });
+
+    it("should reject when X-Forwarded-Client-Cert header is missing", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_CLIENT_HEADER]: "1",
+          [CERT_CLIENT_VERIFY_HEADER]: "0",
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(JSON.parse(response.body).error.message).toBe("Missing proxy verification of mTLS client certificate");
+    });
+
+    it("should reject when X-Ssl-Client is not '1'", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_XFCC_HEADER]: "Hash=abc123;Subject=CN=test",
+          [CERT_CLIENT_HEADER]: "0",
+          [CERT_CLIENT_VERIFY_HEADER]: "0",
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(JSON.parse(response.body).error.message).toBe("Missing proxy verification of mTLS client certificate");
+    });
+
+    it("should reject when X-Ssl-Client-Verify is not '0'", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_XFCC_HEADER]: "Hash=abc123;Subject=CN=test",
+          [CERT_CLIENT_HEADER]: "1",
+          [CERT_CLIENT_VERIFY_HEADER]: "1", // Verification failed
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(JSON.parse(response.body).error.message).toBe("Missing proxy verification of mTLS client certificate");
+    });
+
+    it("should reject when XFCC passes but CF headers are missing", async () => {
+      // XFCC check passes but CF headers are still required
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          [CERT_XFCC_HEADER]: "Hash=abc123;Subject=CN=test",
+          [CERT_CLIENT_HEADER]: "1",
+          [CERT_CLIENT_VERIFY_HEADER]: "0",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(JSON.parse(response.body).error.message).toBe("Missing mTLS client certificate headers");
+    });
+
+    it("should authenticate when both XFCC and CF headers are valid", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/test",
+        headers: {
+          ...validXfccHeaders,
+          [CERT_ISSUER_DN_HEADER]: encodeBase64("/C=US/L=San Francisco/O=ACME Inc/CN=ACME Root CA"),
+          [CERT_SUBJECT_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=test-service"),
+          [CERT_ROOT_CA_DN_HEADER]: encodeBase64("/C=US/O=ACME Inc/CN=Global Root CA"),
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({ success: true });
     });
   });
 });

@@ -2,11 +2,39 @@ import { FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 import { tokenizeDn, dnTokensMatch } from "src/util/certificateHelpers.js";
 import { log } from "src/util/logger.js";
-import { CERT_ISSUER_DN_HEADER, CERT_SUBJECT_DN_HEADER, CERT_ROOT_CA_DN_HEADER } from "../constant.js";
+import {
+  CERT_ISSUER_DN_HEADER,
+  CERT_SUBJECT_DN_HEADER,
+  CERT_ROOT_CA_DN_HEADER,
+  CERT_XFCC_HEADER,
+  CERT_CLIENT_HEADER,
+  CERT_CLIENT_VERIFY_HEADER,
+} from "../constant.js";
 
 export interface MtlsValidationOptions {
   trustedCerts: { issuer: string; subject: string }[];
   trustedRootCaDns: string[];
+}
+
+/**
+ * Checks if the request has valid XFCC (X-Forwarded-Client-Cert) headers
+ * indicating the proxy has already verified the client certificate.
+ *
+ * Conditions:
+ * - X-Forwarded-Client-Cert header exists
+ * - X-Ssl-Client header equals "1"
+ * - X-Ssl-Client-Verify header equals "0" (verification success)
+ */
+function isXfccProxyVerified(request: FastifyRequest): boolean {
+  const xfcc = request.headers[CERT_XFCC_HEADER];
+  const sslClient = request.headers[CERT_CLIENT_HEADER];
+  const sslVerify = request.headers[CERT_CLIENT_VERIFY_HEADER];
+
+  // Handle array headers by taking first value
+  const sslClientValue = Array.isArray(sslClient) ? sslClient[0] : sslClient;
+  const sslVerifyValue = Array.isArray(sslVerify) ? sslVerify[0] : sslVerify;
+
+  return xfcc !== undefined && sslClientValue === "1" && sslVerifyValue === "0";
 }
 
 /**
@@ -27,6 +55,12 @@ export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
 
   return function mtlsAuth(request: FastifyRequest, _reply: unknown, done: HookHandlerDoneFunction): void {
     try {
+      // Check XFCC proxy-verified path first
+      if (!isXfccProxyVerified(request)) {
+        log.debug("Missing proxy verification of mTLS client certificate via XFCC headers");
+        return done(new UnauthorizedError("Missing proxy verification of mTLS client certificate"));
+      }
+
       const issuerDnHeader = request.headers[CERT_ISSUER_DN_HEADER];
       const subjectDnHeader = request.headers[CERT_SUBJECT_DN_HEADER];
       const rootCaDnHeader = request.headers[CERT_ROOT_CA_DN_HEADER];
