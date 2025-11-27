@@ -317,6 +317,9 @@ This will output something like `admin:$2y$05$...` - use only the hash part (sta
 
 For SAP BTP CloudFoundry environments, the server supports mTLS (mutual TLS) authentication using client certificate headers.
 
+> [!IMPORTANT]
+> The `cf-mtls` authentication method can only be activated in a Cloud Foundry environment. The server will fail to start if this authentication method is used outside of Cloud Foundry.
+
 Set the `CF_MTLS_TRUSTED_CERTS` environment variable with a JSON object:
 
 ```json

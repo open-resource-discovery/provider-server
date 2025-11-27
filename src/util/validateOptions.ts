@@ -197,7 +197,7 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
     // We should fail if cf-mtls is active AND the CF_INSTANCE_GUID is missing, as this auth method is specific to CF
     const cfInstanceGuid = process.env.CF_INSTANCE_GUID;
     if (!cfInstanceGuid || cfInstanceGuid.trim() === "") {
-      errors.push("CF mTLS authentication requires CF_INSTANCE_GUID environment variable to be set.");
+      errors.push("CF mTLS can be activated only in CloudFoundry environment.");
       return;
     }
 
