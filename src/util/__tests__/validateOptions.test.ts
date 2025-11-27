@@ -223,7 +223,7 @@ describe("validateOptions", () => {
       };
 
       expect(() => validateOffline(options)).toThrow(ValidationError);
-      expect(() => validateOffline(options)).toThrow("CF_INSTANCE_GUID");
+      expect(() => validateOffline(options)).toThrow("CF mTLS can be activated only in CloudFoundry environment");
     });
 
     it("should throw ValidationError when CF_INSTANCE_GUID is empty for cf-mtls auth", () => {
@@ -242,7 +242,7 @@ describe("validateOptions", () => {
       };
 
       expect(() => validateOffline(options)).toThrow(ValidationError);
-      expect(() => validateOffline(options)).toThrow("CF_INSTANCE_GUID");
+      expect(() => validateOffline(options)).toThrow("CF mTLS can be activated only in CloudFoundry environment");
     });
 
     it("should throw ValidationError for missing directory in local mode", () => {
