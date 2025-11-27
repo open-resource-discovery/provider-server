@@ -22,6 +22,8 @@ describe("validateOptions", () => {
     jest.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.BASIC_AUTH;
+    delete process.env.CF_MTLS_TRUSTED_CERTS;
+    delete process.env.CF_INSTANCE_GUID;
   });
 
   afterAll(() => {
@@ -203,6 +205,44 @@ describe("validateOptions", () => {
       };
 
       expect(() => validateOffline(options)).toThrow(ValidationError);
+    });
+
+    it("should throw ValidationError when CF_INSTANCE_GUID is not set for cf-mtls auth", () => {
+      process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+        certs: [{ issuer: "test-issuer", subject: "test-subject" }],
+        rootCaDn: ["test-root-ca"],
+      });
+      delete process.env.CF_INSTANCE_GUID;
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow("CF_INSTANCE_GUID");
+    });
+
+    it("should throw ValidationError when CF_INSTANCE_GUID is empty for cf-mtls auth", () => {
+      process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+        certs: [{ issuer: "test-issuer", subject: "test-subject" }],
+        rootCaDn: ["test-root-ca"],
+      });
+      process.env.CF_INSTANCE_GUID = "   ";
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow("CF_INSTANCE_GUID");
     });
 
     it("should throw ValidationError for missing directory in local mode", () => {
