@@ -36,7 +36,7 @@
   "author": "SAP SE",
   "license": "Apache-2.0",
   "dependencies": {
-    "@fastify/auth": "5.0.3",
+    "@fastify/auth": "5.0.4",
     "@fastify/basic-auth": "6.2.0",
     "@fastify/cors": "11.1.0",
     "@fastify/etag": "6.1.0",
