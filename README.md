@@ -339,6 +339,32 @@ Set the `CF_MTLS_TRUSTED_CERTS` environment variable with a JSON object:
 > [!NOTE]
 > Root CA DNs are only read from `CF_MTLS_TRUSTED_CERTS`, not from config endpoints (security by design).
 
+##### Wildcard Support
+
+You can use `"*"` as a wildcard for `issuer` and/or `subject` fields to simplify validation:
+
+| Configuration  | Behavior                                               |
+| -------------- | ------------------------------------------------------ |
+| `issuer: "*"`  | Accept any issuer, validate subject only               |
+| `subject: "*"` | Accept any subject, validate issuer only               |
+| Both `"*"`     | Skip issuer/subject validation, only validate rootCaDn |
+
+**Examples:**
+
+```json
+// Wildcard issuer - accept certs from any CA for a specific service
+{"certs": [{"issuer": "*", "subject": "CN=my-service,O=Org,C=DE"}], "rootCaDn": ["CN=Root CA,O=Org,C=DE"]}
+
+// Wildcard subject - accept any service from a specific CA
+{"certs": [{"issuer": "CN=Trusted CA,O=Org,C=DE", "subject": "*"}], "rootCaDn": ["CN=Root CA,O=Org,C=DE"]}
+
+// Both wildcards - only validate rootCaDn
+{"certs": [{"issuer": "*", "subject": "*"}], "rootCaDn": ["CN=Root CA,O=Org,C=DE"]}
+```
+
+> [!NOTE]
+> The `rootCaDn` validation is always enforced and cannot be bypassed with wildcards.
+
 ### Cloud Foundry Deployment
 
 First, install the Cloud Foundry CLI by following the official documentation:

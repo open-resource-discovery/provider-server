@@ -1,3 +1,12 @@
+import { WILDCARD_DN } from "../constant.js";
+
+/**
+ * Check if a DN value is the explicit wildcard ("*")
+ */
+export function isWildcardDn(dn: string): boolean {
+  return dn.trim() === WILDCARD_DN;
+}
+
 /**
  * Tokenize a Distinguished Name (DN) string into components
  * Supports both comma and slash separators

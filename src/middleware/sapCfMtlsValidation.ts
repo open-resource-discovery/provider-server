@@ -1,6 +1,6 @@
 import { FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
-import { tokenizeDn, dnTokensMatch } from "src/util/certificateHelpers.js";
+import { tokenizeDn, dnTokensMatch, isWildcardDn } from "src/util/certificateHelpers.js";
 import { log } from "src/util/logger.js";
 import {
   CERT_ISSUER_DN_HEADER,
@@ -102,13 +102,26 @@ export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
       const subjectTokens = tokenizeDn(subjectDn);
 
       const isTrustedCert = trustedCerts.some((trustedCert) => {
+        // Both wildcards = skip this pair's validation entirely (only rootCaDn validated)
+        if (isWildcardDn(trustedCert.issuer) && isWildcardDn(trustedCert.subject)) {
+          return true;
+        }
+
+        if (isWildcardDn(trustedCert.issuer)) {
+          const trustedSubjectTokens = tokenizeDn(trustedCert.subject);
+          return dnTokensMatch(subjectTokens, trustedSubjectTokens);
+        }
+
+        if (isWildcardDn(trustedCert.subject)) {
+          const trustedIssuerTokens = tokenizeDn(trustedCert.issuer);
+          return dnTokensMatch(issuerTokens, trustedIssuerTokens);
+        }
+
+        // Standard validation: both must match
         const trustedIssuerTokens = tokenizeDn(trustedCert.issuer);
         const trustedSubjectTokens = tokenizeDn(trustedCert.subject);
 
-        const issuerMatches = dnTokensMatch(issuerTokens, trustedIssuerTokens);
-        const subjectMatches = dnTokensMatch(subjectTokens, trustedSubjectTokens);
-
-        return issuerMatches && subjectMatches;
+        return dnTokensMatch(issuerTokens, trustedIssuerTokens) && dnTokensMatch(subjectTokens, trustedSubjectTokens);
       });
 
       if (!isTrustedCert) {

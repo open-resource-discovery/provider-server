@@ -1,4 +1,5 @@
-import { tokenizeDn, dnTokensMatch } from "../certificateHelpers.js";
+import { WILDCARD_DN } from "../../constant.js";
+import { tokenizeDn, dnTokensMatch, isWildcardDn } from "../certificateHelpers.js";
 
 describe("certificateHelpers", () => {
   describe("tokenizeDn", () => {
@@ -92,6 +93,38 @@ describe("certificateHelpers", () => {
       dnTokensMatch(tokens1, tokens2);
       expect(tokens1).toEqual(["C=DE", "O=ACME", "CN=test"]);
       expect(tokens2).toEqual(["CN=test", "O=ACME", "C=DE"]);
+    });
+  });
+
+  describe("isWildcardDn", () => {
+    it("should return true for wildcard '*'", () => {
+      expect(isWildcardDn("*")).toBe(true);
+      expect(isWildcardDn(WILDCARD_DN)).toBe(true);
+    });
+
+    it("should return true for '*' with surrounding whitespace", () => {
+      expect(isWildcardDn(" * ")).toBe(true);
+      expect(isWildcardDn("  *")).toBe(true);
+      expect(isWildcardDn("*  ")).toBe(true);
+    });
+
+    it("should return false for regular DNs", () => {
+      expect(isWildcardDn("CN=test,O=ACME,C=DE")).toBe(false);
+      expect(isWildcardDn("/C=DE/O=ACME/CN=test")).toBe(false);
+    });
+
+    it("should return false for empty string", () => {
+      expect(isWildcardDn("")).toBe(false);
+    });
+
+    it("should return false for whitespace-only string", () => {
+      expect(isWildcardDn("   ")).toBe(false);
+    });
+
+    it("should return false for strings containing '*' but not being the wildcard", () => {
+      expect(isWildcardDn("CN=*,O=ACME")).toBe(false);
+      expect(isWildcardDn("**")).toBe(false);
+      expect(isWildcardDn("* *")).toBe(false);
     });
   });
 

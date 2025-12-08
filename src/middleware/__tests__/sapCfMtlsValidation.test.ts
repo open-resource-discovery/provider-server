@@ -523,4 +523,196 @@ describe("sapCfMtlsValidation", () => {
       expect(JSON.parse(response.body)).toEqual({ success: true });
     });
   });
+
+  describe("wildcard certificate matching", () => {
+    describe("with wildcard issuer", () => {
+      beforeEach(async () => {
+        const mtlsValidator = createSapCfMtlsValidator({
+          trustedCerts: [{ issuer: "*", subject: "CN=specific-service,O=ACME Inc,C=US" }],
+          trustedRootCaDns: ["CN=Root CA,O=ACME Inc,C=US"],
+        });
+
+        server.addHook("onRequest", mtlsValidator);
+        server.get("/test", () => ({ success: true }));
+        await server.ready();
+      });
+
+      it("should authenticate with any issuer when wildcard is used", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Any CA,O=Any Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=specific-service,O=ACME Inc,C=US"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it("should reject when subject does not match despite wildcard issuer", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Any CA,O=Any Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=wrong-service,O=ACME Inc,C=US"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(401);
+      });
+    });
+
+    describe("with wildcard subject", () => {
+      beforeEach(async () => {
+        const mtlsValidator = createSapCfMtlsValidator({
+          trustedCerts: [{ issuer: "CN=Trusted CA,O=ACME Inc,C=US", subject: "*" }],
+          trustedRootCaDns: ["CN=Root CA,O=ACME Inc,C=US"],
+        });
+
+        server.addHook("onRequest", mtlsValidator);
+        server.get("/test", () => ({ success: true }));
+        await server.ready();
+      });
+
+      it("should authenticate with any subject when wildcard is used", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Trusted CA,O=ACME Inc,C=US"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=any-service,O=Any Org,C=DE"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it("should reject when issuer does not match despite wildcard subject", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Untrusted CA,O=Bad Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=any-service,O=Any Org,C=DE"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(401);
+      });
+    });
+
+    describe("with both wildcards", () => {
+      beforeEach(async () => {
+        const mtlsValidator = createSapCfMtlsValidator({
+          trustedCerts: [{ issuer: "*", subject: "*" }],
+          trustedRootCaDns: ["CN=Root CA,O=ACME Inc,C=US"],
+        });
+
+        server.addHook("onRequest", mtlsValidator);
+        server.get("/test", () => ({ success: true }));
+        await server.ready();
+      });
+
+      it("should authenticate any issuer/subject combination when both are wildcards", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Any CA,O=Any Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=any-service,O=Any Org,C=DE"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it("should still reject when rootCaDn does not match", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Any CA,O=Any Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=any-service,O=Any Org,C=DE"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Untrusted Root,O=Bad Org,C=DE"),
+          },
+        });
+
+        expect(response.statusCode).toBe(401);
+      });
+    });
+
+    describe("wildcard with multiple cert pairs", () => {
+      beforeEach(async () => {
+        const mtlsValidator = createSapCfMtlsValidator({
+          trustedCerts: [
+            { issuer: "*", subject: "CN=wildcard-service,O=ACME Inc,C=US" },
+            { issuer: "CN=Specific CA,O=ACME Inc,C=US", subject: "CN=specific-service,O=ACME Inc,C=US" },
+          ],
+          trustedRootCaDns: ["CN=Root CA,O=ACME Inc,C=US"],
+        });
+
+        server.addHook("onRequest", mtlsValidator);
+        server.get("/test", () => ({ success: true }));
+        await server.ready();
+      });
+
+      it("should authenticate using wildcard cert pair", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Random CA,O=Random Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=wildcard-service,O=ACME Inc,C=US"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it("should authenticate using specific cert pair", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Specific CA,O=ACME Inc,C=US"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=specific-service,O=ACME Inc,C=US"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+      });
+
+      it("should reject when neither cert pair matches", async () => {
+        const response = await server.inject({
+          method: "GET",
+          url: "/test",
+          headers: {
+            ...validXfccHeaders,
+            [CERT_ISSUER_DN_HEADER]: encodeBase64("CN=Wrong CA,O=Wrong Org,C=DE"),
+            [CERT_SUBJECT_DN_HEADER]: encodeBase64("CN=wrong-service,O=Wrong Org,C=DE"),
+            [CERT_ROOT_CA_DN_HEADER]: encodeBase64("CN=Root CA,O=ACME Inc,C=US"),
+          },
+        });
+
+        expect(response.statusCode).toBe(401);
+      });
+    });
+  });
 });

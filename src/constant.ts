@@ -25,3 +25,5 @@ export const CERT_ROOT_CA_DN_HEADER = "x-ssl-client-root-ca-dn";
 export const CERT_XFCC_HEADER = "x-forwarded-client-cert";
 export const CERT_CLIENT_HEADER = "x-ssl-client";
 export const CERT_CLIENT_VERIFY_HEADER = "x-ssl-client-verify";
+
+export const WILDCARD_DN = "*";
