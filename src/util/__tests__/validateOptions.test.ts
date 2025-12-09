@@ -245,6 +245,121 @@ describe("validateOptions", () => {
       expect(() => validateOffline(options)).toThrow("CF mTLS can be activated only in CloudFoundry environment");
     });
 
+    it("should allow omitting certs when configEndpoints is provided for cf-mtls auth", () => {
+      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+
+      mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+      mockReaddirSync.mockReturnValue(["doc1.json"] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+
+      process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+        rootCaDn: ["test-root-ca"],
+        configEndpoints: ["https://config.example.com/cert-info"],
+      });
+      process.env.CF_INSTANCE_GUID = "test-instance-guid";
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test/directory",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      const result = validateOffline(options);
+      expect(result.options.authentication.trustedCerts).toEqual([]);
+      expect(result.options.authentication.cfMtlsConfigEndpoints).toEqual(["https://config.example.com/cert-info"]);
+
+      mockStatSync.mockRestore();
+      mockReaddirSync.mockRestore();
+      mockReadFileSync.mockRestore();
+    });
+
+    it("should throw ValidationError when certs is omitted and no configEndpoints provided", () => {
+      process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+        rootCaDn: ["test-root-ca"],
+      });
+      process.env.CF_INSTANCE_GUID = "test-instance-guid";
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow(
+        "CF_MTLS_TRUSTED_CERTS.certs is required when no configEndpoints are provided",
+      );
+    });
+
+    it("should throw ValidationError when certs is empty array and no configEndpoints provided", () => {
+      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+
+      mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+      mockReaddirSync.mockReturnValue(["doc1.json"] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+
+      process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+        certs: [],
+        rootCaDn: ["test-root-ca"],
+      });
+      process.env.CF_INSTANCE_GUID = "test-instance-guid";
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow("CF_MTLS_TRUSTED_CERTS.certs cannot be empty");
+
+      mockStatSync.mockRestore();
+      mockReaddirSync.mockRestore();
+      mockReadFileSync.mockRestore();
+    });
+
+    it("should throw ValidationError when certs is empty array even with configEndpoints", () => {
+      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+
+      mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+      mockReaddirSync.mockReturnValue(["doc1.json"] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+
+      process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+        certs: [],
+        configEndpoints: ["https://config.example.com/cert-info"],
+        rootCaDn: ["test-root-ca"],
+      });
+      process.env.CF_INSTANCE_GUID = "test-instance-guid";
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow("CF_MTLS_TRUSTED_CERTS.certs cannot be empty");
+
+      mockStatSync.mockRestore();
+      mockReaddirSync.mockRestore();
+      mockReadFileSync.mockRestore();
+    });
+
     it("should throw ValidationError for missing directory in local mode", () => {
       const options: CommandLineOptions = {
         sourceType: OptSourceType.Local,

@@ -204,7 +204,7 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
     // Validate CF_MTLS_TRUSTED_CERTS JSON structure
     try {
       const parsed = JSON.parse(trustedCerts) as {
-        certs: { issuer: string; subject: string }[];
+        certs?: { issuer: string; subject: string }[];
         rootCaDn: string[];
         configEndpoints?: string[];
       };
@@ -214,30 +214,41 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
         return;
       }
 
-      if (!Array.isArray(parsed.certs)) {
-        errors.push("CF_MTLS_TRUSTED_CERTS.certs must be an array");
-        return;
-      }
-
       if (!Array.isArray(parsed.rootCaDn)) {
         errors.push("CF_MTLS_TRUSTED_CERTS.rootCaDn must be an array");
         return;
       }
 
       const hasConfigEndpoints = parsed.configEndpoints && parsed.configEndpoints.length > 0;
-      if (parsed.certs.length === 0 && parsed.rootCaDn.length === 0 && !hasConfigEndpoints) {
-        errors.push("CF_MTLS_TRUSTED_CERTS must contain at least one certificate pair, root CA DN, or config endpoint");
+
+      // certs can be omitted when configEndpoints is provided
+      if (parsed.certs !== undefined && !Array.isArray(parsed.certs)) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.certs must be an array if provided");
+        return;
+      }
+      if (parsed.certs === undefined && !hasConfigEndpoints) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.certs is required when no configEndpoints are provided");
         return;
       }
 
-      for (const cert of parsed.certs) {
-        if (!cert.issuer || typeof cert.issuer !== "string") {
-          errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'issuer' string");
-          return;
-        }
-        if (!cert.subject || typeof cert.subject !== "string") {
-          errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'subject' string");
-          return;
+      // Empty certs array is not allowed - use explicit wildcards like {"issuer": "*", "subject": "*"}
+      if (parsed.certs && parsed.certs.length === 0) {
+        errors.push(
+          'CF_MTLS_TRUSTED_CERTS.certs cannot be empty. Use explicit wildcards like {"issuer": "*", "subject": "*"} or omit certs when using configEndpoints',
+        );
+        return;
+      }
+
+      if (parsed.certs) {
+        for (const cert of parsed.certs) {
+          if (!cert.issuer || typeof cert.issuer !== "string") {
+            errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'issuer' string");
+            return;
+          }
+          if (!cert.subject || typeof cert.subject !== "string") {
+            errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'subject' string");
+            return;
+          }
         }
       }
 

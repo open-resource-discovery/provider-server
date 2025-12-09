@@ -45,7 +45,7 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
 }
 
 interface MtlsTrustedCertsConfig {
-  certs: { issuer: string; subject: string }[];
+  certs?: { issuer: string; subject: string }[];
   rootCaDn: string[];
   configEndpoints?: string[];
 }
@@ -61,7 +61,7 @@ function parseMtlsTrustedCerts(
     const parsed = JSON.parse(value) as MtlsTrustedCertsConfig;
 
     return {
-      certs: parsed.certs,
+      certs: parsed.certs || [],
       rootCaDns: parsed.rootCaDn,
       configEndpoints: parsed.configEndpoints || [],
     };

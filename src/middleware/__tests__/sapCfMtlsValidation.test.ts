@@ -207,13 +207,13 @@ describe("sapCfMtlsValidation", () => {
   });
 
   describe("with empty trusted lists", () => {
-    it("should throw error when no trusted certs configured", () => {
+    it("should throw error when trustedCerts is empty", () => {
       expect(() => {
         createSapCfMtlsValidator({
           trustedCerts: [],
           trustedRootCaDns,
         });
-      }).toThrow("mTLS validation requires at least one trusted certificate (issuer/subject pair)");
+      }).toThrow("mTLS validation requires at least one trusted certificate");
     });
 
     it("should throw error when no trusted root CA DNs configured", () => {
@@ -225,13 +225,13 @@ describe("sapCfMtlsValidation", () => {
       }).toThrow("mTLS validation requires at least one trusted root CA DN");
     });
 
-    it("should throw error when all lists are empty", () => {
+    it("should throw error when both lists are empty", () => {
       expect(() => {
         createSapCfMtlsValidator({
           trustedCerts: [],
           trustedRootCaDns: [],
         });
-      }).toThrow("mTLS validation requires at least one trusted certificate (issuer/subject pair)");
+      }).toThrow("mTLS validation requires at least one trusted certificate");
     });
   });
 

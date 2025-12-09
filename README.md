@@ -332,26 +332,32 @@ Set the `CF_MTLS_TRUSTED_CERTS` environment variable with a JSON object:
 
 | Field             | Required | Description                                       |
 | ----------------- | -------- | ------------------------------------------------- |
-| `certs`           | Yes      | Array of trusted issuer/subject certificate pairs |
+| `certs`           | No\*     | Array of trusted issuer/subject certificate pairs |
 | `rootCaDn`        | Yes      | Array of trusted root CA Distinguished Names      |
 | `configEndpoints` | No       | Array of URLs to fetch additional cert info from  |
+
+\* `certs` can be omitted when `configEndpoints` is provided (certs will be fetched from endpoints).
 
 > [!NOTE]
 > Root CA DNs are only read from `CF_MTLS_TRUSTED_CERTS`, not from config endpoints (security by design).
 
 ##### Wildcard Support
 
-You can use `"*"` as a wildcard for `issuer` and/or `subject` fields to simplify validation:
+You can use `"*"` as a wildcard for `issuer` and/or `subject` fields:
 
-| Configuration  | Behavior                                               |
-| -------------- | ------------------------------------------------------ |
-| `issuer: "*"`  | Accept any issuer, validate subject only               |
-| `subject: "*"` | Accept any subject, validate issuer only               |
-| Both `"*"`     | Skip issuer/subject validation, only validate rootCaDn |
+| Configuration                 | Behavior                                               |
+| ----------------------------- | ------------------------------------------------------ |
+| `issuer: "*"`                 | Accept any issuer, validate subject only               |
+| `subject: "*"`                | Accept any subject, validate issuer only               |
+| Both `"*"`                    | Skip issuer/subject validation, only validate rootCaDn |
+| Omit `certs` (with endpoints) | Certs fetched from endpoints at startup                |
 
 **Examples:**
 
 ```json
+// Omit certs - fetch from configEndpoints at startup
+{"rootCaDn": ["CN=Root CA,O=Org,C=DE"], "configEndpoints": ["https://config.example.com/mtls-info"]}
+
 // Wildcard issuer - accept certs from any CA for a specific service
 {"certs": [{"issuer": "*", "subject": "CN=my-service,O=Org,C=DE"}], "rootCaDn": ["CN=Root CA,O=Org,C=DE"]}
 
