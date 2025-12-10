@@ -345,17 +345,17 @@ Set the `CF_MTLS_TRUSTED_CERTS` environment variable with a JSON object:
 
 You can use `"*"` as a wildcard for `issuer` and/or `subject` fields:
 
-| Configuration                 | Behavior                                               |
-| ----------------------------- | ------------------------------------------------------ |
-| `issuer: "*"`                 | Accept any issuer, validate subject only               |
-| `subject: "*"`                | Accept any subject, validate issuer only               |
-| Both `"*"`                    | Skip issuer/subject validation, only validate rootCaDn |
-| Omit `certs` (with endpoints) | Certs fetched from endpoints at startup                |
+| Configuration                                     | Behavior                                               |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| `issuer: "*"`                                     | Accept any issuer, validate subject only               |
+| `subject: "*"`                                    | Accept any subject, validate issuer only               |
+| Both `"*"`                                        | Skip issuer/subject validation, only validate rootCaDn |
+| Provide only `configEndpoints` instead of `certs` | Certs fetched from endpoints at startup                |
 
 **Examples:**
 
 ```json
-// Omit certs - fetch from configEndpoints at startup
+// configEndpoints used at startup, to fetch certs
 {"rootCaDn": ["CN=Root CA,O=Org,C=DE"], "configEndpoints": ["https://config.example.com/mtls-info"]}
 
 // Wildcard issuer - accept certs from any CA for a specific service
