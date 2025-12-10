@@ -153,13 +153,14 @@ function validateBaseUrlOption(options: CommandLineOptions, errors: string[]): v
 function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): void {
   const isOpen = authMethods.includes(OptAuthMethod.Open);
   const isBasicAuth = authMethods.includes(OptAuthMethod.Basic);
+  const isMtls = authMethods.includes(OptAuthMethod.CfMtls);
 
-  if (isOpen && isBasicAuth) {
+  if (isOpen && (isBasicAuth || isMtls)) {
     errors.push('Authentication method "open" cannot be used together with other options.');
     return;
   }
 
-  if (!isOpen && !isBasicAuth) {
+  if (!isOpen && !isBasicAuth && !isMtls) {
     errors.push("No valid authentication method specified.");
     return;
   }
@@ -182,6 +183,97 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
       errors.push(
         `Invalid JSON in environment variable "BASIC_AUTH": ${error instanceof Error ? error.message : String(error)}`,
       );
+    }
+  }
+
+  if (isMtls) {
+    const trustedCerts = process.env.CF_MTLS_TRUSTED_CERTS;
+
+    if (!trustedCerts || trustedCerts.trim() === "") {
+      errors.push("SAP BTP (CloudFoundry runtime) authentication requires CF_MTLS_TRUSTED_CERTS to be configured.");
+      return;
+    }
+
+    // We should fail if cf-mtls is active AND the CF_INSTANCE_GUID is missing, as this auth method is specific to CF
+    const cfInstanceGuid = process.env.CF_INSTANCE_GUID;
+    if (!cfInstanceGuid || cfInstanceGuid.trim() === "") {
+      errors.push("CF mTLS can be activated only in CloudFoundry environment.");
+      return;
+    }
+
+    // Validate CF_MTLS_TRUSTED_CERTS JSON structure
+    try {
+      const parsed = JSON.parse(trustedCerts) as {
+        certs?: { issuer: string; subject: string }[];
+        rootCaDn: string[];
+        configEndpoints?: string[];
+      };
+
+      if (!parsed || typeof parsed !== "object") {
+        errors.push("CF_MTLS_TRUSTED_CERTS must be a JSON object");
+        return;
+      }
+
+      if (!Array.isArray(parsed.rootCaDn)) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.rootCaDn must be an array");
+        return;
+      }
+
+      const hasConfigEndpoints = parsed.configEndpoints && parsed.configEndpoints.length > 0;
+
+      // certs can be omitted when configEndpoints is provided
+      if (parsed.certs !== undefined && !Array.isArray(parsed.certs)) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.certs must be an array if provided");
+        return;
+      }
+      if (parsed.certs === undefined && !hasConfigEndpoints) {
+        errors.push("CF_MTLS_TRUSTED_CERTS.certs is required when no configEndpoints are provided");
+        return;
+      }
+
+      // Empty certs array is not allowed - use explicit wildcards like {"issuer": "*", "subject": "*"}
+      if (parsed.certs && parsed.certs.length === 0) {
+        errors.push(
+          'CF_MTLS_TRUSTED_CERTS.certs cannot be empty. Use explicit wildcards like {"issuer": "*", "subject": "*"} or omit certs when using configEndpoints',
+        );
+        return;
+      }
+
+      if (parsed.certs) {
+        for (const cert of parsed.certs) {
+          if (!cert.issuer || typeof cert.issuer !== "string") {
+            errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'issuer' string");
+            return;
+          }
+          if (!cert.subject || typeof cert.subject !== "string") {
+            errors.push("Each cert entry in CF_MTLS_TRUSTED_CERTS must have a valid 'subject' string");
+            return;
+          }
+        }
+      }
+
+      for (const dn of parsed.rootCaDn) {
+        if (typeof dn !== "string") {
+          errors.push("Each rootCaDn entry in CF_MTLS_TRUSTED_CERTS must be a string");
+          return;
+        }
+      }
+
+      // Validate configEndpoints if present
+      if (parsed.configEndpoints !== undefined) {
+        if (!Array.isArray(parsed.configEndpoints)) {
+          errors.push("CF_MTLS_TRUSTED_CERTS.configEndpoints must be an array");
+          return;
+        }
+        for (const endpoint of parsed.configEndpoints) {
+          if (typeof endpoint !== "string" || endpoint.trim() === "") {
+            errors.push("Each configEndpoint in CF_MTLS_TRUSTED_CERTS must be a non-empty string");
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      errors.push(`Invalid JSON in CF_MTLS_TRUSTED_CERTS: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- SAP BTP (CloudFoundry mTLS) added as a separate authentication method
+
 ## [[0.11.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v0.11.1)] - 2025-10-31
 
 ### Changed
