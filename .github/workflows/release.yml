@@ -29,14 +29,14 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24.12.0"
           registry-url: ${{ vars.NPM_REGISTRY }}
 
       - name: Install dependencies
@@ -46,10 +46,7 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
-        # --access public is only hard required for the initial release, but it doesn't hurt having it setup
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
 
   docker:
     if: inputs.docker
