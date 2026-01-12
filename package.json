@@ -3,8 +3,8 @@
   "version": "1.0.1",
   "description": "A CLI application or server that takes multiple ORD documents and other metadata files and exposes them as a ORD Provider implementation (ORD Document API)",
   "engines": {
-    "node": ">=22.8.0",
-    "npm": ">=10.8.2"
+    "node": ">=24.10.7",
+    "npm": ">=11.6.1"
   },
   "type": "module",
   "bin": "dist/src/cli.js",
@@ -43,7 +43,7 @@
     "@fastify/static": "9.0.0",
     "@fastify/websocket": "11.2.0",
     "@octokit/rest": "22.0.1",
-    "@open-resource-discovery/specification": "1.12.3",
+    "@open-resource-discovery/specification": "1.13.0",
     "bcryptjs": "3.0.3",
     "commander": "14.0.2",
     "dotenv": "17.2.3",
@@ -58,10 +58,10 @@
   "devDependencies": {
     "@eslint/js": "9.39.2",
     "@sap/eslint-config": "0.4.1",
-    "@tsconfig/node22": "22.0.5",
+    "@tsconfig/node24": "24.0.0",
     "@types/got": "9.6.12",
     "@types/jest": "30.0.0",
-    "@types/node": "24.10.4",
+    "@types/node": "24.10.7",
     "@types/ws": "8.18.1",
     "eslint": "9.39.2",
     "fetch-mock": "12.6.0",
@@ -89,7 +89,7 @@
     ]
   },
   "overrides": {
-    "test-exclude": ">=7.0.1",
-    "glob": ">=12.0.0"
+    "test-exclude": "7.0.1",
+    "glob": "13.0.0"
   }
 }
