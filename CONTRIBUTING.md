@@ -56,8 +56,8 @@ You may also find an ESLint integration for your favorite IDE [here](https://esl
 
 ### Prerequisites
 
-- Node.js >= [22.8.0](package.json)
-- NPM >= 10.8.2
+- Node.js >= [24.10.7](package.json)
+- NPM >= 11.6.1
 
 ### Initial Setup
 
