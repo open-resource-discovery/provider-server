@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
-## [[1.0.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.0)] - 2026-01-12
+## [[1.0.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.1)] - 2026-01-12
 
 ### Changed
 
