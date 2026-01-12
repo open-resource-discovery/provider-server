@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.0.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.0)] - 2026-01-12
+
+### Changed
+
+- Add `system-type` perspective to the filter section in `README.md` and use the original `Perspective` type
+
 ## [[1.0.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.0)] - 2025-12-10
 
 ### Added
