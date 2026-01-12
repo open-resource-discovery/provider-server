@@ -248,6 +248,7 @@ curl http://127.0.0.1:8080/.well-known/open-resource-discovery
 curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-version
 curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-instance
 curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-independent
+curl http://127.0.0.1:8080/.well-known/open-resource-discovery?perspective=system-type
 ```
 
 > [!NOTE]
