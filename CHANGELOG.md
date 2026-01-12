@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Add `system-type` perspective to the filter section in `README.md` and use the original `Perspective` type
+- Updated dependencies
 
 ## [[1.0.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.0)] - 2025-12-10
 
