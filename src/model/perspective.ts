@@ -1,6 +1,6 @@
 import { OrdDocument } from "@open-resource-discovery/specification";
 
-export type Perspective = "system-version" | "system-instance" | "system-independent";
+export type Perspective = OrdDocument["perspective"] & string;
 
 export const DEFAULT_PERSPECTIVE: Perspective = "system-instance";
 
