@@ -61,7 +61,7 @@
     "@tsconfig/node24": "24.0.4",
     "@types/got": "9.6.12",
     "@types/jest": "30.0.0",
-    "@types/node": "24.10.7",
+    "@types/node": "24.10.9",
     "@types/ws": "8.18.1",
     "eslint": "9.39.2",
     "fetch-mock": "12.6.0",
