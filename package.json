@@ -89,7 +89,7 @@
     ]
   },
   "overrides": {
-    "test-exclude": "7.0.1",
+    "test-exclude": "8.0.0",
     "glob": "13.0.0"
   }
 }
