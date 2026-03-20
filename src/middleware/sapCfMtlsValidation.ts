@@ -1,6 +1,6 @@
 import { FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
-import { tokenizeDn, dnTokensMatch, isWildcardDn } from "src/util/certificateHelpers.js";
+import { tokenizeDn, dnTokensMatch, isTrustedCertificate } from "src/util/certificateHelpers.js";
 import { log } from "src/util/logger.js";
 import {
   CERT_ISSUER_DN_HEADER,
@@ -11,7 +11,7 @@ import {
   CERT_CLIENT_VERIFY_HEADER,
 } from "../constant.js";
 
-export interface MtlsValidationOptions {
+export interface CfMtlsValidationOptions {
   trustedCerts: { issuer: string; subject: string }[];
   trustedRootCaDns: string[];
 }
@@ -42,7 +42,7 @@ function isXfccProxyVerified(request: FastifyRequest): boolean {
  * Validates the client certificate issuer and subject as a pair, and root CA from headers
  * Headers are always base64 encoded
  */
-export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
+export function createSapCfMtlsValidator(options: CfMtlsValidationOptions) {
   const { trustedCerts, trustedRootCaDns } = options;
 
   if (trustedCerts.length === 0) {
@@ -98,33 +98,7 @@ export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
         return done(new UnauthorizedError("Invalid mTLS header encoding"));
       }
 
-      const issuerTokens = tokenizeDn(issuerDn);
-      const subjectTokens = tokenizeDn(subjectDn);
-
-      const isTrustedCert = trustedCerts.some((trustedCert) => {
-        // Both wildcards = skip this pair's validation entirely (only rootCaDn validated)
-        if (isWildcardDn(trustedCert.issuer) && isWildcardDn(trustedCert.subject)) {
-          return true;
-        }
-
-        if (isWildcardDn(trustedCert.issuer)) {
-          const trustedSubjectTokens = tokenizeDn(trustedCert.subject);
-          return dnTokensMatch(subjectTokens, trustedSubjectTokens);
-        }
-
-        if (isWildcardDn(trustedCert.subject)) {
-          const trustedIssuerTokens = tokenizeDn(trustedCert.issuer);
-          return dnTokensMatch(issuerTokens, trustedIssuerTokens);
-        }
-
-        // Standard validation: both must match
-        const trustedIssuerTokens = tokenizeDn(trustedCert.issuer);
-        const trustedSubjectTokens = tokenizeDn(trustedCert.subject);
-
-        return dnTokensMatch(issuerTokens, trustedIssuerTokens) && dnTokensMatch(subjectTokens, trustedSubjectTokens);
-      });
-
-      if (!isTrustedCert) {
+      if (!isTrustedCertificate({ issuer: issuerDn, subject: subjectDn }, trustedCerts)) {
         log.warn(`Untrusted certificate pair - issuer: ${issuerDn}, subject: ${subjectDn}`);
         return done(new UnauthorizedError("Untrusted certificate (issuer/subject pair not found)"));
       }

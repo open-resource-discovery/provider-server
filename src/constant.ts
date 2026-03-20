@@ -21,6 +21,9 @@ export const CERT_ISSUER_DN_HEADER = "x-ssl-client-issuer-dn";
 export const CERT_SUBJECT_DN_HEADER = "x-ssl-client-subject-dn";
 export const CERT_ROOT_CA_DN_HEADER = "x-ssl-client-root-ca-dn";
 
+export const CERT_SUBJECT_HEADER = "x-ssl-client-cn";
+export const CERT_ISSUER_HEADER = "x-ssl-client-issuer";
+
 // XFCC (X-Forwarded-Client-Cert) headers for proxy-verified mTLS
 export const CERT_XFCC_HEADER = "x-forwarded-client-cert";
 export const CERT_CLIENT_HEADER = "x-ssl-client";

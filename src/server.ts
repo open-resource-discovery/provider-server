@@ -102,7 +102,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     validUsers: opts.authentication.basicAuthUsers,
     trustedCerts: opts.authentication.trustedCerts,
     trustedRootCaDns: opts.authentication.trustedRootCaDns,
-    cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
+    mtlsConfigEndpoints: opts.authentication.mtlsConfigEndpoints,
   });
 
   // Setup readiness gate for GitHub source type
