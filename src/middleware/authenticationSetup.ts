@@ -8,13 +8,14 @@ import { OptAuthMethod } from "src/model/cli.js";
 import { FastifyInstanceType } from "src/model/fastify.js";
 import { fetchMtlsTrustedCertsFromEndpoints, mergeTrustedCerts } from "src/services/mtlsEndpointService.js";
 import { log } from "src/util/logger.js";
+import { createSapKymaMtlsValidator } from "src/middleware/sapKymaMtlsValidation.js";
 
 export interface AuthSetupOptions {
   authMethods: OptAuthMethod[];
   validUsers?: Record<string, string>;
   trustedCerts?: { issuer: string; subject: string }[];
   trustedRootCaDns?: string[];
-  cfMtlsConfigEndpoints?: string[];
+  mtlsConfigEndpoints?: string[];
 }
 
 export async function setupAuthentication(server: FastifyInstanceType, options: AuthSetupOptions): Promise<void> {
@@ -38,9 +39,9 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
     let trustedCerts = options.trustedCerts || [];
     let trustedRootCaDns = options.trustedRootCaDns || [];
 
-    if (options.cfMtlsConfigEndpoints && options.cfMtlsConfigEndpoints.length > 0) {
-      log.info(`Fetching mTLS trusted certificates from ${options.cfMtlsConfigEndpoints.length} endpoint(s)...`);
-      const fromEndpoints = await fetchMtlsTrustedCertsFromEndpoints(options.cfMtlsConfigEndpoints);
+    if (options.mtlsConfigEndpoints && options.mtlsConfigEndpoints.length > 0) {
+      log.info(`Fetching mTLS trusted certificates from ${options.mtlsConfigEndpoints.length} endpoint(s)...`);
+      const fromEndpoints = await fetchMtlsTrustedCertsFromEndpoints(options.mtlsConfigEndpoints);
 
       const merged = mergeTrustedCerts(fromEndpoints, {
         trustedCerts,
@@ -66,6 +67,26 @@ export async function setupAuthentication(server: FastifyInstanceType, options: 
     });
 
     authMethods.push(mtlsValidator);
+  }
+
+  if (options.authMethods.includes(OptAuthMethod.KymaMtls)) {
+    let trustedCerts = options.trustedCerts || [];
+
+    if (options.mtlsConfigEndpoints && options.mtlsConfigEndpoints.length > 0) {
+      log.info(`Fetching mTLS trusted certificates from ${options.mtlsConfigEndpoints.length} endpoint(s)...`);
+      const fromEndpoints = await fetchMtlsTrustedCertsFromEndpoints(options.mtlsConfigEndpoints);
+
+      trustedCerts = mergeTrustedCerts(fromEndpoints, { trustedCerts, trustedRootCaDns: [] }).trustedCerts;
+
+      log.info(`Loaded ${trustedCerts.length} trusted certificate pair(s)`);
+    }
+
+    if (trustedCerts.length === 0) {
+      log.error("mTLS authentication enabled but no trusted certificate pairs configured");
+      throw new Error("mTLS authentication misconfiguration");
+    }
+
+    authMethods.push(createSapKymaMtlsValidator({ trustedCerts }));
   }
 
   if (authMethods.length > 0) {

@@ -324,7 +324,7 @@ describe("sapCfMtlsValidation", () => {
       // Setup authentication with config endpoint and manual root CA
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        cfMtlsConfigEndpoints: ["https://ucl.example.com/cert-info"],
+        mtlsConfigEndpoints: ["https://ucl.example.com/cert-info"],
         trustedRootCaDns: [certRootCa], // Root CAs only from config
       });
 
@@ -367,7 +367,7 @@ describe("sapCfMtlsValidation", () => {
 
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        cfMtlsConfigEndpoints: ["https://config.example.com/cert-info"],
+        mtlsConfigEndpoints: ["https://config.example.com/cert-info"],
         trustedRootCaDns: [certRootCa], // Root CAs only from config
       });
 
@@ -400,7 +400,7 @@ describe("sapCfMtlsValidation", () => {
 
       await setupAuthentication(server, {
         authMethods: [OptAuthMethod.CfMtls],
-        cfMtlsConfigEndpoints: ["https://config.example.com/cert-info"],
+        mtlsConfigEndpoints: ["https://config.example.com/cert-info"],
         trustedCerts: [{ issuer: "CN=Manual CA,O=Manual Org,C=DE", subject: "CN=manual-service,O=Manual Org,C=DE" }],
         trustedRootCaDns: ["CN=Manual Root CA,O=Manual Org,C=DE"],
       });

@@ -22,8 +22,9 @@ describe("validateOptions", () => {
     jest.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.BASIC_AUTH;
-    delete process.env.CF_MTLS_TRUSTED_CERTS;
     delete process.env.CF_INSTANCE_GUID;
+    delete process.env.CF_MTLS_TRUSTED_CERTS;
+    delete process.env.KYMA_MTLS_TRUSTED_CERTS;
   });
 
   afterAll(() => {
@@ -270,14 +271,14 @@ describe("validateOptions", () => {
 
       const result = validateOffline(options);
       expect(result.options.authentication.trustedCerts).toEqual([]);
-      expect(result.options.authentication.cfMtlsConfigEndpoints).toEqual(["https://config.example.com/cert-info"]);
+      expect(result.options.authentication.mtlsConfigEndpoints).toEqual(["https://config.example.com/cert-info"]);
 
       mockStatSync.mockRestore();
       mockReaddirSync.mockRestore();
       mockReadFileSync.mockRestore();
     });
 
-    it("should throw ValidationError when certs is omitted and no configEndpoints provided", () => {
+    it("should throw ValidationError when certs is omitted and no configEndpoints provided for cf-mtls auth", () => {
       process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
         rootCaDn: ["test-root-ca"],
       });
@@ -297,7 +298,7 @@ describe("validateOptions", () => {
       );
     });
 
-    it("should throw ValidationError when certs is empty array and no configEndpoints provided", () => {
+    it("should throw ValidationError when certs is empty array and no configEndpoints provided for cf-mtls auth", () => {
       const mockStatSync = jest.spyOn(fs, "statSync");
       const mockReaddirSync = jest.spyOn(fs, "readdirSync");
       const mockReadFileSync = jest.spyOn(fs, "readFileSync");
@@ -328,7 +329,7 @@ describe("validateOptions", () => {
       mockReadFileSync.mockRestore();
     });
 
-    it("should throw ValidationError when certs is empty array even with configEndpoints", () => {
+    it("should throw ValidationError when certs is empty array even with configEndpoints for cf-mtls auth", () => {
       const mockStatSync = jest.spyOn(fs, "statSync");
       const mockReaddirSync = jest.spyOn(fs, "readdirSync");
       const mockReadFileSync = jest.spyOn(fs, "readFileSync");
@@ -354,6 +355,110 @@ describe("validateOptions", () => {
 
       expect(() => validateOffline(options)).toThrow(ValidationError);
       expect(() => validateOffline(options)).toThrow("CF_MTLS_TRUSTED_CERTS.certs cannot be empty");
+
+      mockStatSync.mockRestore();
+      mockReaddirSync.mockRestore();
+      mockReadFileSync.mockRestore();
+    });
+
+    it("should allow omitting certs when configEndpoints is provided for kyma-mtls auth", () => {
+      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+
+      mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+      mockReaddirSync.mockReturnValue(["doc1.json"] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+
+      process.env.KYMA_MTLS_TRUSTED_CERTS = JSON.stringify({
+        configEndpoints: ["https://config.example.com/cert-info"],
+      });
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test/directory",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.KymaMtls],
+        baseUrl: "https://example.com",
+      };
+
+      const result = validateOffline(options);
+      expect(result.options.authentication.trustedCerts).toEqual([]);
+      expect(result.options.authentication.mtlsConfigEndpoints).toEqual(["https://config.example.com/cert-info"]);
+
+      mockStatSync.mockRestore();
+      mockReaddirSync.mockRestore();
+      mockReadFileSync.mockRestore();
+    });
+
+    it("should throw ValidationError when certs is omitted and no configEndpoints provided for kyma-mtls auth", () => {
+      process.env.KYMA_MTLS_TRUSTED_CERTS = JSON.stringify({});
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.KymaMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow(
+        "KYMA_MTLS_TRUSTED_CERTS.certs is required when no configEndpoints are provided",
+      );
+    });
+
+    it("should throw ValidationError when certs is empty array and no configEndpoints provided for kyma-mtls auth", () => {
+      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+
+      mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+      mockReaddirSync.mockReturnValue(["doc1.json"] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+
+      process.env.KYMA_MTLS_TRUSTED_CERTS = JSON.stringify({ certs: [] });
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.KymaMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow("KYMA_MTLS_TRUSTED_CERTS.certs cannot be empty");
+
+      mockStatSync.mockRestore();
+      mockReaddirSync.mockRestore();
+      mockReadFileSync.mockRestore();
+    });
+
+    it("should throw ValidationError when certs is empty array even with configEndpoints for kyma-mtls auth", () => {
+      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+
+      mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+      mockReaddirSync.mockReturnValue(["doc1.json"] as any);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+
+      process.env.KYMA_MTLS_TRUSTED_CERTS = JSON.stringify({
+        certs: [],
+        configEndpoints: ["https://config.example.com/cert-info"],
+      });
+
+      const options: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.KymaMtls],
+        baseUrl: "https://example.com",
+      };
+
+      expect(() => validateOffline(options)).toThrow(ValidationError);
+      expect(() => validateOffline(options)).toThrow("KYMA_MTLS_TRUSTED_CERTS.certs cannot be empty");
 
       mockStatSync.mockRestore();
       mockReaddirSync.mockRestore();

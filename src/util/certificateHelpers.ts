@@ -1,5 +1,10 @@
 import { WILDCARD_DN } from "../constant.js";
 
+export interface Certificate {
+  issuer: string;
+  subject: string;
+}
+
 /**
  * Check if a DN value is the explicit wildcard ("*")
  */
@@ -35,4 +40,16 @@ export function dnTokensMatch(tokens1: string[], tokens2: string[]): boolean {
   const sorted2 = [...tokens2].sort();
 
   return sorted1.every((token, index) => token === sorted2[index]);
+}
+
+export function isTrustedCertificate(certificate: Certificate, trustedCertificates: Certificate[]): boolean {
+  const issuer = tokenizeDn(certificate.issuer);
+  const subject = tokenizeDn(certificate.subject);
+
+  return trustedCertificates.some((trustedCert) => {
+    return (
+      (isWildcardDn(trustedCert.issuer) || dnTokensMatch(issuer, tokenizeDn(trustedCert.issuer))) &&
+      (isWildcardDn(trustedCert.subject) || dnTokensMatch(subject, tokenizeDn(trustedCert.subject)))
+    );
+  });
 }
