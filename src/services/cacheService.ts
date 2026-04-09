@@ -3,8 +3,6 @@ import * as path from "path";
 import {
   OrdConfiguration,
   OrdDocument,
-  ApiResource,
-  EventResource,
   OrdV1DocumentDescription,
   SystemVersion,
 } from "@open-resource-discovery/specification";
@@ -16,9 +14,10 @@ import { Logger } from "pino";
 import { getAllFiles } from "../util/files.js";
 import { validateOrdDocument } from "../util/validateOrdDocument.js";
 import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../util/ordConfig.js";
-import { ordIdToPathSegment, joinUrlPaths } from "../util/pathUtils.js";
+import { joinUrlPaths } from "../util/pathUtils.js";
 import { PATH_CONSTANTS } from "../constant.js";
 import { getDocumentPerspective } from "../model/perspective.js";
+import { processResourceDefinitions, processPackageLinks } from "../util/documentProcessing.js";
 
 export class CacheService implements CacheServiceInterface {
   // Cache for individual documents, keyed by their full path
@@ -359,8 +358,15 @@ export class CacheService implements CacheServiceInterface {
   }
 
   private processDocument(document: OrdDocument, directoryHash: string): OrdDocument {
-    const eventResources = this.processResourceDefinition(document.eventResources || []);
-    const apiResources = this.processResourceDefinition(document.apiResources || []);
+    const eventResources = processResourceDefinitions(
+      document.eventResources || [],
+      this.processingContext?.authMethods || [],
+    );
+    const apiResources = processResourceDefinitions(
+      document.apiResources || [],
+      this.processingContext?.authMethods || [],
+    );
+    const packages = processPackageLinks(document.packages || []);
 
     const perspective = getDocumentPerspective(document);
 
@@ -377,46 +383,10 @@ export class CacheService implements CacheServiceInterface {
         baseUrl: this.processingContext?.baseUrl,
       },
       describedSystemVersion,
+      packages: packages.length ? packages : undefined,
       apiResources: apiResources.length ? apiResources : undefined,
       eventResources: eventResources.length ? eventResources : undefined,
     };
-  }
-
-  private processResourceDefinition<T extends EventResource | ApiResource>(resources: T[]): T[] {
-    const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext?.authMethods || []);
-
-    return resources.map((resource) => ({
-      ...resource,
-      resourceDefinitions: (resource.resourceDefinitions || []).map((definition) => {
-        return {
-          ...definition,
-          ...(definition.url && { url: this.fixUrl(definition.url, resource.ordId) }),
-          accessStrategies,
-        };
-      }),
-    }));
-  }
-
-  private fixUrl(url: string, ordId: string): string {
-    const escapedOrdId = ordIdToPathSegment(ordId);
-    const pathParts = url.split("/");
-    const ordIdIdx = pathParts.findIndex((part) => escapedOrdId === part);
-
-    if (ordIdIdx > -1) {
-      pathParts[ordIdIdx] = ordId;
-    }
-
-    const urlWithFixedOrdId = pathParts.join("/");
-
-    if (this.isRemoteUrl(url)) {
-      return urlWithFixedOrdId;
-    }
-    // Construct server-relative URL
-    return joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, path.posix.resolve("/", urlWithFixedOrdId));
-  }
-
-  private isRemoteUrl(url: string): boolean {
-    return url.startsWith("http://") || url.startsWith("https://");
   }
 
   private getDefaultDescribedSystemVersion(directoryHash: string): SystemVersion {
