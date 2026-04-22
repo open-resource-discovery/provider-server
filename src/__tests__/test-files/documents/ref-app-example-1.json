@@ -28,6 +28,10 @@
         {
           "type": "license",
           "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/LICENSE.txt"
+        },
+        {
+          "type": "support",
+          "url": "./Files/SupportInfo.pdf"
         }
       ],
       "links": [
@@ -42,7 +46,15 @@
       ],
       "labels": {
         "customLabel": ["labels are more flexible than tags as you can define your own keys"]
-      }
+      },
+      "files": [
+        {
+          "title": "Support Guide",
+          "url": "./Files/SupportGuide.pdf",
+          "description": "A guide for getting support.",
+          "mediaType": "application/pdf"
+        }
+      ]
     },
     {
       "ordId": "sap.xref:package:ord-reference-app:v1",
@@ -58,6 +70,10 @@
         {
           "type": "license",
           "url": "https://ord.example.com/open-resource-discovery-reference-application/blob/main/LICENSE.txt"
+        },
+        {
+          "type": "support",
+          "url": "./Files/SupportInfo.pdf"
         }
       ],
       "links": [

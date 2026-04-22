@@ -142,13 +142,14 @@ describe("DocumentRouter", () => {
       expect(mockDocumentService.getProcessedDocument).toHaveBeenCalledWith("documents/subfolder/test.json");
     });
 
-    it("should propagate NotFoundError", async () => {
+    it("should propagate NotFoundError when file also not found via fallback", async () => {
       const error = new NotFoundError("Document not found");
       mockDocumentService.getProcessedDocument.mockRejectedValue(error);
+      mockDocumentService.getFileContent.mockRejectedValue(new NotFoundError("File not found"));
       mockRequest.params = { "*": "missing.json" };
 
-      await expect(handler(mockRequest as FastifyRequest, mockReply)).rejects.toThrow(error);
-      expect(log.error).toHaveBeenCalled();
+      await expect(handler(mockRequest as FastifyRequest, mockReply)).rejects.toThrow(NotFoundError);
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining("falling back to file serving"));
     });
 
     it("should wrap generic errors in InternalServerError", async () => {
@@ -158,6 +159,44 @@ describe("DocumentRouter", () => {
 
       await expect(handler(mockRequest as FastifyRequest, mockReply)).rejects.toThrow(InternalServerError);
       expect(log.error).toHaveBeenCalled();
+    });
+
+    it("should serve non-JSON files via getFileContent instead of getProcessedDocument", async () => {
+      const pdfContent = Buffer.from("PDF content");
+      mockDocumentService.getFileContent.mockResolvedValue(pdfContent);
+      mockRequest.params = { "*": "Files/DeveloperPortal/guide.pdf" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("documents/Files/DeveloperPortal/guide.pdf");
+      expect(mockDocumentService.getProcessedDocument).not.toHaveBeenCalled();
+      expect(mockReply.send).toHaveBeenCalledWith(pdfContent);
+    });
+
+    it("should serve .yaml files via getFileContent", async () => {
+      mockDocumentService.getFileContent.mockResolvedValue(Buffer.from("openapi: 3.0.0"));
+      mockRequest.params = { "*": "specs/api.yaml" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("documents/specs/api.yaml");
+      expect(mockDocumentService.getProcessedDocument).not.toHaveBeenCalled();
+    });
+
+    it("should fall back to getFileContent for .json files that are not ORD documents", async () => {
+      const swaggerDef = { swagger: "2.0", info: { title: "Test API" } };
+      mockDocumentService.getProcessedDocument.mockRejectedValue(
+        new NotFoundError("Document not found or invalid at path: documents/Artifacts/api/api.json"),
+      );
+      mockDocumentService.getFileContent.mockResolvedValue(Buffer.from(JSON.stringify(swaggerDef)));
+      mockRequest.params = { "*": "Artifacts/api/api.json" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getProcessedDocument).toHaveBeenCalledWith("documents/Artifacts/api/api.json");
+      expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("documents/Artifacts/api/api.json");
+      expect(mockReply.type).toHaveBeenCalledWith("application/json");
+      expect(mockReply.send).toHaveBeenCalledWith(swaggerDef);
     });
   });
 

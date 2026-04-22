@@ -4,6 +4,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Resolve relative URLs in package `packageLinks` and `files` to absolute server paths
+- Serve non-JSON resource files (PDF, YAML, etc.) under the documents subdirectory
+- Fall back to raw file serving for `.json` files that are not ORD documents
+
+### Changed
+
+- Extract shared document processing logic (`processResourceDefinitions`, `processPackageLinks`) into `src/util/documentProcessing.ts` to eliminate duplication between `documentService` and `cacheService`
+
 ## [[1.0.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.1)] - 2026-01-12
 
 ### Changed
