@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.1.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.0)] - 2026-04-22
+
 ### Added
 
 - Resolve relative URLs in package `packageLinks` and `files` to absolute server paths
