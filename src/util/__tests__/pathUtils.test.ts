@@ -87,6 +87,16 @@ describe("Path Utilities", () => {
       );
     });
 
+    it("should preserve two underscores in resource name", () => {
+      expect(pathSegmentToOrdId("sap.xref_apiResource_material_create_confirm_v1")).toBe(
+        "sap.xref:apiResource:material_create_confirm:v1",
+      );
+    });
+
+    it("should preserve three underscores in resource name", () => {
+      expect(pathSegmentToOrdId("sap.xref_apiResource_a_b_c_d_v2")).toBe("sap.xref:apiResource:a_b_c_d:v2");
+    });
+
     it("should preserve underscores in resource name for eventResource", () => {
       expect(pathSegmentToOrdId("sap.xref_eventResource_supplier_management_v2")).toBe(
         "sap.xref:eventResource:supplier_management:v2",
@@ -109,6 +119,8 @@ describe("Path Utilities", () => {
       const ordIds = [
         "sap.xref:apiResource:astronomy:v1",
         "sap.xref:apiResource:catalog_provider:v1",
+        "sap.xref:apiResource:material_create_confirm:v1",
+        "sap.xref:apiResource:a_b_c_d:v2",
         "sap.xref:package:_my-reference-app:v1",
         "sap.xref:eventResource:supplier_management:v2",
         "sap.xref:apiResource:DocumentCreateConfirmation_Async:v1",
