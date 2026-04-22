@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Fixed
+
+- Fix ORD ID path segment conversion to preserve underscores in the resource name segment
+
 ## [[1.1.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.0)] - 2026-04-22
 
 ### Added
