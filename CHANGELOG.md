@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Add `x-github-current-commit-hash` response header when serving from GitHub source type
+
 ## [[1.1.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.1)] - 2026-04-22
 
 ### Fixed
