@@ -126,6 +126,7 @@ export class WebhookRouter {
         const githubEvent = request.headers["x-github-event"];
         if (githubEvent === "ping") {
           this.logger.debug("GitHub ping event received - webhook is properly configured");
+          this.updateScheduler.recordWebhookReceived();
           return reply.code(200).send({
             status: "ok",
             message: "Webhook ping received successfully",
@@ -148,7 +149,7 @@ export class WebhookRouter {
 
         const expectedRef = `refs/heads/${this.config.branch}`;
         if (payload.ref !== expectedRef) {
-          return reply.code(400).send({ status: "ignored", reason: "different branch" });
+          return reply.code(202).send({ status: "ignored", reason: "different branch" });
         }
 
         // Schedule immediate update

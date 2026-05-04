@@ -839,6 +839,26 @@ describe("UpdateScheduler", () => {
       const afterManual = scheduler.getLastWebhookTime();
       expect(afterManual!.getTime()).toBe(webhookTime);
     });
+
+    it("should track webhook received time for display", () => {
+      expect(scheduler.getLastWebhookReceivedTime()).toBeNull();
+
+      scheduler.recordWebhookReceived();
+
+      const receivedTime = scheduler.getLastWebhookReceivedTime();
+      expect(receivedTime).not.toBeNull();
+      expect(receivedTime).toBeInstanceOf(Date);
+    });
+
+    it("should update webhook received time on scheduleImmediateUpdate", async () => {
+      expect(scheduler.getLastWebhookReceivedTime()).toBeNull();
+
+      await scheduler.scheduleImmediateUpdate(false);
+
+      const receivedTime = scheduler.getLastWebhookReceivedTime();
+      expect(receivedTime).not.toBeNull();
+      expect(receivedTime).toBeInstanceOf(Date);
+    });
   });
 
   describe("checkForUpdates", () => {

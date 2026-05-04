@@ -28,6 +28,7 @@ describe("WebhookRouter", () => {
 
     mockUpdateScheduler = {
       scheduleImmediateUpdate: jest.fn().mockResolvedValue(undefined),
+      recordWebhookReceived: jest.fn(),
     } as unknown as jest.Mocked<UpdateScheduler>;
 
     mockLogger = {
@@ -191,6 +192,8 @@ describe("WebhookRouter", () => {
 
       await handler(mockRequest as FastifyRequest, mockReply as FastifyReply);
 
+      expect(mockUpdateScheduler.recordWebhookReceived).toHaveBeenCalled();
+      expect(mockUpdateScheduler.scheduleImmediateUpdate).not.toHaveBeenCalled();
       expect(mockReply.code).toHaveBeenCalledWith(200);
       expect(mockReply.send).toHaveBeenCalledWith({
         status: "ok",
@@ -264,7 +267,7 @@ describe("WebhookRouter", () => {
       await handler(mockRequest as FastifyRequest, mockReply as FastifyReply);
 
       expect(mockUpdateScheduler.scheduleImmediateUpdate).not.toHaveBeenCalled();
-      expect(mockReply.code).toHaveBeenCalledWith(400);
+      expect(mockReply.code).toHaveBeenCalledWith(202);
       expect(mockReply.send).toHaveBeenCalledWith({
         status: "ignored",
         reason: "different branch",
