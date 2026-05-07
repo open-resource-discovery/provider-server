@@ -49,6 +49,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     exposeHeadRoutes: true,
     routerOptions: {
       ignoreTrailingSlash: true,
+      maxParamLength: 500,
     },
   });
 
