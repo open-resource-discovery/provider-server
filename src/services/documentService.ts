@@ -260,6 +260,12 @@ export class DocumentService implements DocumentServiceInterface {
     return {
       ...document,
       perspective,
+      // TODO: Once ORD spec v1.15 ships (https://github.com/open-resource-discovery/specification/pull/125),
+      // the provider server's baseUrl should be injected into the new document-level `baseUrl` field instead.
+      // `describedSystemInstance.baseUrl` is semantically the described system's URL (used for entry points),
+      // not the provider's URL (used for resolving metadata file references). Currently we inject the provider
+      // URL here as a v1.14 backward-compat fallback; after the spec package is updated to v1.15 this should
+      // be migrated to `OrdDocument.baseUrl` and `describedSystemInstance.baseUrl` should be left to the user.
       describedSystemInstance: {
         ...document.describedSystemInstance,
         baseUrl: this.processingContext.baseUrl,

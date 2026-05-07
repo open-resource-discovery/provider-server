@@ -386,6 +386,9 @@ export class CacheService implements CacheServiceInterface {
     return {
       ...document,
       perspective,
+      // TODO: Once ORD spec v1.15 ships (https://github.com/open-resource-discovery/specification/pull/125),
+      // migrate provider baseUrl injection to the new document-level `baseUrl` field.
+      // See the note in documentService.ts processDocument() for the full explanation.
       describedSystemInstance: {
         ...document.describedSystemInstance,
         baseUrl: this.processingContext?.baseUrl,
