@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.1.3](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.3)] - 2026-05-07
+
+### Fixed
+
+- Increase max URL path segment length to 500 characters to support long ORD IDs
+
 ## [[1.1.2](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.2)] - 2026-04-23
 
 ### Added
