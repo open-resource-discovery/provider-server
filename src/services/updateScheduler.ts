@@ -39,6 +39,7 @@ export class UpdateScheduler extends EventEmitter {
   private updateInProgress = false;
   private lastUpdateTime: Date | null = null;
   private lastWebhookUpdateTime: Date | null = null;
+  private lastWebhookReceivedTime: Date | null = null;
   private scheduledUpdateTime: Date | null = null;
   private failedUpdates = 0;
   private webhookCooldownTimeout: NodeJS.Timeout | null = null;
@@ -183,6 +184,7 @@ export class UpdateScheduler extends EventEmitter {
     // Only update webhook time for actual webhooks, not manual triggers
     if (!isManualTrigger) {
       this.lastWebhookUpdateTime = new Date();
+      this.lastWebhookReceivedTime = this.lastWebhookUpdateTime;
       this.logger.info("Starting immediate webhook-triggered update");
     } else {
       this.logger.info("Starting immediate manual-triggered update");
@@ -428,6 +430,14 @@ export class UpdateScheduler extends EventEmitter {
 
   public getLastWebhookTime(): Date | null {
     return this.lastWebhookUpdateTime;
+  }
+
+  public recordWebhookReceived(): void {
+    this.lastWebhookReceivedTime = new Date();
+  }
+
+  public getLastWebhookReceivedTime(): Date | null {
+    return this.lastWebhookReceivedTime;
   }
 
   public startPeriodicCheck(): void {

@@ -27,6 +27,8 @@ describe("StatusWebSocketHandler", () => {
     mockUpdateScheduler = Object.assign(new EventEmitter(), {
       getStatus: jest.fn(),
       getLastWebhookTime: jest.fn(),
+      getLastWebhookReceivedTime: jest.fn(),
+      recordWebhookReceived: jest.fn(),
       scheduleImmediateUpdate: jest.fn(),
     }) as unknown as jest.Mocked<UpdateScheduler> & EventEmitter;
 

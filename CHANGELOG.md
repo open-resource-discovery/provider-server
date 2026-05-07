@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [[1.1.3](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.3)] - 2026-05-07
 
+### Changed
+
+- Show GitHub ping webhook event on status dashboard instead of "No events received yet"
+- Return HTTP 202 instead of 400 for webhooks targeting a non-configured branch
+
 ### Fixed
 
 - Increase max URL path segment length to 500 characters to support long ORD IDs
