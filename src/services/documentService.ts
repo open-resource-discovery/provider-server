@@ -88,7 +88,7 @@ export class DocumentService implements DocumentServiceInterface {
             documentPaths.push(relativePath);
             processedDocsForFqn.push(processedDoc);
 
-            const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+            const documentUrl = this.buildDocumentUrl(relativePath);
             const perspective = getDocumentPerspective(document);
 
             const documentEntry: OrdV1DocumentDescription = {
@@ -234,13 +234,21 @@ export class DocumentService implements DocumentServiceInterface {
     return map;
   }
 
+  private buildDocumentUrl(relativePath: string): string {
+    const rootRelative = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+    return this.processingContext.absoluteUrls ? this.processingContext.baseUrl + rootRelative : rootRelative;
+  }
+
   private processDocument(document: OrdDocument, directoryHash: string | null): OrdDocument {
+    const { baseUrl, absoluteUrls, authMethods } = this.processingContext;
     const eventResources = processResourceDefinitions(
       document.eventResources || [],
-      this.processingContext.authMethods,
+      authMethods,
+      baseUrl,
+      absoluteUrls,
     );
-    const apiResources = processResourceDefinitions(document.apiResources || [], this.processingContext.authMethods);
-    const packages = processPackageLinks(document.packages || []);
+    const apiResources = processResourceDefinitions(document.apiResources || [], authMethods, baseUrl, absoluteUrls);
+    const packages = processPackageLinks(document.packages || [], baseUrl, absoluteUrls);
 
     const perspective = getDocumentPerspective(document);
 

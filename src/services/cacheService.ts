@@ -300,7 +300,10 @@ export class CacheService implements CacheServiceInterface {
             processedDocsForFqn.push(processedDoc);
 
             // Add to ORD config
-            const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+            const rootRelative = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+            const documentUrl = this.processingContext!.absoluteUrls
+              ? this.processingContext!.baseUrl + rootRelative
+              : rootRelative;
             const perspective = getDocumentPerspective(jsonData as OrdDocument);
 
             const documentEntry: OrdV1DocumentDescription = {
@@ -358,15 +361,20 @@ export class CacheService implements CacheServiceInterface {
   }
 
   private processDocument(document: OrdDocument, directoryHash: string): OrdDocument {
+    const { baseUrl, absoluteUrls, authMethods } = this.processingContext!;
     const eventResources = processResourceDefinitions(
       document.eventResources || [],
-      this.processingContext?.authMethods || [],
+      authMethods || [],
+      baseUrl,
+      absoluteUrls,
     );
     const apiResources = processResourceDefinitions(
       document.apiResources || [],
-      this.processingContext?.authMethods || [],
+      authMethods || [],
+      baseUrl,
+      absoluteUrls,
     );
-    const packages = processPackageLinks(document.packages || []);
+    const packages = processPackageLinks(document.packages || [], baseUrl, absoluteUrls);
 
     const perspective = getDocumentPerspective(document);
 

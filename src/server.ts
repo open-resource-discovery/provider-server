@@ -303,6 +303,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
   const { router, cacheService } = await RouterFactory.createRouter({
     sourceType: opts.sourceType,
     baseUrl: baseUrl,
+    absoluteUrls: opts.absoluteUrls,
     authMethods: opts.authentication.methods,
     fqnDocumentMap: {},
     documentsSubDirectory: opts.ordDocumentsSubDirectory,

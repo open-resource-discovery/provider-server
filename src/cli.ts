@@ -44,6 +44,11 @@ program
     parseAuthMethods,
     process.env.ORD_AUTH_TYPE ? parseAuthMethods(process.env.ORD_AUTH_TYPE) : [OptAuthMethod.Open],
   )
+  .option(
+    "--absolute-urls",
+    "Emit absolute URLs (including baseUrl) in all ORD responses instead of root-relative paths",
+    process.env.ORD_ABSOLUTE_URLS === "true",
+  )
   .option("--host <host>", "Host for server, without port", process.env.SERVER_HOST || "0.0.0.0")
   .option("--port <port number>", "Server port", process.env.SERVER_PORT || "8080")
   .option("--github-api-url <githubApiUrl>", "GitHub host to make API calls", process.env.GITHUB_API_URL)
