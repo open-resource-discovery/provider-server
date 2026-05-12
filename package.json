@@ -90,11 +90,6 @@
   },
   "overrides": {
     "test-exclude": "7.0.1",
-    "glob": "13.0.0",
-    "eslint": {
-      "minimatch": {
-        "brace-expansion": "1.1.13"
-      }
-    }
+    "glob": "13.0.6"
   }
 }
