@@ -1,8 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "docker:enableMajor", ":pinAllExceptPeerDependencies"],
+  "extends": [
+    "config:recommended",
+    "docker:enableMajor",
+    ":pinAllExceptPeerDependencies",
+    "helpers:pinGitHubActionDigests"
+  ],
   "semanticCommits": "enabled",
-  "enabledManagers": ["npm", "dockerfile"],
+  "enabledManagers": ["npm", "dockerfile", "github-actions"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
   "schedule": ["every weekend"],
@@ -10,9 +15,18 @@
   "prConcurrentLimit": 0,
   "packageRules": [
     {
+      "groupName": "Node.js",
+      "matchManagers": ["dockerfile", "github-actions"],
+      "matchPackageNames": ["node"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
+      "semanticCommitType": "chore",
+      "automerge": true
+    },
+    {
       "groupName": "Docker Dependencies",
       "matchManagers": ["dockerfile"],
       "matchDatasources": ["docker"],
+      "excludePackageNames": ["node"],
       "matchUpdateTypes": ["major", "minor", "patch", "digest"],
       "semanticCommitType": "chore",
       "automerge": true
