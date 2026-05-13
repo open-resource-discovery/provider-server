@@ -1,6 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "docker:enableMajor", ":pinAllExceptPeerDependencies"],
+  "extends": [
+    "config:recommended",
+    "docker:enableMajor",
+    ":pinAllExceptPeerDependencies",
+    "helpers:pinGitHubActionDigests"
+  ],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile", "github-actions"],
   "branchPrefix": "deps/",
