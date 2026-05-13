@@ -65,18 +65,69 @@ describe("Path Utilities", () => {
       expect(ordIdToPathSegment("sap.xref:apiResource:astronomy:v1")).toBe("sap.xref_apiResource_astronomy_v1");
     });
 
+    it("should preserve underscores in resource name", () => {
+      expect(ordIdToPathSegment("sap.xref:apiResource:catalog_provider:v1")).toBe(
+        "sap.xref_apiResource_catalog_provider_v1",
+      );
+    });
+
     it("should not modify strings without colons", () => {
       expect(ordIdToPathSegment("resource")).toBe("resource");
     });
   });
 
   describe("pathSegmentToOrdId", () => {
-    it("should replace underscores with colons", () => {
+    it("should convert simple path segment to ORD ID", () => {
       expect(pathSegmentToOrdId("sap.xref_apiResource_astronomy_v1")).toBe("sap.xref:apiResource:astronomy:v1");
+    });
+
+    it("should preserve underscores in resource name for apiResource", () => {
+      expect(pathSegmentToOrdId("sap.xref_apiResource_catalog_provider_v1")).toBe(
+        "sap.xref:apiResource:catalog_provider:v1",
+      );
+    });
+
+    it("should preserve two underscores in resource name", () => {
+      expect(pathSegmentToOrdId("sap.xref_apiResource_material_create_confirm_v1")).toBe(
+        "sap.xref:apiResource:material_create_confirm:v1",
+      );
+    });
+
+    it("should preserve three underscores in resource name", () => {
+      expect(pathSegmentToOrdId("sap.xref_apiResource_a_b_c_d_v2")).toBe("sap.xref:apiResource:a_b_c_d:v2");
+    });
+
+    it("should preserve underscores in resource name for eventResource", () => {
+      expect(pathSegmentToOrdId("sap.xref_eventResource_supplier_management_v2")).toBe(
+        "sap.xref:eventResource:supplier_management:v2",
+      );
+    });
+
+    it("should preserve leading underscore in resource name", () => {
+      expect(pathSegmentToOrdId("sap.xref_package__my-reference-app_v1")).toBe("sap.xref:package:_my-reference-app:v1");
+    });
+
+    it("should handle package resource type", () => {
+      expect(pathSegmentToOrdId("sap.xref_package_my-reference-app_v1")).toBe("sap.xref:package:my-reference-app:v1");
     });
 
     it("should not modify strings without underscores", () => {
       expect(pathSegmentToOrdId("resource")).toBe("resource");
+    });
+
+    it("should roundtrip ORD IDs with underscores in resource name", () => {
+      const ordIds = [
+        "sap.xref:apiResource:astronomy:v1",
+        "sap.xref:apiResource:catalog_provider:v1",
+        "sap.xref:apiResource:material_create_confirm:v1",
+        "sap.xref:apiResource:a_b_c_d:v2",
+        "sap.xref:package:_my-reference-app:v1",
+        "sap.xref:eventResource:supplier_management:v2",
+        "sap.xref:apiResource:DocumentCreateConfirmation_Async:v1",
+      ];
+      for (const ordId of ordIds) {
+        expect(pathSegmentToOrdId(ordIdToPathSegment(ordId))).toBe(ordId);
+      }
     });
   });
 

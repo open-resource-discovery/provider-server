@@ -255,6 +255,201 @@ describe("DocumentService", () => {
     });
   });
 
+  describe("URL rewrite for packageLinks (within processDocument)", () => {
+    it("should resolve relative URL in packageLinks", async () => {
+      const testPath = "documents/pkg-links.json";
+      const testHash = "hash-pkg-links";
+      const docWithPackageLinks: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            packageLinks: [{ type: "license", url: "license.txt" }],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithPackageLinks);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].packageLinks?.[0].url).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/license.txt`);
+    });
+
+    it("should resolve relative URL with path traversal in packageLinks", async () => {
+      const testPath = "documents/pkg-links-traversal.json";
+      const testHash = "hash-pkg-traversal";
+      const docWithPackageLinks: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            packageLinks: [{ type: "license", url: "../licenses/license.txt" }],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithPackageLinks);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].packageLinks?.[0].url).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/licenses/license.txt`);
+    });
+
+    it("should not modify remote URL in packageLinks", async () => {
+      const testPath = "documents/pkg-links-remote.json";
+      const testHash = "hash-pkg-remote";
+      const remoteUrl = "https://example.com/license";
+      const docWithPackageLinks: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            packageLinks: [{ type: "license", url: remoteUrl }],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithPackageLinks);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].packageLinks?.[0].url).toBe(remoteUrl);
+    });
+
+    it("should handle package without packageLinks", async () => {
+      const testPath = "documents/pkg-no-links.json";
+      const testHash = "hash-pkg-no-links";
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(mockDocument);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].packageLinks).toBeUndefined();
+    });
+
+    it("should resolve relative URL in package files", async () => {
+      const testPath = "documents/pkg-files.json";
+      const testHash = "hash-pkg-files";
+      const docWithFiles: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            files: [
+              {
+                title: "Support Guide",
+                url: "./Files/SupportGuide.pdf",
+                mediaType: "application/pdf",
+              },
+            ],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithFiles);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].files?.[0].url).toBe(`${PATH_CONSTANTS.SERVER_PREFIX}/Files/SupportGuide.pdf`);
+    });
+
+    it("should not modify remote URL in package files", async () => {
+      const testPath = "documents/pkg-files-remote.json";
+      const testHash = "hash-pkg-files-remote";
+      const remoteUrl = "https://example.com/guide.pdf";
+      const docWithFiles: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            files: [
+              {
+                title: "Remote Guide",
+                url: remoteUrl,
+                mediaType: "application/pdf",
+              },
+            ],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithFiles);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].files?.[0].url).toBe(remoteUrl);
+    });
+
+    it("should not double-prefix absolute server path in package files", async () => {
+      const testPath = "documents/pkg-files-abs.json";
+      const testHash = "hash-pkg-files-abs";
+      const absoluteUrl = "/ord/v1/some/path/guide.pdf";
+      const docWithFiles: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            files: [
+              {
+                title: "Already Absolute",
+                url: absoluteUrl,
+                mediaType: "application/pdf",
+              },
+            ],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithFiles);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].files?.[0].url).toBe(absoluteUrl);
+    });
+
+    it("should not double-prefix absolute server path in packageLinks", async () => {
+      const testPath = "documents/pkg-links-abs.json";
+      const testHash = "hash-pkg-links-abs";
+      const absoluteUrl = "/ord/v1/some/path.pdf";
+      const docWithPackageLinks: OrdDocument = {
+        ...mockDocument,
+        packages: [
+          {
+            ...mockDocument.packages![0],
+            packageLinks: [{ type: "support", url: absoluteUrl }],
+          },
+        ],
+      };
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(docWithPackageLinks);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].packageLinks?.[0].url).toBe(absoluteUrl);
+    });
+
+    it("should handle package without files", async () => {
+      const testPath = "documents/pkg-no-files.json";
+      const testHash = "hash-pkg-no-files";
+
+      mockRepository.getDirectoryHash.mockResolvedValue(testHash);
+      mockRepository.getDocument.mockResolvedValue(mockDocument);
+
+      const result = await documentService.getProcessedDocument(testPath);
+
+      expect(result.packages?.[0].files).toBeUndefined();
+    });
+  });
+
   describe("URL rewrite (within processDocument)", () => {
     it("should not modify remote URL in resource definitions", async () => {
       const testPath = "documents/remote.json";

@@ -4,6 +4,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.1.3](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.3)] - 2026-05-07
+
+### Changed
+
+- Show GitHub ping webhook event on status dashboard instead of "No events received yet"
+- Return HTTP 202 instead of 400 for webhooks targeting a non-configured branch
+
+### Fixed
+
+- Increase max URL path segment length to 500 characters to support long ORD IDs
+
+## [[1.1.2](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.2)] - 2026-04-23
+
+### Added
+
+- Add `x-github-current-commit-hash` response header when serving from GitHub source type
+
+## [[1.1.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.1)] - 2026-04-22
+
+### Fixed
+
+- Fix ORD ID path segment conversion to preserve underscores in the resource name segment
+
+### Changed
+
+- Dependency updates
+
+## [[1.1.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.0)] - 2026-04-22
+
+### Added
+
+- Resolve relative URLs in package `packageLinks` and `files` to absolute server paths
+- Serve non-JSON resource files (PDF, YAML, etc.) under the documents subdirectory
+- Fall back to raw file serving for `.json` files that are not ORD documents
+
+### Changed
+
+- Extract shared document processing logic (`processResourceDefinitions`, `processPackageLinks`) into `src/util/documentProcessing.ts` to eliminate duplication between `documentService` and `cacheService`
+
 ## [[1.0.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.0.1)] - 2026-01-12
 
 ### Changed

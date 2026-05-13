@@ -37,6 +37,7 @@ let fileSystemManager: FileSystemManager | null = null;
 let updateScheduler: UpdateScheduler | null = null;
 let updateStateManager: UpdateStateManager | null = null;
 let cacheServiceGlobal: CacheService | null = null;
+let currentCommitHash: string | null = null;
 
 export async function startProviderServer(opts: ProviderServerOptions): Promise<ShutdownFunction> {
   log.info("============================================================");
@@ -48,6 +49,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     exposeHeadRoutes: true,
     routerOptions: {
       ignoreTrailingSlash: true,
+      maxParamLength: 500,
     },
   });
 
@@ -91,6 +93,12 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 
     // Initialize the scheduler to load metadata
     await updateScheduler.initialize();
+
+    // Update cached commit hash when git content is updated
+    updateScheduler.on("update-completed", async () => {
+      const metadata = await fileSystemManager!.getMetadata();
+      currentCommitHash = metadata?.commitHash || null;
+    });
   }
 
   // Basic server setup
@@ -157,6 +165,10 @@ async function performOnlineValidation(
 
     if (validationResult.contentAvailable) {
       log.info("Online validation complete. Content is now available.");
+
+      // Cache the commit hash for the response header
+      const metadata = await fileSystemManager.getMetadata();
+      currentCommitHash = metadata?.commitHash || null;
 
       // Notify the repository that content is now available by recreating it
       // This will update the directoryExists flag
@@ -252,6 +264,9 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   // Add version header to all responses
   server.addHook("onSend", (_request, reply, _, done) => {
     reply.header("x-ord-provider-server-version", version);
+    if (currentCommitHash) {
+      reply.header("x-github-current-commit-hash", currentCommitHash);
+    }
     done();
   });
 }

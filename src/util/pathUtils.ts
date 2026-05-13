@@ -43,12 +43,25 @@ export function ordIdToPathSegment(ordId: string): string {
 }
 
 /**
- * Converts a filesystem path segment back to an ORD ID
+ * Converts a filesystem path segment back to an ORD ID.
+ *
+ * ORD IDs have 4 colon-separated segments: namespace:resourceType:resourceName:version.
+ * Only resourceName (segment 3) can contain underscores. Since namespace, resourceType,
+ * and version never contain underscores, we split by _ and rejoin the middle parts.
+ *
  * @param pathSegment The path segment to convert
  * @returns Original ORD ID
  */
 export function pathSegmentToOrdId(pathSegment: string): string {
-  return pathSegment.replace(/_/g, ":");
+  const parts = pathSegment.split("_");
+  if (parts.length < 4) return pathSegment.replace(/_/g, ":");
+
+  const namespace = parts[0];
+  const resourceType = parts[1];
+  const version = parts[parts.length - 1];
+  const resourceName = parts.slice(2, -1).join("_");
+
+  return `${namespace}:${resourceType}:${resourceName}:${version}`;
 }
 
 /**

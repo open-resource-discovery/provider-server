@@ -163,7 +163,7 @@ export class StatusService {
         failedUpdates: stateManagerStatus?.failedUpdates ?? updateSchedulerStatus?.failedUpdates ?? 0,
         commitHash: metadata?.commitHash || null,
         failedCommitHash: stateManagerStatus?.failedCommitHash ?? updateSchedulerStatus?.failedCommitHash ?? null,
-        lastWebhookTime: this.updateScheduler?.getLastWebhookTime()?.toISOString() || null,
+        lastWebhookTime: this.updateScheduler?.getLastWebhookReceivedTime()?.toISOString() || null,
         lastError: stateManagerStatus?.lastError ?? updateSchedulerStatus?.lastError ?? undefined,
       };
     }

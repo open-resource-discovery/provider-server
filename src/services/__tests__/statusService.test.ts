@@ -66,6 +66,7 @@ describe("StatusService", () => {
     mockUpdateScheduler = {
       getStatus: jest.fn(),
       getLastWebhookTime: jest.fn(),
+      getLastWebhookReceivedTime: jest.fn(),
     } as unknown as jest.Mocked<UpdateScheduler>;
 
     mockFileSystemManager = {
@@ -253,7 +254,7 @@ describe("StatusService", () => {
 
       it("should include webhook time if available", async () => {
         const webhookTime = new Date("2024-01-01T00:30:00Z");
-        mockUpdateScheduler.getLastWebhookTime.mockReturnValue(webhookTime);
+        mockUpdateScheduler.getLastWebhookReceivedTime.mockReturnValue(webhookTime);
 
         const status = await statusService.getStatus();
 

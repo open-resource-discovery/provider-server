@@ -8,6 +8,7 @@ import { joinFilePaths, ordIdToPathSegment } from "../util/pathUtils.js";
 import { OptAuthMethod } from "../model/cli.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { InternalServerError } from "../model/error/InternalServerError.js";
+import { NotFoundError } from "../model/error/NotFoundError.js";
 
 interface DocumentRouterOptions {
   baseUrl: string;
@@ -39,16 +40,56 @@ export class DocumentRouter extends BaseRouter {
     // Document endpoint - delegates to service
     server.get(`${PATH_CONSTANTS.SERVER_PREFIX}/${this.documentsSubDirectory}/*`, async (request, reply) => {
       const { "*": documentPath } = request.params as { "*": string };
+      const relativePath = `${this.documentsSubDirectory}/${documentPath}`;
+
+      // If the path has a non-JSON file extension, serve as raw file content.
+      // Use a strict regex to avoid matching ORD-style names with dots (e.g., "sap.ref-app-example").
+      const fileName = documentPath.split("/").pop() || "";
+      const hasFileExtension = /\.[a-zA-Z0-9]{1,10}$/.test(fileName);
+      if (hasFileExtension && !documentPath.endsWith(".json")) {
+        log.info(`[FILES ROUTE] Request received for file: ${relativePath}`);
+        try {
+          const content = await this.documentService.getFileContent(relativePath);
+          return reply.send(content);
+        } catch (error) {
+          log.error(`Error fetching file ${relativePath}: ${error}`);
+          if (error instanceof BackendError) {
+            throw error;
+          } else {
+            throw new InternalServerError(error instanceof Error ? error.message : "Unknown error");
+          }
+        }
+      }
+
       const documentPathWithExtension = documentPath.endsWith(".json") ? documentPath : `${documentPath}.json`;
-      const relativePath = `${this.documentsSubDirectory}/${documentPathWithExtension}`;
-      log.info(`[DOCUMENTS ROUTE] Request received for ORD document: ${relativePath}`);
+      const documentRelativePath = `${this.documentsSubDirectory}/${documentPathWithExtension}`;
+      log.info(`[DOCUMENTS ROUTE] Request received for ORD document: ${documentRelativePath}`);
 
       try {
-        const document = await this.documentService.getProcessedDocument(relativePath);
+        const document = await this.documentService.getProcessedDocument(documentRelativePath);
         return reply.send(document);
       } catch (error) {
-        log.error(`Error fetching document ${relativePath}: ${error}`);
-        // Let the error propagate to the global error handler
+        // If NotFoundError for a .json path, the file might be a resource file (e.g. Swagger/OpenAPI)
+        // rather than an ORD document. Fall back to serving it as raw file content.
+        if (error instanceof NotFoundError && documentPath.endsWith(".json")) {
+          log.info(`[DOCUMENTS ROUTE] Not an ORD document, falling back to file serving: ${relativePath}`);
+          try {
+            const content = await this.documentService.getFileContent(relativePath);
+            const contentString = Buffer.isBuffer(content) ? content.toString("utf-8") : content;
+            try {
+              const jsonData = JSON.parse(contentString);
+              return reply.type("application/json").send(jsonData);
+            } catch (_parseError) {
+              return reply.type("application/json").send(contentString);
+            }
+          } catch (fileError) {
+            if (fileError instanceof BackendError) {
+              throw fileError;
+            }
+            throw new InternalServerError(fileError instanceof Error ? fileError.message : "Unknown error");
+          }
+        }
+        log.error(`Error fetching document ${documentRelativePath}: ${error}`);
         if (error instanceof BackendError) {
           throw error;
         } else {
