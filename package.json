@@ -57,7 +57,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@sap/eslint-config": "0.4.1",
+    "@sap/eslint-config": "0.5.1",
     "@tsconfig/node24": "24.0.4",
     "@types/got": "9.6.12",
     "@types/jest": "30.0.0",
