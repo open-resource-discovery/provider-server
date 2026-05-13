@@ -66,8 +66,7 @@ function parseMtlsTrustedCerts(
       configEndpoints: parsed.configEndpoints || [],
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to parse CF_MTLS_TRUSTED_CERTS: ${errorMessage}`);
+    throw new Error("Failed to parse CF_MTLS_TRUSTED_CERTS", { cause: error });
   }
 }
 
