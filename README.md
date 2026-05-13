@@ -85,6 +85,7 @@ npx @open-resource-discovery/provider-server --help
 | Option                                 | Default                  | Required         | Env Var                      | Description                                                                                                                                           |
 | -------------------------------------- | ------------------------ | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-b, --base-url <type>`                | `local`                  | Yes              | `ORD_BASE_URL`               | Base URL of the server. If deployed in CF environment, the VCAP_APPLICATION env will be used as fallback                                              |
+| `--absolute-urls`                      | `false`                  | No               | `ORD_ABSOLUTE_URLS`          | Emit fully-qualified absolute URLs (prefixed with `--base-url`) in all ORD responses instead of root-relative `/ord/v1/...` paths                     |
 | `-s, --source-type <type>`             | `local`                  | No               | `ORD_SOURCE_TYPE`            | Source type for ORD Documents (`local` or `github`)                                                                                                   |
 | `-a, --auth <types>`                   | `open`                   | No               | `ORD_AUTH_TYPE`              | Server authentication method(s) (`open`, `basic`, `cf-mtls`)                                                                                          |
 | `-d, --directory <path>`               | -                        | Yes (for local)  | `ORD_DIRECTORY`              | Root directory containing the ORD Documents directory and resource definition files.                                                                  |
@@ -235,6 +236,13 @@ This structure applies to both source types:
    - This `baseUrl` value will:
      - Be set in the ORD Configuration
      - Override the existing baseUrl in the `describedSystemInstance` field of any ORD Documents
+
+4. **Absolute URLs (`--absolute-urls` / `ORD_ABSOLUTE_URLS=true`)**
+   - By default the server emits **root-relative** paths in all ORD responses (e.g. `/ord/v1/documents/my-doc`).
+   - When `--absolute-urls` is set, every URL the server emits is prefixed with `--base-url`, producing fully-qualified URLs (e.g. `https://my-server.example.com/ord/v1/documents/my-doc`).
+   - This affects: document URLs in the ORD Configuration, resource definition URLs, and package link/file URLs.
+   - URLs that are already absolute (`http://` / `https://`) in the source documents are never modified.
+   - Use this option when deploying behind a gateway or when ORD consumers must resolve all links without knowing the server's base URL out-of-band.
 
 ### Perspective Filtering
 

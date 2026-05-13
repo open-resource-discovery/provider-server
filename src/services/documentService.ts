@@ -88,7 +88,7 @@ export class DocumentService implements DocumentServiceInterface {
             documentPaths.push(relativePath);
             processedDocsForFqn.push(processedDoc);
 
-            const documentUrl = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+            const documentUrl = this.buildDocumentUrl(relativePath);
             const perspective = getDocumentPerspective(document);
 
             const documentEntry: OrdV1DocumentDescription = {
@@ -234,13 +234,21 @@ export class DocumentService implements DocumentServiceInterface {
     return map;
   }
 
+  private buildDocumentUrl(relativePath: string): string {
+    const rootRelative = joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, relativePath.replace(/\.json$/, ""));
+    return this.processingContext.absoluteUrls ? this.processingContext.baseUrl + rootRelative : rootRelative;
+  }
+
   private processDocument(document: OrdDocument, directoryHash: string | null): OrdDocument {
+    const { baseUrl, absoluteUrls, authMethods } = this.processingContext;
     const eventResources = processResourceDefinitions(
       document.eventResources || [],
-      this.processingContext.authMethods,
+      authMethods,
+      baseUrl,
+      absoluteUrls,
     );
-    const apiResources = processResourceDefinitions(document.apiResources || [], this.processingContext.authMethods);
-    const packages = processPackageLinks(document.packages || []);
+    const apiResources = processResourceDefinitions(document.apiResources || [], authMethods, baseUrl, absoluteUrls);
+    const packages = processPackageLinks(document.packages || [], baseUrl, absoluteUrls);
 
     const perspective = getDocumentPerspective(document);
 
@@ -252,6 +260,12 @@ export class DocumentService implements DocumentServiceInterface {
     return {
       ...document,
       perspective,
+      // TODO: Once ORD spec v1.15 ships (https://github.com/open-resource-discovery/specification/pull/125),
+      // the provider server's baseUrl should be injected into the new document-level `baseUrl` field instead.
+      // `describedSystemInstance.baseUrl` is semantically the described system's URL (used for entry points),
+      // not the provider's URL (used for resolving metadata file references). Currently we inject the provider
+      // URL here as a v1.14 backward-compat fallback; after the spec package is updated to v1.15 this should
+      // be migrated to `OrdDocument.baseUrl` and `describedSystemInstance.baseUrl` should be left to the user.
       describedSystemInstance: {
         ...document.describedSystemInstance,
         baseUrl: this.processingContext.baseUrl,

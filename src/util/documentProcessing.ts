@@ -5,7 +5,11 @@ import { PATH_CONSTANTS } from "../constant.js";
 import { getOrdDocumentAccessStrategies } from "./ordConfig.js";
 import { OptAuthMethod } from "../model/cli.js";
 
-export function fixResourceDefinitionUrl(url: string, ordId: string): string {
+function makeUrlPrefix(baseUrl: string, absoluteUrls: boolean): string {
+  return absoluteUrls ? baseUrl + PATH_CONSTANTS.SERVER_PREFIX : PATH_CONSTANTS.SERVER_PREFIX;
+}
+
+export function fixResourceDefinitionUrl(url: string, ordId: string, baseUrl = "", absoluteUrls = false): string {
   const escapedOrdId = ordIdToPathSegment(ordId);
   const pathParts = url.split("/");
   const ordIdIdx = pathParts.findIndex((part) => escapedOrdId === part);
@@ -19,13 +23,16 @@ export function fixResourceDefinitionUrl(url: string, ordId: string): string {
   if (isRemoteUrl(url)) {
     return urlWithFixedOrdId;
   }
+  const prefix = makeUrlPrefix(baseUrl, absoluteUrls);
   // Construct server-relative URL
-  return joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, path.posix.resolve("/", urlWithFixedOrdId));
+  return prefix + joinUrlPaths(path.posix.resolve("/", urlWithFixedOrdId));
 }
 
 export function processResourceDefinitions<T extends EventResource | ApiResource>(
   resources: T[],
   authMethods: OptAuthMethod[],
+  baseUrl = "",
+  absoluteUrls = false,
 ): T[] {
   const accessStrategies = getOrdDocumentAccessStrategies(authMethods);
 
@@ -34,7 +41,7 @@ export function processResourceDefinitions<T extends EventResource | ApiResource
     resourceDefinitions: (resource.resourceDefinitions || []).map((definition) => {
       return {
         ...definition,
-        ...(definition.url && { url: fixResourceDefinitionUrl(definition.url, resource.ordId) }),
+        ...(definition.url && { url: fixResourceDefinitionUrl(definition.url, resource.ordId, baseUrl, absoluteUrls) }),
         accessStrategies,
       };
     }),
@@ -45,7 +52,8 @@ function isRelativeUrl(url: string): boolean {
   return !isRemoteUrl(url) && !url.startsWith("/");
 }
 
-export function processPackageLinks(packages: Package[]): Package[] {
+export function processPackageLinks(packages: Package[], baseUrl = "", absoluteUrls = false): Package[] {
+  const prefix = makeUrlPrefix(baseUrl, absoluteUrls);
   return packages.map((pkg) => ({
     ...pkg,
     ...(pkg.packageLinks && {
@@ -53,7 +61,7 @@ export function processPackageLinks(packages: Package[]): Package[] {
         ...link,
         ...(link.url &&
           isRelativeUrl(link.url) && {
-            url: joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, path.posix.resolve("/", link.url)),
+            url: prefix + joinUrlPaths(path.posix.resolve("/", link.url)),
           }),
       })),
     }),
@@ -62,7 +70,7 @@ export function processPackageLinks(packages: Package[]): Package[] {
         ...file,
         ...(file.url &&
           isRelativeUrl(file.url) && {
-            url: joinUrlPaths(PATH_CONSTANTS.SERVER_PREFIX, path.posix.resolve("/", file.url)),
+            url: prefix + joinUrlPaths(path.posix.resolve("/", file.url)),
           }),
       })),
     }),

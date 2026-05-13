@@ -14,6 +14,7 @@ import { log } from "../util/logger.js";
 interface FactoryOptions {
   sourceType: OptSourceType;
   baseUrl: string;
+  absoluteUrls?: boolean;
   authMethods: OptAuthMethod[];
   fqnDocumentMap: FqnDocumentMap;
   documentsSubDirectory?: string;
@@ -40,6 +41,7 @@ export class RouterFactory {
       repository = new LocalDocumentRepository(currentPath);
       processingContext = {
         baseUrl: options.baseUrl,
+        absoluteUrls: options.absoluteUrls,
         authMethods: options.authMethods,
         githubBranch: options.githubOpts.githubBranch,
         githubApiUrl: options.githubOpts.githubApiUrl,
@@ -50,6 +52,7 @@ export class RouterFactory {
       repository = new LocalDocumentRepository(options.ordDirectory);
       processingContext = {
         baseUrl: options.baseUrl,
+        absoluteUrls: options.absoluteUrls,
         authMethods: options.authMethods,
       };
     } else {

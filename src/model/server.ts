@@ -7,6 +7,7 @@ export interface ProviderServerOptions {
   ordDirectory: string;
   ordDocumentsSubDirectory: string;
   baseUrl?: string;
+  absoluteUrls?: boolean;
   host?: string;
   port?: number;
   sourceType: OptSourceType;
@@ -81,6 +82,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
     ordDocumentsSubDirectory: trimLeadingAndTrailingSlashes(options.documentsSubdirectory) || "", // Ensure it's never undefined
     baseUrl: updateBaseUrl(options.baseUrl),
+    absoluteUrls: options.absoluteUrls === true,
     host: trimTrailingSlash(options.host),
     port: options.port ? parseInt(options.port) : undefined,
     sourceType: options.sourceType,

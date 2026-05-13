@@ -45,6 +45,7 @@ export interface CommandLineOptions {
   documentsSubdirectory: string;
   auth: OptAuthMethod[];
   baseUrl?: string;
+  absoluteUrls?: boolean;
   host?: string;
   port?: string;
   githubApiUrl?: string;
