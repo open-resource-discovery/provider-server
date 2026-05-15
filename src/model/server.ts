@@ -1,5 +1,5 @@
 import { log } from "src/util/logger.js";
-import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
+import { CommandLineOptions, OptAuthMethod, OptSourceType, OrdAccessStrategy } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath, trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/pathUtils.js";
 
@@ -71,7 +71,7 @@ function parseMtlsTrustedCerts(value: string | undefined):
       certs: parsed.certs || [],
       rootCaDns: parsed.rootCaDn,
       configEndpoints: parsed.configEndpoints || [],
-      accessStrategies: parsed.accessStrategies ?? ["sap:cmp-mtls:v1"],
+      accessStrategies: parsed.accessStrategies ?? [OrdAccessStrategy.CfMtls],
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

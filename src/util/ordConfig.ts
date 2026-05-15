@@ -1,7 +1,7 @@
 import { OrdConfiguration, OrdV1DocumentAccessStrategy } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { joinFilePaths, normalizePath } from "src/util/pathUtils.js";
-import { mapOptAuthToOrdAccessStrategy, OptAuthMethod } from "src/model/cli.js";
+import { mapOptAuthToOrdAccessStrategy, OptAuthMethod, OrdAccessStrategy } from "src/model/cli.js";
 import { GithubOpts } from "src/model/github.js";
 import { getGithubDirectoryContents } from "src/util/github.js";
 
@@ -34,8 +34,10 @@ export function getOrdDocumentAccessStrategies(
   }
 
   return authOpts.flatMap((ao) => {
-    if (ao === OptAuthMethod.CfMtls && cfMtlsAccessStrategies) {
-      return cfMtlsAccessStrategies.map((type): OrdV1DocumentAccessStrategy => ({ type }));
+    if (ao === OptAuthMethod.CfMtls) {
+      return (cfMtlsAccessStrategies ?? [OrdAccessStrategy.CfMtls]).map(
+        (type): OrdV1DocumentAccessStrategy => ({ type }),
+      );
     }
     return [{ type: mapOptAuthToOrdAccessStrategy(ao) } satisfies OrdV1DocumentAccessStrategy];
   }) as [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]];
