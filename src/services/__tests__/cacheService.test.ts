@@ -343,6 +343,7 @@ describe("CacheService", () => {
     const mockProcessingContext = {
       baseUrl: "https://example.com",
       authMethods: [OptAuthMethod.Open],
+      cfMtlsAccessStrategies: [],
     };
 
     beforeEach(() => {

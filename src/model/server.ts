@@ -20,7 +20,7 @@ export interface ProviderServerOptions {
     trustedCerts?: { issuer: string; subject: string }[];
     trustedRootCaDns?: string[];
     cfMtlsConfigEndpoints?: string[];
-    cfMtlsAccessStrategies?: string[];
+    cfMtlsAccessStrategies: string[];
   };
   dataDir: string;
   cors?: string[];
@@ -45,7 +45,7 @@ function parseOrdDirectory(ordDirectory: string | undefined, sourceType: OptSour
   return ordDirectory;
 }
 
-interface MtlsTrustedCertsConfig {
+export interface MtlsTrustedCertsConfig {
   certs?: { issuer: string; subject: string }[];
   rootCaDn: string[];
   configEndpoints?: string[];
@@ -102,7 +102,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       trustedCerts: mtlsConfig?.certs,
       trustedRootCaDns: mtlsConfig?.rootCaDns,
       cfMtlsConfigEndpoints: mtlsConfig?.configEndpoints,
-      cfMtlsAccessStrategies: mtlsConfig?.accessStrategies,
+      cfMtlsAccessStrategies: mtlsConfig?.accessStrategies ?? [],
     },
     dataDir: options.dataDir || "./data",
     cors: options.cors ? options.cors.split(",") : undefined,

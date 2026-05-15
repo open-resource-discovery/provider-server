@@ -385,6 +385,10 @@ describe("Server Model", () => {
         rootCaDn: ["CN=Root CA"],
       };
 
+      afterEach(() => {
+        delete process.env.CF_MTLS_TRUSTED_CERTS;
+      });
+
       it("should default cfMtlsAccessStrategies to [sap:cmp-mtls:v1] when accessStrategies is not in config", () => {
         process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify(validCertsBase);
 
@@ -415,12 +419,12 @@ describe("Server Model", () => {
         expect(result.authentication.cfMtlsAccessStrategies).toEqual(["sap:cmp-mtls:v1", "sap.businesshub:mtls:v1"]);
       });
 
-      it("should not set cfMtlsAccessStrategies when cf-mtls auth is not active", () => {
+      it("should have empty cfMtlsAccessStrategies when cf-mtls auth is not active", () => {
         const openOptions: CommandLineOptions = { ...cfMtlsOptions, auth: [OptAuthMethod.Open] };
 
         const result = buildProviderServerOptions(openOptions);
 
-        expect(result.authentication.cfMtlsAccessStrategies).toBeUndefined();
+        expect(result.authentication.cfMtlsAccessStrategies).toEqual([]);
       });
     });
   });

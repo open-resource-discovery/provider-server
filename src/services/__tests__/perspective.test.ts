@@ -21,6 +21,7 @@ let documentService: DocumentService;
 const mockContext: ProcessingContext = {
   baseUrl: "http://127.0.0.1:8080",
   authMethods: [OptAuthMethod.Open],
+  cfMtlsAccessStrategies: [],
 };
 
 const createMockDocument = (perspective?: Perspective): OrdDocument => ({

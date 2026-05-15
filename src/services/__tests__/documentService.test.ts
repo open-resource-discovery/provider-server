@@ -30,6 +30,7 @@ describe("DocumentService", () => {
     mockProcessingContext = {
       baseUrl: "https://example.com",
       authMethods: [OptAuthMethod.Open],
+      cfMtlsAccessStrategies: [],
     };
 
     mockRepository = {

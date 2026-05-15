@@ -15,7 +15,7 @@ interface FactoryOptions {
   sourceType: OptSourceType;
   baseUrl: string;
   authMethods: OptAuthMethod[];
-  cfMtlsAccessStrategies?: string[];
+  cfMtlsAccessStrategies: string[];
   fqnDocumentMap: FqnDocumentMap;
   documentsSubDirectory?: string;
   githubOpts?: GithubOpts;
