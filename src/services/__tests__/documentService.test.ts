@@ -10,6 +10,7 @@ import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../../util/ordCo
 import { getFlattenedOrdFqnDocumentMap } from "../../util/fqnHelpers.js";
 import { getDocumentPerspective } from "../../model/perspective.js";
 import { joinUrlPaths } from "../../util/pathUtils.js";
+import { processOrdDocument } from "../../util/documentProcessing.js";
 
 jest.mock("../../util/logger.js");
 jest.mock("../cacheService.js");
@@ -17,6 +18,7 @@ jest.mock("../../util/ordConfig.js");
 jest.mock("../../util/fqnHelpers.js");
 jest.mock("../../model/perspective.js");
 jest.mock("../../util/pathUtils.js");
+jest.mock("../../util/documentProcessing.js");
 
 describe("DocumentService", () => {
   let documentService: DocumentService;
@@ -60,6 +62,7 @@ describe("DocumentService", () => {
     jest.mocked(getFlattenedOrdFqnDocumentMap).mockReturnValue({});
     jest.mocked(getDocumentPerspective).mockReturnValue("system-version");
     jest.mocked(joinUrlPaths).mockImplementation((...args: string[]) => args.join("/"));
+    jest.mocked(processOrdDocument).mockImplementation((doc) => doc);
 
     documentService = new DocumentService(mockRepository, mockCacheService, mockProcessingContext, "documents");
   });
@@ -152,13 +155,10 @@ describe("DocumentService", () => {
       mockCacheService.getCachedOrdConfig.mockReturnValue(null);
       mockRepository.getDocuments.mockResolvedValue(documentsMap);
 
-      // Make processDocument throw for second document
-      jest
-        .spyOn(documentService as any, "processDocument")
-        .mockReturnValueOnce(validDoc)
-        .mockImplementationOnce(() => {
-          throw new Error("Processing failed");
-        });
+      // Make processOrdDocument throw for second document
+      (processOrdDocument as jest.Mock).mockReturnValueOnce(validDoc).mockImplementationOnce(() => {
+        throw new Error("Processing failed");
+      });
 
       await (documentService as any).ensureDataLoaded(dirHash);
 

@@ -1,9 +1,4 @@
-import {
-  OrdConfiguration,
-  OrdDocument,
-  OrdV1DocumentDescription,
-  SystemVersion,
-} from "@open-resource-discovery/specification";
+import { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
 import { DocumentService as DocumentServiceInterface } from "./interfaces/documentService.js";
 import { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
 import { CacheService } from "./interfaces/cacheService.js";
@@ -15,7 +10,7 @@ import { joinUrlPaths } from "../util/pathUtils.js";
 import { PATH_CONSTANTS } from "../constant.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
 import { getDocumentPerspective, Perspective } from "../model/perspective.js";
-import { processResourceDefinitions, processPackageLinks } from "../util/documentProcessing.js";
+import { processOrdDocument } from "../util/documentProcessing.js";
 
 export class DocumentService implements DocumentServiceInterface {
   // Track in-progress loading operations to prevent duplicate cache builds
@@ -86,7 +81,7 @@ export class DocumentService implements DocumentServiceInterface {
         let count = 0;
         for (const [relativePath, document] of documentsMap.entries()) {
           try {
-            const processedDoc = this.processDocument(document, dirHash);
+            const processedDoc = processOrdDocument(document, this.processingContext, dirHash);
             this.cacheService.cacheDocument(relativePath, dirHash, processedDoc);
             documentPaths.push(relativePath);
             processedDocsForFqn.push(processedDoc);
@@ -163,7 +158,7 @@ export class DocumentService implements DocumentServiceInterface {
     }
 
     // Process the document (apply base URL, access strategies, etc.)
-    const processedDoc = this.processDocument(document, currentDirHash);
+    const processedDoc = processOrdDocument(document, this.processingContext, currentDirHash);
 
     this.cacheService.cacheDocument(relativePath, currentDirHash, processedDoc);
 
@@ -235,51 +230,5 @@ export class DocumentService implements DocumentServiceInterface {
       throw new Error("Failed to load FQN map.");
     }
     return map;
-  }
-
-  private processDocument(document: OrdDocument, directoryHash: string | null): OrdDocument {
-    const eventResources = processResourceDefinitions(
-      document.eventResources || [],
-      this.processingContext.authMethods,
-      this.processingContext.cfMtlsAccessStrategies,
-    );
-    const apiResources = processResourceDefinitions(
-      document.apiResources || [],
-      this.processingContext.authMethods,
-      this.processingContext.cfMtlsAccessStrategies,
-    );
-    const packages = processPackageLinks(document.packages || []);
-
-    const perspective = getDocumentPerspective(document);
-
-    // Only inject describedSystemVersion for system-version perspective documents that don't have it
-    const describedSystemVersion =
-      document.describedSystemVersion ||
-      (perspective === "system-version" ? this.getDefaultDescribedSystemVersion(directoryHash) : undefined);
-
-    return {
-      ...document,
-      perspective,
-      describedSystemInstance: {
-        ...document.describedSystemInstance,
-        baseUrl: this.processingContext.baseUrl,
-      },
-      describedSystemVersion,
-      packages: packages.length ? packages : undefined,
-      apiResources: apiResources.length ? apiResources : undefined,
-      eventResources: eventResources.length ? eventResources : undefined,
-    };
-  }
-
-  /**
-   * Gets the default described system version.
-   *
-   * @param directoryHash - The full directory hash from the repository
-   * @returns Version in format "1.0.0-<hash>" where hash is the first 8 characters of the directory hash
-   */
-  private getDefaultDescribedSystemVersion(directoryHash: string | null): SystemVersion {
-    const shortHash = directoryHash ? directoryHash.substring(0, 8) : "unknown";
-    const version = `1.0.0-${shortHash}`;
-    return { version };
   }
 }
