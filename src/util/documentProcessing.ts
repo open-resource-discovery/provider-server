@@ -26,8 +26,9 @@ export function fixResourceDefinitionUrl(url: string, ordId: string): string {
 export function processResourceDefinitions<T extends EventResource | ApiResource>(
   resources: T[],
   authMethods: OptAuthMethod[],
+  cfMtlsAccessStrategies?: string[],
 ): T[] {
-  const accessStrategies = getOrdDocumentAccessStrategies(authMethods);
+  const accessStrategies = getOrdDocumentAccessStrategies(authMethods, cfMtlsAccessStrategies);
 
   return resources.map((resource) => ({
     ...resource,

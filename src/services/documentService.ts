@@ -75,7 +75,10 @@ export class DocumentService implements DocumentServiceInterface {
         log.debug(`Cache miss for hash ${dirHash}. Fetching documents, building config and FQN map.`);
         const documentsMap = await this.repository.getDocuments(this.documentsDirectoryPath);
         const ordConfig: OrdConfiguration = emptyOrdConfig(this.processingContext.baseUrl);
-        const accessStrategies = getOrdDocumentAccessStrategies(this.processingContext.authMethods);
+        const accessStrategies = getOrdDocumentAccessStrategies(
+          this.processingContext.authMethods,
+          this.processingContext.cfMtlsAccessStrategies,
+        );
         const documentPaths: string[] = [];
 
         const processedDocsForFqn: OrdDocument[] = [];
@@ -238,8 +241,13 @@ export class DocumentService implements DocumentServiceInterface {
     const eventResources = processResourceDefinitions(
       document.eventResources || [],
       this.processingContext.authMethods,
+      this.processingContext.cfMtlsAccessStrategies,
     );
-    const apiResources = processResourceDefinitions(document.apiResources || [], this.processingContext.authMethods);
+    const apiResources = processResourceDefinitions(
+      document.apiResources || [],
+      this.processingContext.authMethods,
+      this.processingContext.cfMtlsAccessStrategies,
+    );
     const packages = processPackageLinks(document.packages || []);
 
     const perspective = getDocumentPerspective(document);

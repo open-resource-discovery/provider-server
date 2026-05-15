@@ -27,16 +27,17 @@ export async function listGithubOrdDirectory(githubOpts: GithubOpts, ordSubDirec
 
 export function getOrdDocumentAccessStrategies(
   authOpts: OptAuthMethod[],
+  cfMtlsAccessStrategies?: string[],
 ): [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]] {
   if (authOpts.length === 0) {
     throw new Error("No authentication options passed for ORD config access strategies");
   }
 
-  return authOpts.map((ao) => {
-    const accessStrategy: OrdV1DocumentAccessStrategy = {
-      type: mapOptAuthToOrdAccessStrategy(ao),
-    };
-    return accessStrategy;
+  return authOpts.flatMap((ao) => {
+    if (ao === OptAuthMethod.CfMtls && cfMtlsAccessStrategies) {
+      return cfMtlsAccessStrategies.map((type): OrdV1DocumentAccessStrategy => ({ type }));
+    }
+    return [{ type: mapOptAuthToOrdAccessStrategy(ao) } satisfies OrdV1DocumentAccessStrategy];
   }) as [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]];
 }
 

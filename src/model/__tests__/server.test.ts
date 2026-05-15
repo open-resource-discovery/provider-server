@@ -370,5 +370,58 @@ describe("Server Model", () => {
 
       expect(result.ordDirectory).toBe(".");
     });
+    describe("CF_MTLS_TRUSTED_CERTS accessStrategies parsing", () => {
+      const cfMtlsOptions: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/path/to/data",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+        updateDelay: "30",
+      };
+
+      const validCertsBase = {
+        certs: [{ issuer: "CN=Test Issuer", subject: "CN=Test Subject" }],
+        rootCaDn: ["CN=Root CA"],
+      };
+
+      it("should default cfMtlsAccessStrategies to [sap:cmp-mtls:v1] when accessStrategies is not in config", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify(validCertsBase);
+
+        const result = buildProviderServerOptions(cfMtlsOptions);
+
+        expect(result.authentication.cfMtlsAccessStrategies).toEqual(["sap:cmp-mtls:v1"]);
+      });
+
+      it("should use the provided accessStrategies when specified", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+          ...validCertsBase,
+          accessStrategies: ["sap.businesshub:mtls:v1"],
+        });
+
+        const result = buildProviderServerOptions(cfMtlsOptions);
+
+        expect(result.authentication.cfMtlsAccessStrategies).toEqual(["sap.businesshub:mtls:v1"]);
+      });
+
+      it("should preserve both strategies when both are listed in accessStrategies", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+          ...validCertsBase,
+          accessStrategies: ["sap:cmp-mtls:v1", "sap.businesshub:mtls:v1"],
+        });
+
+        const result = buildProviderServerOptions(cfMtlsOptions);
+
+        expect(result.authentication.cfMtlsAccessStrategies).toEqual(["sap:cmp-mtls:v1", "sap.businesshub:mtls:v1"]);
+      });
+
+      it("should not set cfMtlsAccessStrategies when cf-mtls auth is not active", () => {
+        const openOptions: CommandLineOptions = { ...cfMtlsOptions, auth: [OptAuthMethod.Open] };
+
+        const result = buildProviderServerOptions(openOptions);
+
+        expect(result.authentication.cfMtlsAccessStrategies).toBeUndefined();
+      });
+    });
   });
 });
