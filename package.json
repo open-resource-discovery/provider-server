@@ -78,7 +78,7 @@
     "ts-jest": "29.4.9",
     "tsc-alias": "1.8.17",
     "tsx": "4.22.1",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   },
   "lint-staged": {
     "./**/*.{js,ts}": [
