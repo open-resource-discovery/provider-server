@@ -1,9 +1,11 @@
 import path from "path";
-import { ApiResource, EventResource, Package } from "@open-resource-discovery/specification";
+import { ApiResource, EventResource, OrdDocument, Package } from "@open-resource-discovery/specification";
 import { isRemoteUrl, joinUrlPaths, ordIdToPathSegment } from "./pathUtils.js";
 import { PATH_CONSTANTS } from "../constant.js";
 import { getOrdDocumentAccessStrategies } from "./ordConfig.js";
 import { OptAuthMethod } from "../model/cli.js";
+import { getDocumentPerspective } from "../model/perspective.js";
+import { ProcessingContext } from "../services/interfaces/processingContext.js";
 
 export function fixResourceDefinitionUrl(url: string, ordId: string): string {
   const escapedOrdId = ordIdToPathSegment(ordId);
@@ -26,8 +28,9 @@ export function fixResourceDefinitionUrl(url: string, ordId: string): string {
 export function processResourceDefinitions<T extends EventResource | ApiResource>(
   resources: T[],
   authMethods: OptAuthMethod[],
+  cfMtlsAccessStrategies?: string[],
 ): T[] {
-  const accessStrategies = getOrdDocumentAccessStrategies(authMethods);
+  const accessStrategies = getOrdDocumentAccessStrategies(authMethods, cfMtlsAccessStrategies);
 
   return resources.map((resource) => ({
     ...resource,
@@ -67,4 +70,40 @@ export function processPackageLinks(packages: Package[]): Package[] {
       })),
     }),
   }));
+}
+
+export function processOrdDocument(
+  document: OrdDocument,
+  context: ProcessingContext,
+  directoryHash: string | null,
+): OrdDocument {
+  const eventResources = processResourceDefinitions(
+    document.eventResources || [],
+    context.authMethods,
+    context.cfMtlsAccessStrategies,
+  );
+  const apiResources = processResourceDefinitions(
+    document.apiResources || [],
+    context.authMethods,
+    context.cfMtlsAccessStrategies,
+  );
+  const packages = processPackageLinks(document.packages || []);
+  const perspective = getDocumentPerspective(document);
+  const shortHash = directoryHash ? directoryHash.substring(0, 8) : "unknown";
+  const describedSystemVersion =
+    document.describedSystemVersion ||
+    (perspective === "system-version" ? { version: `1.0.0-${shortHash}` } : undefined);
+
+  return {
+    ...document,
+    perspective,
+    describedSystemInstance: {
+      ...document.describedSystemInstance,
+      baseUrl: context.baseUrl,
+    },
+    describedSystemVersion,
+    packages: packages.length ? packages : undefined,
+    apiResources: apiResources.length ? apiResources : undefined,
+    eventResources: eventResources.length ? eventResources : undefined,
+  };
 }

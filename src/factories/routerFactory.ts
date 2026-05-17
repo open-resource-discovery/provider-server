@@ -15,6 +15,7 @@ interface FactoryOptions {
   sourceType: OptSourceType;
   baseUrl: string;
   authMethods: OptAuthMethod[];
+  cfMtlsAccessStrategies: string[];
   fqnDocumentMap: FqnDocumentMap;
   documentsSubDirectory?: string;
   githubOpts?: GithubOpts;
@@ -41,6 +42,7 @@ export class RouterFactory {
       processingContext = {
         baseUrl: options.baseUrl,
         authMethods: options.authMethods,
+        cfMtlsAccessStrategies: options.cfMtlsAccessStrategies,
         githubBranch: options.githubOpts.githubBranch,
         githubApiUrl: options.githubOpts.githubApiUrl,
         githubRepo: options.githubOpts.githubRepository,
@@ -51,6 +53,7 @@ export class RouterFactory {
       processingContext = {
         baseUrl: options.baseUrl,
         authMethods: options.authMethods,
+        cfMtlsAccessStrategies: options.cfMtlsAccessStrategies,
       };
     } else {
       throw new Error("Invalid configuration: Missing required options for the specified source type.");

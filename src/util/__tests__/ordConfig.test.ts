@@ -29,6 +29,36 @@ describe("ordConfig", () => {
         "No authentication options passed for ORD config access strategies",
       );
     });
+
+    it("should use default sap:cmp-mtls:v1 for cf-mtls when no accessStrategies override provided", () => {
+      const result = getOrdDocumentAccessStrategies([OptAuthMethod.CfMtls]);
+
+      expect(result).toEqual([{ type: OrdAccessStrategy.CfMtls }]);
+    });
+
+    it("should use configured sap.businesshub:mtls:v1 when provided as override", () => {
+      const result = getOrdDocumentAccessStrategies([OptAuthMethod.CfMtls], ["sap.businesshub:mtls:v1"]);
+
+      expect(result).toEqual([{ type: "sap.businesshub:mtls:v1" }]);
+    });
+
+    it("should expand both configured access strategies when two overrides are provided", () => {
+      const result = getOrdDocumentAccessStrategies(
+        [OptAuthMethod.CfMtls],
+        ["sap:cmp-mtls:v1", "sap.businesshub:mtls:v1"],
+      );
+
+      expect(result).toEqual([{ type: "sap:cmp-mtls:v1" }, { type: "sap.businesshub:mtls:v1" }]);
+    });
+
+    it("should not affect non-cf-mtls strategies when an override is provided", () => {
+      const result = getOrdDocumentAccessStrategies(
+        [OptAuthMethod.Open, OptAuthMethod.CfMtls],
+        ["sap.businesshub:mtls:v1"],
+      );
+
+      expect(result).toEqual([{ type: OrdAccessStrategy.Open }, { type: "sap.businesshub:mtls:v1" }]);
+    });
   });
 
   describe("emptyOrdConfig", () => {

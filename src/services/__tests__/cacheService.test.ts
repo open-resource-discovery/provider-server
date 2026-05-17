@@ -4,6 +4,7 @@ import { OrdDocument, OrdConfiguration } from "@open-resource-discovery/specific
 import { FqnDocumentMap } from "../../util/fqnHelpers.js";
 import { log } from "../../util/logger.js";
 import { OptAuthMethod } from "../../model/cli.js";
+import { processOrdDocument } from "../../util/documentProcessing.js";
 
 jest.mock("../../util/logger.js");
 jest.mock("fs/promises");
@@ -11,6 +12,7 @@ jest.mock("../../util/files.js");
 jest.mock("../../util/validateOrdDocument.js");
 jest.mock("../../util/ordConfig.js");
 jest.mock("../../util/pathUtils.js");
+jest.mock("../../util/documentProcessing.js");
 jest.mock("../../model/perspective.js");
 jest.mock("../../util/fqnHelpers.js");
 
@@ -343,10 +345,12 @@ describe("CacheService", () => {
     const mockProcessingContext = {
       baseUrl: "https://example.com",
       authMethods: [OptAuthMethod.Open],
+      cfMtlsAccessStrategies: [],
     };
 
     beforeEach(() => {
       cacheService = new CacheService(mockProcessingContext, log);
+      (processOrdDocument as jest.Mock).mockImplementation((doc) => doc);
     });
 
     it("should not warm cache in local mode (no processing context)", async () => {

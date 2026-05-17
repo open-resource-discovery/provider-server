@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Add optional `accessStrategies` array to `CF_MTLS_TRUSTED_CERTS` configuration, allowing operators to specify which ORD access strategy identifiers are embedded into served ORD documents (e.g. `sap:cmp-mtls:v1`, `sap.businesshub:mtls:v1`). Defaults to `["sap:cmp-mtls:v1"]` for backwards compatibility with existing deployments.
+
 ## [[1.1.3](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.3)] - 2026-05-07
 
 ### Changed
