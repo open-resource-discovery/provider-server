@@ -225,7 +225,7 @@ This structure applies to both source types:
      }
      ```
    - The server will resolve `/apis/api-one/openapi.json` relative to the `-d` directory
-   - The access strategies of the `resourceDefinitions` will be overwritten by the provided authentication method
+   - The access strategies of the `resourceDefinitions` will be overwritten by the configured access strategies (derived from the authentication method, or from `accessStrategies` in `CF_MTLS_TRUSTED_CERTS` when using `cf-mtls`)
 
 3. **Base URL**
    - The `baseUrl` is a required parameter that must match the format specified in the [ORD Specification](https://open-resource-discovery.github.io/specification/spec-v1/interfaces/configuration#ord-configuration_baseurl).
@@ -327,15 +327,17 @@ Set the `CF_MTLS_TRUSTED_CERTS` environment variable with a JSON object:
 {
   "certs": [{ "issuer": "CN=CA,O=Org,C=DE", "subject": "CN=service,O=Org,C=DE" }],
   "rootCaDn": ["CN=Root CA,O=Org,C=DE"],
-  "configEndpoints": ["https://config.example.com/mtls-info"]
+  "configEndpoints": ["https://config.example.com/mtls-info"],
+  "accessStrategies": ["sap:cmp-mtls:v1"]
 }
 ```
 
-| Field             | Required | Description                                       |
-| ----------------- | -------- | ------------------------------------------------- |
-| `certs`           | No\*     | Array of trusted issuer/subject certificate pairs |
-| `rootCaDn`        | Yes      | Array of trusted root CA Distinguished Names      |
-| `configEndpoints` | No       | Array of URLs to fetch additional cert info from  |
+| Field              | Required | Description                                                             |
+| ------------------ | -------- | ----------------------------------------------------------------------- |
+| `certs`            | No\*     | Array of trusted issuer/subject certificate pairs                       |
+| `rootCaDn`         | Yes      | Array of trusted root CA Distinguished Names                            |
+| `configEndpoints`  | No       | Array of URLs to fetch additional cert info from                        |
+| `accessStrategies` | No       | Array of ORD access strategy identifiers written into served documents. |
 
 \* `certs` can be omitted when `configEndpoints` is provided (certs will be fetched from endpoints).
 

@@ -37,6 +37,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Local,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         ordDirectory: "/test/data",
         documentsSubDirectory: "documents",
@@ -58,6 +59,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         documentsSubDirectory: "documents",
         githubOpts: {
@@ -81,6 +83,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         githubOpts: {
           githubApiUrl: "https://api.github.com",
@@ -100,6 +103,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Local,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         // Missing ordDirectory for local source
       };
@@ -114,6 +118,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Local,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         ordDirectory: "/test/data",
       };
@@ -137,6 +142,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         documentsSubDirectory: "documents",
         githubOpts: {
@@ -167,6 +173,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         documentsSubDirectory: "documents",
         githubOpts: {
@@ -197,6 +204,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         documentsSubDirectory: "documents",
         githubOpts: {
@@ -221,6 +229,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         documentsSubDirectory: "documents",
         githubOpts: {
@@ -245,6 +254,7 @@ describe("RouterFactory", () => {
         sourceType: OptSourceType.Github,
         baseUrl: "https://example.com",
         authMethods: [OptAuthMethod.Basic],
+        cfMtlsAccessStrategies: [],
         fqnDocumentMap: {},
         documentsSubDirectory: "documents",
         githubOpts: {

@@ -1,11 +1,6 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import {
-  OrdConfiguration,
-  OrdDocument,
-  OrdV1DocumentDescription,
-  SystemVersion,
-} from "@open-resource-discovery/specification";
+import { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
 import { CacheService as CacheServiceInterface } from "./interfaces/cacheService.js";
 import { log } from "../util/logger.js";
 import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
@@ -17,7 +12,7 @@ import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../util/ordConfi
 import { joinUrlPaths } from "../util/pathUtils.js";
 import { PATH_CONSTANTS } from "../constant.js";
 import { getDocumentPerspective } from "../model/perspective.js";
-import { processResourceDefinitions, processPackageLinks } from "../util/documentProcessing.js";
+import { processOrdDocument } from "../util/documentProcessing.js";
 
 export class CacheService implements CacheServiceInterface {
   // Cache for individual documents, keyed by their full path
@@ -261,7 +256,10 @@ export class CacheService implements CacheServiceInterface {
       const documents: { relativePath: string; document: OrdDocument }[] = [];
       const processedDocsForFqn: OrdDocument[] = [];
       const ordConfig: OrdConfiguration = emptyOrdConfig(baseUrl);
-      const accessStrategies = getOrdDocumentAccessStrategies(authMethods);
+      const accessStrategies = getOrdDocumentAccessStrategies(
+        authMethods,
+        this.processingContext!.cfMtlsAccessStrategies,
+      );
       const documentPaths: string[] = [];
 
       let processed = 0;
@@ -289,7 +287,7 @@ export class CacheService implements CacheServiceInterface {
               : fileRelativePath;
 
             // Process the document
-            const processedDoc = this.processDocument(jsonData as OrdDocument, dirHash);
+            const processedDoc = processOrdDocument(jsonData as OrdDocument, this.processingContext!, dirHash);
 
             documents.push({
               relativePath,
@@ -355,44 +353,6 @@ export class CacheService implements CacheServiceInterface {
       this.currentDirHash = null;
       this.abortController = null;
     }
-  }
-
-  private processDocument(document: OrdDocument, directoryHash: string): OrdDocument {
-    const eventResources = processResourceDefinitions(
-      document.eventResources || [],
-      this.processingContext?.authMethods || [],
-    );
-    const apiResources = processResourceDefinitions(
-      document.apiResources || [],
-      this.processingContext?.authMethods || [],
-    );
-    const packages = processPackageLinks(document.packages || []);
-
-    const perspective = getDocumentPerspective(document);
-
-    // Only inject describedSystemVersion for system-version perspective documents that don't have it
-    const describedSystemVersion =
-      document.describedSystemVersion ||
-      (perspective === "system-version" ? this.getDefaultDescribedSystemVersion(directoryHash) : undefined);
-
-    return {
-      ...document,
-      perspective,
-      describedSystemInstance: {
-        ...document.describedSystemInstance,
-        baseUrl: this.processingContext?.baseUrl,
-      },
-      describedSystemVersion,
-      packages: packages.length ? packages : undefined,
-      apiResources: apiResources.length ? apiResources : undefined,
-      eventResources: eventResources.length ? eventResources : undefined,
-    };
-  }
-
-  private getDefaultDescribedSystemVersion(directoryHash: string): SystemVersion {
-    const shortHash = directoryHash ? directoryHash.substring(0, 8) : "unknown";
-    const version = `1.0.0-${shortHash}`;
-    return { version };
   }
 
   /**

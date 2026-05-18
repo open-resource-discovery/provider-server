@@ -360,6 +360,113 @@ describe("validateOptions", () => {
       mockReadFileSync.mockRestore();
     });
 
+    describe("CF_MTLS_TRUSTED_CERTS.accessStrategies validation", () => {
+      const cfMtlsOptions: CommandLineOptions = {
+        sourceType: OptSourceType.Local,
+        directory: "/test",
+        documentsSubdirectory: "documents",
+        auth: [OptAuthMethod.CfMtls],
+        baseUrl: "https://example.com",
+      };
+
+      const validCertsBase = {
+        certs: [{ issuer: "CN=Test Issuer", subject: "CN=Test Subject" }],
+        rootCaDn: ["CN=Root CA"],
+      };
+
+      beforeEach(() => {
+        process.env.CF_INSTANCE_GUID = "test-instance-guid";
+      });
+
+      function withFsMocks(fn: () => void): void {
+        const mockStatSync = jest
+          .spyOn(fs, "statSync")
+          .mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
+        const mockReaddirSync = jest.spyOn(fs, "readdirSync").mockReturnValue(["doc1.json"] as any);
+        const mockReadFileSync = jest
+          .spyOn(fs, "readFileSync")
+          .mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
+        try {
+          fn();
+        } finally {
+          mockStatSync.mockRestore();
+          mockReaddirSync.mockRestore();
+          mockReadFileSync.mockRestore();
+        }
+      }
+
+      it("should pass when accessStrategies is omitted (backwards compatibility)", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify(validCertsBase);
+        withFsMocks(() => {
+          expect(() => validateOffline(cfMtlsOptions)).not.toThrow();
+        });
+      });
+
+      it("should pass with accessStrategies containing sap:cmp-mtls:v1", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+          ...validCertsBase,
+          accessStrategies: ["sap:cmp-mtls:v1"],
+        });
+        withFsMocks(() => {
+          expect(() => validateOffline(cfMtlsOptions)).not.toThrow();
+        });
+      });
+
+      it("should pass with accessStrategies containing sap.businesshub:mtls:v1", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+          ...validCertsBase,
+          accessStrategies: ["sap.businesshub:mtls:v1"],
+        });
+        withFsMocks(() => {
+          expect(() => validateOffline(cfMtlsOptions)).not.toThrow();
+        });
+      });
+
+      it("should pass with both sap:cmp-mtls:v1 and sap.businesshub:mtls:v1 in accessStrategies", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({
+          ...validCertsBase,
+          accessStrategies: ["sap:cmp-mtls:v1", "sap.businesshub:mtls:v1"],
+        });
+        withFsMocks(() => {
+          expect(() => validateOffline(cfMtlsOptions)).not.toThrow();
+        });
+      });
+
+      it("should throw ValidationError when accessStrategies is not an array", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({ ...validCertsBase, accessStrategies: "sap:cmp-mtls:v1" });
+        expect(() => validateOffline(cfMtlsOptions)).toThrow(ValidationError);
+        expect(() => validateOffline(cfMtlsOptions)).toThrow("CF_MTLS_TRUSTED_CERTS.accessStrategies must be an array");
+      });
+
+      it("should throw ValidationError when accessStrategies is an empty array", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({ ...validCertsBase, accessStrategies: [] });
+        expect(() => validateOffline(cfMtlsOptions)).toThrow(ValidationError);
+        expect(() => validateOffline(cfMtlsOptions)).toThrow("CF_MTLS_TRUSTED_CERTS.accessStrategies cannot be empty");
+      });
+
+      it.each([
+        ["not-a-valid-id", "no colons or version"],
+        ["sap:cmp-mtls", "missing version segment"],
+        ["SAP:CMP-MTLS:v1", "uppercase namespace disallowed"],
+        [":cmp-mtls:v1", "empty namespace"],
+        ["sap::v1", "empty id segment"],
+      ])("should throw ValidationError for invalid specification ID %j (%s)", (invalidId) => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({ ...validCertsBase, accessStrategies: [invalidId] });
+        expect(() => validateOffline(cfMtlsOptions)).toThrow(ValidationError);
+        expect(() => validateOffline(cfMtlsOptions)).toThrow(
+          "Each entry in CF_MTLS_TRUSTED_CERTS.accessStrategies must be a valid specification ID",
+        );
+      });
+
+      it("should throw ValidationError when an accessStrategies element is not a string", () => {
+        process.env.CF_MTLS_TRUSTED_CERTS = JSON.stringify({ ...validCertsBase, accessStrategies: [42] });
+        expect(() => validateOffline(cfMtlsOptions)).toThrow(ValidationError);
+        expect(() => validateOffline(cfMtlsOptions)).toThrow(
+          "Each entry in CF_MTLS_TRUSTED_CERTS.accessStrategies must be a valid specification ID",
+        );
+      });
+    });
+
     it("should throw ValidationError for missing directory in local mode", () => {
       const options: CommandLineOptions = {
         sourceType: OptSourceType.Local,

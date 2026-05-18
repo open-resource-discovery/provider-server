@@ -51,6 +51,7 @@ describe("Server Integration", () => {
       authentication: {
         methods: [OptAuthMethod.Basic],
         basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
+        cfMtlsAccessStrategies: [],
       },
       dataDir: "./test-data",
       updateDelay: 30000,
@@ -311,6 +312,7 @@ describe("Server Integration", () => {
         authentication: {
           methods: [OptAuthMethod.Basic],
           basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
+          cfMtlsAccessStrategies: [],
         },
         dataDir: "./test-data-2",
         updateDelay: 30000,
@@ -550,6 +552,7 @@ describe("GitHub Source Type Integration", () => {
       baseUrl: GITHUB_SERVER_URL,
       authentication: {
         methods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
       },
       githubApiUrl: "https://api.github.com",
       githubRepository: "test-org/test-repo",
@@ -673,6 +676,7 @@ describe("GitHub Source Type - Error Handling", () => {
       baseUrl: GITHUB_ERROR_SERVER_URL,
       authentication: {
         methods: [OptAuthMethod.Open],
+        cfMtlsAccessStrategies: [],
       },
       githubApiUrl: "https://api.github.com",
       githubRepository: "test-org/invalid-repo",

@@ -38,6 +38,7 @@ describe("End-to-End Testing", () => {
       authentication: {
         methods: [OptAuthMethod.Basic],
         basicAuthUsers: { admin: BASIC_AUTH_PASSWORD },
+        cfMtlsAccessStrategies: [],
       },
       dataDir: "./test-data",
       updateDelay: 30000,

@@ -305,6 +305,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     sourceType: opts.sourceType,
     baseUrl: baseUrl,
     authMethods: opts.authentication.methods,
+    cfMtlsAccessStrategies: opts.authentication.cfMtlsAccessStrategies,
     fqnDocumentMap: {},
     documentsSubDirectory: opts.ordDocumentsSubDirectory,
     ordDirectory: effectiveOrdDirectory,
