@@ -5,10 +5,10 @@ const { compilerOptions } = JSON.parse(fs.readFileSync("./tsconfig.json"));
 
 export default {
   preset: "ts-jest/presets/default-esm",
-  modulePaths: [compilerOptions.baseUrl],
+  modulePaths: ["."],
   testEnvironment: "node",
   automock: false,
-  moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { useESM: true }),
+  moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { useESM: true, prefix: "<rootDir>/" }),
   moduleFileExtensions: ["js", "json", "ts", "d.ts"],
   moduleDirectories: ["node_modules"],
   modulePathIgnorePatterns: ["src/__tests__/resources/", "dist/"],

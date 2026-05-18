@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config({ override: true });
 
 import { Command, Option } from "commander";
-import packageJson from "package.json" with { type: "json" };
+import packageJson from "../package.json" with { type: "json" };
 import { CommandLineOptions, OptAuthMethod, OptSourceType, parseAuthMethods, parseSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
 import { getBaseUrlFromVcapEnv } from "src/util/env.js";
