@@ -2,7 +2,7 @@ import { ordConfigurationSchema, type OrdDocument } from "@open-resource-discove
 import fs from "fs";
 import path from "path";
 import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
-import { buildProviderServerOptions, ProviderServerOptions } from "src/model/server.js";
+import { buildProviderServerOptions, MtlsTrustedCertsConfig, ProviderServerOptions } from "src/model/server.js";
 import { joinFilePaths } from "../util/pathUtils.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
@@ -203,11 +203,7 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
 
     // Validate CF_MTLS_TRUSTED_CERTS JSON structure
     try {
-      const parsed = JSON.parse(trustedCerts) as {
-        certs?: { issuer: string; subject: string }[];
-        rootCaDn: string[];
-        configEndpoints?: string[];
-      };
+      const parsed = JSON.parse(trustedCerts) as MtlsTrustedCertsConfig;
 
       if (!parsed || typeof parsed !== "object") {
         errors.push("CF_MTLS_TRUSTED_CERTS must be a JSON object");
@@ -256,6 +252,25 @@ function validateAuthOptions(authMethods: OptAuthMethod[], errors: string[]): vo
         if (typeof dn !== "string") {
           errors.push("Each rootCaDn entry in CF_MTLS_TRUSTED_CERTS must be a string");
           return;
+        }
+      }
+
+      // Validate accessStrategies if present
+      if (parsed.accessStrategies !== undefined) {
+        if (!Array.isArray(parsed.accessStrategies)) {
+          errors.push("CF_MTLS_TRUSTED_CERTS.accessStrategies must be an array");
+          return;
+        }
+        if (parsed.accessStrategies.length === 0) {
+          errors.push("CF_MTLS_TRUSTED_CERTS.accessStrategies cannot be empty");
+          return;
+        }
+        const specIdPattern = /^([a-z0-9]+(?:[.][a-z0-9]+)*):([a-zA-Z0-9._-]+):(v0|v[1-9][0-9]*)$/;
+        for (const strategy of parsed.accessStrategies) {
+          if (typeof strategy !== "string" || !specIdPattern.test(strategy)) {
+            errors.push("Each entry in CF_MTLS_TRUSTED_CERTS.accessStrategies must be a valid specification ID");
+            return;
+          }
         }
       }
 
