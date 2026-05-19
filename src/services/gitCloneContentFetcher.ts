@@ -108,7 +108,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
     } catch (error) {
       if (this.abortController.signal.aborted) {
         log.warn("Git clone/pull was aborted");
-        throw new Error("Fetch aborted");
+        throw new Error("Fetch aborted", { cause: error });
       }
 
       if (
@@ -278,7 +278,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
         this.config.branch,
         this.getAuthCallback() ? { username: this.config.token!, password: "x-oauth-basic" } : undefined,
         (progressEvent) => {
-          let message = "";
+          let message: string;
           const phase = progressEvent.phase;
           const loaded = progressEvent.loaded || 0;
           const total = progressEvent.total || 0;
@@ -523,7 +523,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
 
       const errorMessage = error instanceof Error ? error.message : String(error);
       log.error(`Extraction failed: ${errorMessage}`);
-      throw new Error(`Failed to extract root directory '${this.config.rootDirectory}': ${errorMessage}`);
+      throw new Error(`Failed to extract root directory '${this.config.rootDirectory}'`, { cause: error });
     }
   }
 

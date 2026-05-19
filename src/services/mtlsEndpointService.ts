@@ -90,11 +90,11 @@ async function fetchMtlsCertInfo(endpoint: string, timeoutMs: number): Promise<M
     clearTimeout(timeoutId);
     if (error instanceof Error) {
       if (error.name === "AbortError") {
-        throw new Error(`Request timed out after ${timeoutMs}ms`);
+        throw new Error(`Request timed out after ${timeoutMs}ms`, { cause: error });
       }
       throw error;
     }
-    throw new Error(String(error));
+    throw new Error("Failed to fetch mTLS certificate info", { cause: error });
   }
 }
 
