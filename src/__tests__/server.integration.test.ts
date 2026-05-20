@@ -408,6 +408,120 @@ describe("Server Integration", () => {
       expect(data.sync).toHaveProperty("hasContent");
     });
   });
+
+  describe("Long URL Path Parameters", () => {
+    const credentials = Buffer.from("admin:secret").toString("base64");
+    const headers = { Authorization: `Basic ${credentials}` };
+
+    describe("ORD ID route (:ordId parameter)", () => {
+      const longOrdId =
+        "sap.foo.bar.baz.test.long.namespace.for.integration:apiResource:very-long-resource-name-that-exceeds-default-param-limit:v1";
+
+      it("should serve resources when ORD ID exceeds 100 characters", async () => {
+        expect(longOrdId.length).toBeGreaterThan(100);
+
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${longOrdId}/openapi.json`, {
+          headers,
+        });
+
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data).toHaveProperty("openapi", "3.0.0");
+      });
+
+      it("should return structured NOT_FOUND for missing resources with long ORD ID", async () => {
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${longOrdId}/nonexistent.json`, {
+          headers,
+        });
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body).toHaveProperty("error.code", "NOT_FOUND");
+      });
+
+      it("should route ORD IDs at the 500-character boundary", async () => {
+        const ns = "sap.test.long.namespace.example";
+        const rnLength = 500 - ns.length - ":apiResource:".length - ":v1".length;
+        const rn = "a".repeat(rnLength);
+        const ordId500 = `${ns}:apiResource:${rn}:v1`;
+
+        expect(ordId500.length).toBe(500);
+
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${ordId500}/openapi.json`, {
+          headers,
+        });
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body).toHaveProperty("error.code", "NOT_FOUND");
+      });
+
+      it("should reject ORD IDs exceeding 500-character limit", async () => {
+        const ns = "sap.test.long.namespace.example";
+        const rnLength = 501 - ns.length - ":apiResource:".length - ":v1".length;
+        const rn = "a".repeat(rnLength);
+        const ordId501 = `${ns}:apiResource:${rn}:v1`;
+
+        expect(ordId501.length).toBe(501);
+
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${ordId501}/openapi.json`, {
+          headers,
+        });
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body).toHaveProperty("statusCode", 404);
+        expect(body).toHaveProperty("error", "Not Found");
+        expect(body).not.toHaveProperty("error.code");
+      });
+
+      it("should reject very long ORD IDs well above the limit", async () => {
+        const ns = "sap.test.long.namespace.example";
+        const rnLength = 600 - ns.length - ":apiResource:".length - ":v1".length;
+        const rn = "a".repeat(rnLength);
+        const ordId600 = `${ns}:apiResource:${rn}:v1`;
+
+        expect(ordId600.length).toBe(600);
+
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${ordId600}/openapi.json`, {
+          headers,
+        });
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body).toHaveProperty("statusCode", 404);
+        expect(body).toHaveProperty("error", "Not Found");
+        expect(body).not.toHaveProperty("error.code");
+      });
+    });
+
+    describe("fileName route (:fileName parameter)", () => {
+      it("should route file names longer than 100 characters", async () => {
+        const longFileName = "a".repeat(150) + ".json";
+        expect(longFileName.length).toBeGreaterThan(100);
+        expect(longFileName.length).toBeLessThanOrEqual(500);
+
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${longFileName}`, { headers });
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body).toHaveProperty("error.code", "NOT_FOUND");
+      });
+
+      it("should reject file names exceeding 500-character limit", async () => {
+        const longFileName = "a".repeat(496) + ".json";
+        expect(longFileName.length).toBe(501);
+
+        const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${longFileName}`, { headers });
+
+        expect(response.status).toBe(404);
+        const body = await response.json();
+        expect(body).toHaveProperty("statusCode", 404);
+        expect(body).toHaveProperty("error", "Not Found");
+        expect(body).not.toHaveProperty("error.code");
+      });
+    });
+  });
 });
 
 describe("GitHub Source Type Integration", () => {
