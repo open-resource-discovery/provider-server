@@ -1,16 +1,17 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
   "compilerOptions": {
+    "lib": ["esnext"],
     "module": "NodeNext",
     "types": ["node", "jest"],
     "moduleResolution": "NodeNext",
     "sourceMap": true,
+    "rootDir": "src",
     "outDir": "dist",
-    "baseUrl": ".",
     "declaration": true,
     "resolveJsonModule": true,
     "paths": {
-      "src/*": ["src/*"]
+      "src/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts"],
