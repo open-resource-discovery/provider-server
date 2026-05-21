@@ -43,8 +43,8 @@ RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 USER nodejs
 
 # Make the application executable
-RUN chmod +x ./dist/src/cli.js
+RUN chmod +x ./dist/cli.js
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/dist/src/cli.js"]
+ENTRYPOINT ["/app/dist/cli.js"]
