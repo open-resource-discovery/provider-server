@@ -195,7 +195,7 @@ describe("GitHub Util", () => {
       if (error instanceof GitHubAccessError) {
         expect(error.errorItem.target).toBe(filePath);
         expect(error.errorItem.details).toBeDefined();
-        expect(error.errorItem.details![0].code).toBe(`HTTP_401`);
+        expect(error.errorItem.details[0].code).toBe(`HTTP_401`);
       }
     }
   });

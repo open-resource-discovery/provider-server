@@ -34,7 +34,7 @@ class GitWorker {
           type: "result",
           error: error instanceof Error ? error.message : String(error),
         };
-        parentPort!.postMessage(result);
+        parentPort.postMessage(result);
       });
     });
   }
@@ -82,7 +82,7 @@ class GitWorker {
       type: "progress",
       data,
     };
-    parentPort!.postMessage(message);
+    parentPort.postMessage(message);
   }
 
   private sendResult(data?: { success: boolean }, error?: string): void {
@@ -91,7 +91,7 @@ class GitWorker {
       data,
       error,
     };
-    parentPort!.postMessage(message);
+    parentPort.postMessage(message);
   }
 
   private async handleClone(data: GitOperationData): Promise<void> {
@@ -109,7 +109,7 @@ class GitWorker {
         ref: data.ref,
         singleBranch: data.singleBranch,
         depth: data.depth,
-        onAuth: data.auth ? (): { username: string; password: string } => data.auth! : undefined,
+        onAuth: data.auth ? (): { username: string; password: string } => data.auth : undefined,
         onProgress: (progressEvent): void => {
           this.sendProgress(progressEvent as GitProgressEvent);
         },
@@ -131,9 +131,9 @@ class GitWorker {
   private async handleCheckout(data: GitOperationData): Promise<void> {
     await git.checkout({
       fs,
-      dir: data.dir!,
-      ref: data.ref!,
-      force: data.force!,
+      dir: data.dir,
+      ref: data.ref,
+      force: data.force,
     });
 
     this.sendResult({ success: true });
@@ -142,7 +142,7 @@ class GitWorker {
   private async handleResetIndex(data: GitOperationData): Promise<void> {
     await git.resetIndex({
       fs,
-      dir: data.dir!,
+      dir: data.dir,
       filepath: ".",
     });
 
@@ -153,11 +153,11 @@ class GitWorker {
     await git.pull({
       fs,
       http,
-      dir: data.dir!,
+      dir: data.dir,
       ref: data.ref,
       singleBranch: true,
       fastForward: true,
-      onAuth: data.auth ? (): { username: string; password: string } => data.auth! : undefined,
+      onAuth: data.auth ? (): { username: string; password: string } => data.auth : undefined,
       // TODO
       author: {
         name: "ORD Provider Server",

@@ -65,10 +65,10 @@ async function performGitInitialization(
   stateManager?: UpdateStateManager,
   cacheService?: CacheService | null,
 ): Promise<void> {
-  const githubApiUrl = options.githubApiUrl!;
-  const githubRepository = options.githubRepository!;
-  const githubBranch = options.githubBranch!;
-  const githubToken = options.githubToken!;
+  const githubApiUrl = options.githubApiUrl;
+  const githubRepository = options.githubRepository;
+  const githubBranch = options.githubBranch;
+  const githubToken = options.githubToken;
   let branchChanged = false;
 
   log.info(`Initializing GitHub repository: ${githubRepository} (branch: ${githubBranch})`);

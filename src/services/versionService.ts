@@ -8,7 +8,7 @@ interface VersionInfo {
 }
 
 export class VersionService {
-  private static instance: VersionService;
+  private static readonly instance: VersionService;
   private latestVersionCache: { version: string; timestamp: Date } | null = null;
   private readonly cacheTimeout = 60 * 60 * 1000;
   private readonly registryUrl = "https://ghcr.io";

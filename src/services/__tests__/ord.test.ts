@@ -264,7 +264,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             packageLinks: [{ type: "license", url: "license.txt" }],
           },
         ],
@@ -285,7 +285,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             packageLinks: [{ type: "license", url: "../licenses/license.txt" }],
           },
         ],
@@ -307,7 +307,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             packageLinks: [{ type: "license", url: remoteUrl }],
           },
         ],
@@ -340,7 +340,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             files: [
               {
                 title: "Support Guide",
@@ -368,7 +368,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             files: [
               {
                 title: "Remote Guide",
@@ -396,7 +396,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             files: [
               {
                 title: "Already Absolute",
@@ -424,7 +424,7 @@ describe("DocumentService", () => {
         ...mockDocument,
         packages: [
           {
-            ...mockDocument.packages![0],
+            ...mockDocument.packages[0],
             packageLinks: [{ type: "support", url: absoluteUrl }],
           },
         ],
@@ -457,7 +457,7 @@ describe("DocumentService", () => {
       const testHash = "hash-remote-rewrite";
       const remoteUrl = "https://example.com/someresource.json";
       const docWithRemoteUrl: OrdDocument = JSON.parse(JSON.stringify(mockDocument));
-      docWithRemoteUrl.apiResources![0].resourceDefinitions![0].url = remoteUrl;
+      docWithRemoteUrl.apiResources[0].resourceDefinitions[0].url = remoteUrl;
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithRemoteUrl);
@@ -474,8 +474,8 @@ describe("DocumentService", () => {
       const expectedRewrittenUrl = `${PATH_CONSTANTS.SERVER_PREFIX}/${mockApiResource.ordId}/openapi-v3.json`;
       const docWithLocalUrl: OrdDocument = JSON.parse(JSON.stringify(mockDocument));
 
-      docWithLocalUrl.apiResources![0].ordId = mockApiResource.ordId;
-      docWithLocalUrl.apiResources![0].resourceDefinitions![0].url = localRelativeUrl;
+      docWithLocalUrl.apiResources[0].ordId = mockApiResource.ordId;
+      docWithLocalUrl.apiResources[0].resourceDefinitions[0].url = localRelativeUrl;
 
       mockRepository.getDirectoryHash.mockResolvedValue(testHash);
       mockRepository.getDocument.mockResolvedValue(docWithLocalUrl);

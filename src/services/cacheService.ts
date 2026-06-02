@@ -245,8 +245,8 @@ export class CacheService implements CacheServiceInterface {
     signal: AbortSignal,
   ): Promise<void> {
     try {
-      const baseUrl = this.processingContext!.baseUrl;
-      const authMethods = this.processingContext!.authMethods;
+      const baseUrl = this.processingContext.baseUrl;
+      const authMethods = this.processingContext.authMethods;
 
       const allFiles = await getAllFiles(documentsFullPath);
       const jsonFiles = allFiles.filter((file) => file.endsWith(".json"));
@@ -258,7 +258,7 @@ export class CacheService implements CacheServiceInterface {
       const ordConfig: OrdConfiguration = emptyOrdConfig(baseUrl);
       const accessStrategies = getOrdDocumentAccessStrategies(
         authMethods,
-        this.processingContext!.cfMtlsAccessStrategies,
+        this.processingContext.cfMtlsAccessStrategies,
       );
       const documentPaths: string[] = [];
 
@@ -287,7 +287,7 @@ export class CacheService implements CacheServiceInterface {
               : fileRelativePath;
 
             // Process the document
-            const processedDoc = processOrdDocument(jsonData as OrdDocument, this.processingContext!, dirHash);
+            const processedDoc = processOrdDocument(jsonData as OrdDocument, this.processingContext, dirHash);
 
             documents.push({
               relativePath,

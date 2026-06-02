@@ -252,7 +252,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
     // - Username: the token itself
     // - Password: 'x-oauth-basic' (GitHub's convention)
     return () => ({
-      username: this.config.token!,
+      username: this.config.token,
       password: "x-oauth-basic",
     });
   }
@@ -276,7 +276,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
         gitUrl,
         targetDir,
         this.config.branch,
-        this.getAuthCallback() ? { username: this.config.token!, password: "x-oauth-basic" } : undefined,
+        this.getAuthCallback() ? { username: this.config.token, password: "x-oauth-basic" } : undefined,
         (progressEvent) => {
           let message: string;
           const phase = progressEvent.phase;
@@ -344,7 +344,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
       await this.gitWorker.pull(
         targetDir,
         this.config.branch,
-        this.getAuthCallback() ? { username: this.config.token!, password: "x-oauth-basic" } : undefined,
+        this.getAuthCallback() ? { username: this.config.token, password: "x-oauth-basic" } : undefined,
       );
       log.debug("Successfully pulled changes");
     } catch (_pullError) {

@@ -72,9 +72,9 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   if (opts.sourceType === OptSourceType.Github) {
     // Create the update scheduler but don't perform initial sync yet
     const githubConfig = buildGithubConfig({
-      apiUrl: opts.githubApiUrl!,
-      repository: opts.githubRepository!,
-      branch: opts.githubBranch!,
+      apiUrl: opts.githubApiUrl,
+      repository: opts.githubRepository,
+      branch: opts.githubBranch,
       token: opts.githubToken,
       rootDirectory: opts.ordDirectory,
     });
@@ -96,7 +96,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
 
     // Update cached commit hash when git content is updated
     updateScheduler.on("update-completed", async () => {
-      const metadata = await fileSystemManager!.getMetadata();
+      const metadata = await fileSystemManager.getMetadata();
       currentCommitHash = metadata?.commitHash || null;
     });
   }
@@ -128,8 +128,8 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       updateScheduler,
       {
         secret: opts.webhookSecret,
-        branch: opts.githubBranch!,
-        repository: opts.githubRepository!,
+        branch: opts.githubBranch,
+        repository: opts.githubRepository,
       },
       log,
     );
@@ -161,7 +161,7 @@ async function performOnlineValidation(
     }
 
     // Initialize git source - this will clone and validate the GitHub repository
-    const validationResult = await initializeGitSource(opts, fileSystemManager, updateStateManager!, cacheService);
+    const validationResult = await initializeGitSource(opts, fileSystemManager, updateStateManager, cacheService);
 
     if (validationResult.contentAvailable) {
       log.info("Online validation complete. Content is now available.");
@@ -272,7 +272,7 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
 }
 
 async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOptions): Promise<void> {
-  const baseUrl = opts.baseUrl!;
+  const baseUrl = opts.baseUrl;
 
   log.info(`Starting with options`);
   log.info(`>> Source Type: ${opts.sourceType}`);
@@ -299,7 +299,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
 
   // For GitHub source, use the current version directory
   const effectiveOrdDirectory =
-    opts.sourceType === OptSourceType.Github ? fileSystemManager!.getCurrentPath() : opts.ordDirectory;
+    opts.sourceType === OptSourceType.Github ? fileSystemManager.getCurrentPath() : opts.ordDirectory;
 
   const { router, cacheService } = await RouterFactory.createRouter({
     sourceType: opts.sourceType,
@@ -312,9 +312,9 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     githubOpts:
       opts.sourceType === OptSourceType.Github
         ? {
-            githubApiUrl: opts.githubApiUrl!,
-            githubRepository: opts.githubRepository!,
-            githubBranch: opts.githubBranch!,
+            githubApiUrl: opts.githubApiUrl,
+            githubRepository: opts.githubRepository,
+            githubBranch: opts.githubBranch,
             githubToken: opts.githubToken,
             customDirectory: opts.ordDirectory,
           }

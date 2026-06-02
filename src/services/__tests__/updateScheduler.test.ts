@@ -228,7 +228,7 @@ describe("UpdateScheduler", () => {
       scheduler.scheduleUpdate();
       const status2 = scheduler.getStatus();
       expect(status2.scheduledUpdateTime).not.toBeNull();
-      expect(status2.scheduledUpdateTime?.getTime()).toBeGreaterThan(status1.scheduledUpdateTime!.getTime());
+      expect(status2.scheduledUpdateTime?.getTime()).toBeGreaterThan(status1.scheduledUpdateTime.getTime());
     });
 
     it("should abort running update when new one is scheduled", () => {
@@ -552,7 +552,7 @@ describe("UpdateScheduler", () => {
       // Check that error was emitted
       expect(errorEmitted).not.toBeNull();
       expect(errorEmitted).toBeInstanceOf(Error);
-      expect(errorEmitted!.message).toBe("Fetch failed");
+      expect(errorEmitted.message).toBe("Fetch failed");
     });
 
     it("should emit update-progress event", async () => {
@@ -831,13 +831,13 @@ describe("UpdateScheduler", () => {
       expect(afterWebhook).toBeInstanceOf(Date);
 
       // Manual trigger should not update webhook time
-      const webhookTime = afterWebhook!.getTime();
+      const webhookTime = afterWebhook.getTime();
       jest.advanceTimersByTime(1000);
 
       await scheduler.scheduleImmediateUpdate(true);
 
       const afterManual = scheduler.getLastWebhookTime();
-      expect(afterManual!.getTime()).toBe(webhookTime);
+      expect(afterManual.getTime()).toBe(webhookTime);
     });
 
     it("should track webhook received time for display", () => {

@@ -68,7 +68,7 @@ describe("End-to-End Testing", () => {
     const documents = config.openResourceDiscoveryV1.documents;
     expect(documents).not.toHaveLength(0);
 
-    const documentUrl = documents![0].url;
+    const documentUrl = documents[0].url;
     const documentResponse = await fetch(`${SERVER_URL}${documentUrl}`, {
       headers: { Authorization: `Basic ${credentials}` },
     });
@@ -77,8 +77,8 @@ describe("End-to-End Testing", () => {
     expect(document.apiResources).not.toHaveLength(0);
 
     // 3. Access API resource
-    const apiResource = document.apiResources![0];
-    const resourceUrl = apiResource.resourceDefinitions![0].url;
+    const apiResource = document.apiResources[0];
+    const resourceUrl = apiResource.resourceDefinitions[0].url;
     const resourceResponse = await fetch(`${SERVER_URL}${resourceUrl}`, {
       headers: { Authorization: `Basic ${credentials}` },
     });

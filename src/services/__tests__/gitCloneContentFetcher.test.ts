@@ -396,7 +396,7 @@ describe("GitCloneContentFetcher", () => {
       const authCallback = fetcher["getAuthCallback"]();
 
       expect(authCallback).toBeDefined();
-      expect(authCallback!()).toEqual({
+      expect(authCallback()).toEqual({
         username: "test-token",
         password: "x-oauth-basic",
       });
