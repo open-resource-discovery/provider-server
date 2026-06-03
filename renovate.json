@@ -59,7 +59,7 @@
     {
       "groupName": "Linting Tools",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["eslint", "@eslint/js", "@sap/eslint-config", "prettier"]
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
     },
     {
       "groupName": "TypeScript Build Tools",
