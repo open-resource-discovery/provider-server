@@ -146,7 +146,7 @@ describe("Server Integration", () => {
 
       const configResponse = await fetch(`${SERVER_URL}${PATH_CONSTANTS.WELL_KNOWN_ENDPOINT}`);
       const config = (await configResponse.json()) as OrdConfiguration;
-      const documents = config.openResourceDiscoveryV1.documents;
+      const documents = config.openResourceDiscoveryV1.documents!;
 
       for (const doc of documents) {
         const docUrl = doc.url;

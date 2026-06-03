@@ -1,5 +1,5 @@
 export class SyncStatusService {
-  private static readonly instance: SyncStatusService;
+  private static instance: SyncStatusService;
   private _initialSyncComplete = false;
   private _initialSyncInProgress = false;
 

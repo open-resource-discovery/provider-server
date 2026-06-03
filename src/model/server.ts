@@ -97,7 +97,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     githubToken: options.githubToken,
     authentication: {
       methods: options.auth,
-      basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH) : undefined,
+      basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
       trustedCerts: mtlsConfig?.certs,
       trustedRootCaDns: mtlsConfig?.rootCaDns,
       cfMtlsConfigEndpoints: mtlsConfig?.configEndpoints,
