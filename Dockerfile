@@ -14,6 +14,7 @@ RUN npm ci
 
 COPY ./src ./src
 COPY ./public ./public
+COPY ./scripts ./scripts
 
 RUN npm run build \
     && npm prune --production \
@@ -31,6 +32,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
+COPY --from=builder --chown=nodejs:nodejs /app/scripts ./scripts
 
 # Set environment
 ARG NODE_ENV=production
@@ -47,4 +49,4 @@ RUN chmod +x ./dist/cli.js
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/dist/cli.js"]
+ENTRYPOINT ["/app/scripts/bootstrap"]
