@@ -374,7 +374,7 @@ describe("Server Integration", () => {
       });
     });
 
-    it("should return ETag headers for caching", async () => {
+    it("should return ETag and Cache-Control headers for caching", async () => {
       const credentials = Buffer.from("admin:secret").toString("base64");
       const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.DOCUMENTS_URL_PATH}/ref-app-example-1`, {
         headers: {
@@ -383,6 +383,7 @@ describe("Server Integration", () => {
       });
 
       expect(response.headers.get("etag")).toBeTruthy();
+      expect(response.headers.get("cache-control")).toBe("no-cache");
     });
   });
 
