@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [[1.2.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.0)] - 2026-06-10
 
+### Added
+
+- Add a bootstrap script that allows setting up a Dynatrace OneAgent for Node.js prior to starting the Provider Server.
+
 ### Changed
 
 - Added `Cache-Control: no-cache` header to all responses, following the ORD spec recommendation to ensure caches always revalidate with the origin server rather than serving stale metadata.
