@@ -2,6 +2,7 @@
 
 !src/**
 !public/**
+!scripts/**
 !package*.json
 !tsconfig.json
 !tsconfig.prod.json

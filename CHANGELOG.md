@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.2.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.0)] - 2026-06-10
+
+### Added
+
+- Add a bootstrap script that allows setting up a Dynatrace OneAgent for Node.js prior to starting the Provider Server.
+
 ## [[1.1.4](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.1.4)] - 2026-05-17
 
 ### Added

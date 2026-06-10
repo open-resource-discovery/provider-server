@@ -98,15 +98,24 @@ npx @open-resource-discovery/provider-server --help
 | `--update-delay <seconds>`             | `5`                      | No               | `UPDATE_DELAY`               | Cooldown between webhook-triggered updates (seconds)                                                                                                  |
 | `--status-dashboard-enabled <boolean>` | `true`                   | No               | `STATUS_DASHBOARD_ENABLED`   | Enable/disable status dashboard (true/false)                                                                                                          |
 
+### Enabling Dynatrace OneAgent for Observability
+
+When running the Provider Server via Docker you can integrate Dynatrace for monitoring. This can be done by setting the `BOOTSTRAP_DYNATRACE_ONEAGENT` environment variable to `true` when starting the server. This result in an attempt to automatically bootstrap the Dynatrace OneAgent using the [Deployment API](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest). In order to do that you need to either bind the container to a Dynatrace service instance (if in Cloud Foundry) or provide the following environment variables:
+
+- `DT_API_URL`: Your Dynatrace Managed URL, including the environment ID. An example URL might look like so `https://{your-managed-cluster.com}/e/{environmentid}/api`
+- `DT_TENANT`: Your Dynatrace environment ID is the unique identifier of your Dynatrace environment. You can find it in the deploy Dynatrace section within your environment.
+- `DT_API_TOKEN`: Dynatrace token that has the `InstallerDownload` scope (see: [Dynatrace API - Tokens and authentication](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication))
+
 ### Environment-Only Variables
 
 Some configuration options are only available as environment variables for security reasons:
 
-| Environment Variable    | Description                                                                                          |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- |
-| `WEBHOOK_SECRET`        | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)        |
-| `BASIC_AUTH`            | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})` |
-| `CF_MTLS_TRUSTED_CERTS` | JSON config for CF mTLS authentication (see [CF mTLS Authentication](#cf-mtls-authentication))       |
+| Environment Variable           | Description                                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `WEBHOOK_SECRET`               | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)                           |
+| `BASIC_AUTH`                   | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})`                    |
+| `CF_MTLS_TRUSTED_CERTS`        | JSON config for CF mTLS authentication (see [CF mTLS Authentication](#cf-mtls-authentication))                          |
+| `BOOTSTRAP_DYNATRACE_ONEAGENT` | Bootstrap Dyntrace OneAgent for enabling observability via Dynatrace (possible values: `true\|false`, default: `false`) |
 
 ## System Requirements
 
