@@ -267,6 +267,7 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
     if (currentCommitHash) {
       reply.header("x-github-current-commit-hash", currentCommitHash);
     }
+    reply.header("cache-control", "no-cache");
     done();
   });
 }
