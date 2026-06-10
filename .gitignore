@@ -51,3 +51,5 @@ manifest.yaml
 src/workers/gitOperationsWorker.js
 data/*
 !data/.gitkeep
+
+.idea
