@@ -1,0 +1,71 @@
+#!/usr/bin/env sh
+
+set -e
+
+_resolve_arch() {
+  case "$(arch)" in
+      x86*)
+          echo "x86"
+          ;;
+      aarch* | arm*)
+          echo "arm"
+          ;;
+      *)
+          echo "all"
+          ;;
+  esac
+}
+
+_resolve_bitness() {
+  case "$(arch)" in
+      *64)
+          echo "64"
+          ;;
+      *)
+          echo "32"
+          ;;
+  esac
+}
+
+_lookup_dt_connection_info() {
+  dt_api_url="${DT_API_URL:-$(node -e 'console.log(JSON.parse(process.env.VCAP_SERVICES ?? "{}")?.dynatrace?.[0]?.credentials?.apiurl)')}"
+  dt_api_token="${DT_API_TOKEN:-$(node -e 'console.log(JSON.parse(process.env.VCAP_SERVICES ?? "{}")?.dynatrace?.[0]?.credentials?.apitoken)')}"
+
+  wget --quiet -O - "${dt_api_url}/v1/deployment/installer/agent/connectioninfo" --header="Authorization: Api-Token ${dt_api_token}"
+}
+
+_resolve_dt_tenant_token() {
+  CONNECTION_INFO="$(_lookup_dt_connection_info)" node -e 'console.log(JSON.parse(process.env.CONNECTION_INFO ?? "{}")?.tenantToken)'
+}
+
+_resolve_dt_connection_point() {
+  CONNECTION_INFO="$(_lookup_dt_connection_info)" node -e 'console.log(JSON.parse(process.env.CONNECTION_INFO ?? "{}")?.formattedCommunicationEndpoints)'
+}
+
+_bootstrap_dt_one_agent() {
+  arch="$(_resolve_arch)"
+  download_dir="$(mktemp -d)"
+  bitness="$(_resolve_bitness)"
+  dt_api_url="${DT_API_URL:-$(node -e 'console.log(JSON.parse(process.env.VCAP_SERVICES ?? "{}")?.dynatrace?.[0]?.credentials?.apiurl)')}"
+  dt_tenant="${DT_TENANT:-$(node -e 'console.log(JSON.parse(process.env.VCAP_SERVICES ?? "{}")?.dynatrace?.[0]?.credentials?.environmentid)')}"
+  dt_api_token="${DT_API_TOKEN:-$(node -e 'console.log(JSON.parse(process.env.VCAP_SERVICES ?? "{}")?.dynatrace?.[0]?.credentials?.apitoken)')}"
+
+  wget --quiet -O "${download_dir}/dynatrace-install.sh" "${dt_api_url}/v1/deployment/installer/agent/unix/paas-sh/latest?flavor=musl&include=nodejs&bitness=${bitness}&arch=${arch}&skipMetadata=true" --header="Authorization: Api-Token ${dt_api_token}"
+  sh "${download_dir}/dynatrace-install.sh" "${download_dir}"
+
+  DT_TENANT="${dt_tenant}" \
+  DT_HOME="${download_dir}/dynatrace/oneagent" \
+  DT_TENANTTOKEN="$(_resolve_dt_tenant_token)" \
+  DT_CONNECTION_POINT="$(_resolve_dt_connection_point)" \
+  "${download_dir}/dynatrace/oneagent/dynatrace-agent64.sh" "${@}"
+}
+
+main() {
+  if [ "$(echo "${BOOTSTRAP_DYNATRACE_ONEAGENT}" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+    _bootstrap_dt_one_agent /app/dist/cli.js "${@}"
+  else
+    /app/dist/cli.js "${@}"
+  fi
+}
+
+main "${@}"
