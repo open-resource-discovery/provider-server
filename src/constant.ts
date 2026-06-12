@@ -6,6 +6,7 @@ export const PATH_CONSTANTS = {
   WELL_KNOWN_ENDPOINT: "/.well-known/open-resource-discovery",
   STATUS_ENDPOINT: "/api/v1/status",
   WEBHOOK_ENDPOINT: "/api/v1/webhook/github",
+  HEALTH_ENDPOINT: "/health",
 
   // Derived paths
   SERVER_PREFIX: `/ord/v1`,
