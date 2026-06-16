@@ -677,6 +677,103 @@ describe("GitHub Source Type Integration", () => {
       expect(data).toHaveProperty("version");
       expect(data.sync).toHaveProperty("hasContent");
     });
+
+    it("should return 507 on health check when failure was caused by disk space exhaustion", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "1.0.0",
+            isOutdated: false,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+            lastError: "No disk space available",
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+
+      expect(response.status).toBe(507);
+      expect(data).toHaveProperty("status", "insufficient_storage");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+
+    it("should return 507 on health check when failure was caused by insufficient memory", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "1.0.0",
+            isOutdated: false,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+            lastError: "Insufficient memory available",
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+
+      expect(response.status).toBe(507);
+      expect(data).toHaveProperty("status", "insufficient_storage");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+
+    it("should return 503 (not 507) when failure is not disk-space-related", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "1.0.0",
+            isOutdated: false,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+            lastError: "Unable to connect to GitHub",
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as { status: string };
+
+      expect(response.status).toBe(503);
+      expect(data).toHaveProperty("status", "failed");
+    });
   });
 });
 

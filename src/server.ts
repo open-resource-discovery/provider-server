@@ -253,12 +253,18 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
     const currentVersion = await fileSystemManager?.getCurrentVersion();
     const status: StatusResponse = await statusService.getStatus();
     const isFailed = status?.content?.updateStatus === "failed";
+    const isDiskSpaceFail = isFailed && status?.content?.lastError === "No disk space available";
+    const isMemoryFail = isFailed && status?.content?.lastError === "Insufficient memory available";
+    const is507 = isDiskSpaceFail || isMemoryFail;
+
+    const httpCode = is507 ? 507 : isFailed ? 503 : 200;
+    const statusString = is507 ? "insufficient_storage" : isFailed ? "failed" : "ok";
 
     reply
-      .code(isFailed ? 503 : 200)
+      .code(httpCode)
       .header("Content-Type", "application/json; charset=utf-8")
       .send({
-        status: isFailed ? "failed" : "ok",
+        status: statusString,
         timestamp: new Date().toISOString(),
         version,
         sync: {
