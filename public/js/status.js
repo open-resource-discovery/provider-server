@@ -349,7 +349,7 @@ class StatusClient {
         // Display error message if available
         if (content.lastError) {
           this.elements.failedUpdateError.style.display = "flex";
-          this.elements.failedErrorMessage.textContent = content.lastError;
+          this.elements.failedErrorMessage.textContent = content.lastError.message;
         } else {
           this.elements.failedUpdateError.style.display = "none";
         }

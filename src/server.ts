@@ -253,12 +253,21 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
     const currentVersion = await fileSystemManager?.getCurrentVersion();
     const status: StatusResponse = await statusService.getStatus();
     const isFailed = status?.content?.updateStatus === "failed";
-    const isDiskSpaceFail = isFailed && status?.content?.lastError === "No disk space available";
-    const isMemoryFail = isFailed && status?.content?.lastError === "Insufficient memory available";
-    const is507 = isDiskSpaceFail || isMemoryFail;
-
-    const httpCode = is507 ? 507 : isFailed ? 503 : 200;
-    const statusString = is507 ? "insufficient_storage" : isFailed ? "failed" : "ok";
+    const ERROR_HTTP_CODES: Record<string, number> = {
+      DISK_SPACE_ERROR: 507,
+      MEMORY_ERROR: 507,
+      GITHUB_NETWORK_ERROR: 503,
+      LOCAL_DIRECTORY_ERROR: 400,
+    };
+    const ERROR_STATUS_STRINGS: Record<string, string> = {
+      DISK_SPACE_ERROR: "insufficient_storage",
+      MEMORY_ERROR: "insufficient_storage",
+      GITHUB_NETWORK_ERROR: "service_unavailable",
+      LOCAL_DIRECTORY_ERROR: "configuration_error",
+    };
+    const errorCode = status?.content?.lastError?.code;
+    const httpCode = isFailed ? (errorCode && ERROR_HTTP_CODES[errorCode]) || 503 : 200;
+    const statusString = isFailed ? (errorCode && ERROR_STATUS_STRINGS[errorCode]) || "failed" : "ok";
 
     reply
       .code(httpCode)

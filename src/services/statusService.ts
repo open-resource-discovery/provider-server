@@ -10,6 +10,7 @@ import { VersionService } from "./versionService.js";
 import { getPackageVersion } from "../util/files.js";
 import { UpdateStateManager } from "./updateStateManager.js";
 import { CacheService } from "./interfaces/cacheService.js";
+import { ErrorItem } from "../model/error/BackendError.js";
 
 export interface StatusResponse {
   version: string;
@@ -27,7 +28,7 @@ export interface StatusResponse {
     commitHash: string | null;
     failedCommitHash?: string | null;
     lastWebhookTime?: string | null;
-    lastError?: string;
+    lastError?: ErrorItem;
   };
   settings?: {
     sourceType: string;
@@ -164,7 +165,11 @@ export class StatusService {
         commitHash: metadata?.commitHash || null,
         failedCommitHash: stateManagerStatus?.failedCommitHash ?? updateSchedulerStatus?.failedCommitHash ?? null,
         lastWebhookTime: this.updateScheduler?.getLastWebhookReceivedTime()?.toISOString() || null,
-        lastError: stateManagerStatus?.lastError ?? updateSchedulerStatus?.lastError ?? undefined,
+        lastError:
+          updateSchedulerStatus?.lastError ??
+          (stateManagerStatus?.lastError
+            ? { code: "INTERNAL_ERROR", message: stateManagerStatus.lastError }
+            : undefined),
       };
     }
 

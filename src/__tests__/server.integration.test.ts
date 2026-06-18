@@ -693,7 +693,7 @@ describe("GitHub Source Type Integration", () => {
             failedUpdates: 1,
             commitHash: null,
             updateStatus: "failed",
-            lastError: "No disk space available",
+            lastError: { code: "DISK_SPACE_ERROR", message: "No disk space available" },
           },
         });
       });
@@ -728,7 +728,7 @@ describe("GitHub Source Type Integration", () => {
             failedUpdates: 1,
             commitHash: null,
             updateStatus: "failed",
-            lastError: "Insufficient memory available",
+            lastError: { code: "MEMORY_ERROR", message: "Insufficient memory available" },
           },
         });
       });
@@ -763,7 +763,7 @@ describe("GitHub Source Type Integration", () => {
             failedUpdates: 1,
             commitHash: null,
             updateStatus: "failed",
-            lastError: "Unable to connect to GitHub",
+            lastError: { code: "GITHUB_NETWORK_ERROR", message: "Unable to connect to GitHub" },
           },
         });
       });
@@ -772,7 +772,7 @@ describe("GitHub Source Type Integration", () => {
       const data = (await response.json()) as { status: string };
 
       expect(response.status).toBe(503);
-      expect(data).toHaveProperty("status", "failed");
+      expect(data).toHaveProperty("status", "service_unavailable");
     });
   });
 });

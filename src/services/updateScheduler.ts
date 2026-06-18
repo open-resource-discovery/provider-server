@@ -3,6 +3,7 @@ import { ContentFetcher } from "./interfaces/contentFetcher.js";
 import { FileSystemManager } from "./fileSystemManager.js";
 import { CacheService } from "./interfaces/cacheService.js";
 import { Logger } from "pino";
+import { BackendError, ErrorItem } from "../model/error/BackendError.js";
 import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
 import { GitHubNetworkError } from "../model/error/GithubErrors.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
@@ -23,7 +24,7 @@ export interface UpdateStatus {
   currentVersion: string | null;
   lastUpdateFailed: boolean;
   failedCommitHash: string | null;
-  lastError: string | null;
+  lastError: ErrorItem | null;
 }
 
 export class UpdateScheduler extends EventEmitter {
@@ -46,7 +47,7 @@ export class UpdateScheduler extends EventEmitter {
   private lastUpdateFailed = false;
   private failedCommitHash: string | null = null;
   private periodicCheckInterval: NodeJS.Timeout | null = null;
-  private lastError: string | null = null;
+  private lastError: ErrorItem | null = null;
   private readonly PERIODIC_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
 
   public constructor(
@@ -113,7 +114,11 @@ export class UpdateScheduler extends EventEmitter {
       this.performUpdate().catch((error) => {
         this.logger.error("Update failed: %s", error);
         this.failedUpdates++;
-        this.stateManager.failUpdate(error instanceof Error ? error.message : String(error));
+        const errorItem: ErrorItem =
+          error instanceof BackendError
+            ? error.errorItem
+            : { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : String(error) };
+        this.stateManager.failUpdate(errorItem.message);
       });
     }, effectiveDelay);
 
@@ -292,13 +297,13 @@ export class UpdateScheduler extends EventEmitter {
 
       // Check for specific error types and set user-friendly messages
       if (error instanceof DiskSpaceError) {
-        this.lastError = "No disk space available";
+        this.lastError = error.errorItem;
       } else if (error instanceof MemoryError) {
-        this.lastError = "Insufficient memory available";
+        this.lastError = error.errorItem;
       } else if (error instanceof GitHubNetworkError) {
-        this.lastError = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
+        this.lastError = error.errorItem;
       } else if (error instanceof LocalDirectoryError) {
-        this.lastError = error.message;
+        this.lastError = error.errorItem;
       } else {
         // For other errors, don't expose the internal error message
         this.lastError = null;
@@ -320,21 +325,11 @@ export class UpdateScheduler extends EventEmitter {
       }
 
       // Update state manager with failure
-      let errorMessage: string;
-      if (error instanceof DiskSpaceError) {
-        errorMessage = "No disk space available";
-      } else if (error instanceof MemoryError) {
-        errorMessage = "Insufficient memory available";
-      } else if (error instanceof GitHubNetworkError) {
-        errorMessage = "Unable to connect to GitHub. Please check your network connection and GitHub API settings.";
-      } else if (error instanceof LocalDirectoryError) {
-        errorMessage = error.message;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error);
-      }
-      this.stateManager.failUpdate(errorMessage, this.failedCommitHash || undefined);
+      const errorItem: ErrorItem =
+        error instanceof BackendError
+          ? error.errorItem
+          : { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : String(error) };
+      this.stateManager.failUpdate(errorItem.message, this.failedCommitHash || undefined);
       throw error;
     } finally {
       this.updateInProgress = false;
@@ -387,8 +382,12 @@ export class UpdateScheduler extends EventEmitter {
     this.updateInProgress = false;
     this.lastUpdateFailed = true;
     this.failedUpdates++;
-    this.lastError = error instanceof Error ? error.message : String(error);
-    this.stateManager.failUpdate(this.lastError);
+    const errorItem: ErrorItem =
+      error instanceof BackendError
+        ? error.errorItem
+        : { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : String(error) };
+    this.lastError = errorItem;
+    this.stateManager.failUpdate(errorItem.message);
     this.emit("update-failed", error);
   }
 
