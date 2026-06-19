@@ -693,7 +693,11 @@ describe("GitHub Source Type Integration", () => {
             failedUpdates: 1,
             commitHash: null,
             updateStatus: "failed",
-            lastError: { code: "DISK_SPACE_ERROR", message: "No disk space available" },
+            lastError: {
+              httpStatusCode: 507,
+              httpStatusText: "insufficient_storage",
+              item: { code: "DISK_SPACE_ERROR", message: "No disk space available" },
+            },
           },
         });
       });
@@ -728,7 +732,11 @@ describe("GitHub Source Type Integration", () => {
             failedUpdates: 1,
             commitHash: null,
             updateStatus: "failed",
-            lastError: { code: "MEMORY_ERROR", message: "Insufficient memory available" },
+            lastError: {
+              httpStatusCode: 507,
+              httpStatusText: "insufficient_storage",
+              item: { code: "MEMORY_ERROR", message: "Insufficient memory available" },
+            },
           },
         });
       });
@@ -763,7 +771,11 @@ describe("GitHub Source Type Integration", () => {
             failedUpdates: 1,
             commitHash: null,
             updateStatus: "failed",
-            lastError: { code: "GITHUB_NETWORK_ERROR", message: "Unable to connect to GitHub" },
+            lastError: {
+              httpStatusCode: 503,
+              httpStatusText: "service_unavailable",
+              item: { code: "GITHUB_NETWORK_ERROR", message: "Unable to connect to GitHub" },
+            },
           },
         });
       });

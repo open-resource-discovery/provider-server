@@ -6,6 +6,7 @@ import { BackendError, DetailError } from "./BackendError.js";
 export class DiskSpaceError extends BackendError {
   public name = "DiskSpaceError";
   public httpStatusCode = 507; // Insufficient Storage
+  public httpStatusText = "insufficient_storage";
 
   public constructor(message: string, target?: string, details?: DetailError[]) {
     super(message, "DISK_SPACE_ERROR", target, details);
@@ -30,6 +31,7 @@ export class DiskSpaceError extends BackendError {
 export class MemoryError extends BackendError {
   public name = "MemoryError";
   public httpStatusCode = 507; // Insufficient Storage
+  public httpStatusText = "insufficient_storage";
 
   public constructor(message: string, target?: string, details?: DetailError[]) {
     super(message, "MEMORY_ERROR", target, details);
@@ -54,6 +56,7 @@ export class MemoryError extends BackendError {
 export class TimeoutError extends BackendError {
   public name = "TimeoutError";
   public httpStatusCode = 503; // Service Unavailable
+  public httpStatusText = "service_unavailable";
 
   public constructor(message: string, target?: string, details?: DetailError[]) {
     super(message, "TIMEOUT_ERROR", target, details);

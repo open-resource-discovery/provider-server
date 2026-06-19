@@ -3,10 +3,7 @@ import { ContentFetcher } from "./interfaces/contentFetcher.js";
 import { FileSystemManager } from "./fileSystemManager.js";
 import { CacheService } from "./interfaces/cacheService.js";
 import { Logger } from "pino";
-import { BackendError, ErrorItem } from "../model/error/BackendError.js";
-import { DiskSpaceError, MemoryError } from "../model/error/SystemErrors.js";
-import { GitHubNetworkError } from "../model/error/GithubErrors.js";
-import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
+import { BackendError, StatusError, toStatusError } from "../model/error/BackendError.js";
 import { createProgressHandler } from "../util/progressHandler.js";
 import { UpdateStateManager } from "./updateStateManager.js";
 import { calculateDirectoryHash } from "../util/directoryHash.js";
@@ -24,7 +21,7 @@ export interface UpdateStatus {
   currentVersion: string | null;
   lastUpdateFailed: boolean;
   failedCommitHash: string | null;
-  lastError: ErrorItem | null;
+  lastError: StatusError | null;
 }
 
 export class UpdateScheduler extends EventEmitter {
@@ -47,7 +44,7 @@ export class UpdateScheduler extends EventEmitter {
   private lastUpdateFailed = false;
   private failedCommitHash: string | null = null;
   private periodicCheckInterval: NodeJS.Timeout | null = null;
-  private lastError: ErrorItem | null = null;
+  private lastError: StatusError | null = null;
   private readonly PERIODIC_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
 
   public constructor(
@@ -114,11 +111,7 @@ export class UpdateScheduler extends EventEmitter {
       this.performUpdate().catch((error) => {
         this.logger.error("Update failed: %s", error);
         this.failedUpdates++;
-        const errorItem: ErrorItem =
-          error instanceof BackendError
-            ? error.errorItem
-            : { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : String(error) };
-        this.stateManager.failUpdate(errorItem.message);
+        this.stateManager.failUpdate(toStatusError(error).item.message);
       });
     }, effectiveDelay);
 
@@ -295,19 +288,11 @@ export class UpdateScheduler extends EventEmitter {
       this.failedUpdates++;
       this.lastUpdateFailed = true;
 
-      // Check for specific error types and set user-friendly messages
-      if (error instanceof DiskSpaceError) {
-        this.lastError = error.errorItem;
-      } else if (error instanceof MemoryError) {
-        this.lastError = error.errorItem;
-      } else if (error instanceof GitHubNetworkError) {
-        this.lastError = error.errorItem;
-      } else if (error instanceof LocalDirectoryError) {
-        this.lastError = error.errorItem;
-      } else {
-        // For other errors, don't expose the internal error message
-        this.lastError = null;
-      }
+      // BackendError subclasses already carry the status code/text and a
+      // user-friendly errorItem; everything else collapses to a generic 500.
+      // We keep `lastError` null for non-BackendErrors to avoid leaking
+      // internal messages through /status or /health.
+      this.lastError = error instanceof BackendError ? toStatusError(error) : null;
 
       // Try to get the commit hash that failed
       try {
@@ -324,12 +309,9 @@ export class UpdateScheduler extends EventEmitter {
         this.logger.error(`Failed to cleanup temp directory: ${cleanupError}`);
       }
 
-      // Update state manager with failure
-      const errorItem: ErrorItem =
-        error instanceof BackendError
-          ? error.errorItem
-          : { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : String(error) };
-      this.stateManager.failUpdate(errorItem.message, this.failedCommitHash || undefined);
+      // Update state manager with failure (always uses a message, even for
+      // unknown errors, so the dashboard has something to display)
+      this.stateManager.failUpdate(toStatusError(error).item.message, this.failedCommitHash || undefined);
       throw error;
     } finally {
       this.updateInProgress = false;
@@ -382,12 +364,9 @@ export class UpdateScheduler extends EventEmitter {
     this.updateInProgress = false;
     this.lastUpdateFailed = true;
     this.failedUpdates++;
-    const errorItem: ErrorItem =
-      error instanceof BackendError
-        ? error.errorItem
-        : { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : String(error) };
-    this.lastError = errorItem;
-    this.stateManager.failUpdate(errorItem.message);
+    const statusError = toStatusError(error);
+    this.lastError = statusError;
+    this.stateManager.failUpdate(statusError.item.message);
     this.emit("update-failed", error);
   }
 

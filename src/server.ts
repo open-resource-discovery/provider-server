@@ -250,24 +250,12 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
 
   // Add health check endpoint
   server.get(PATH_CONSTANTS.HEALTH_ENDPOINT, { logLevel: "error" }, async (_request, reply) => {
-    const currentVersion = await fileSystemManager?.getCurrentVersion();
     const status: StatusResponse = await statusService.getStatus();
     const isFailed = status?.content?.updateStatus === "failed";
-    const ERROR_HTTP_CODES: Record<string, number> = {
-      DISK_SPACE_ERROR: 507,
-      MEMORY_ERROR: 507,
-      GITHUB_NETWORK_ERROR: 503,
-      LOCAL_DIRECTORY_ERROR: 400,
-    };
-    const ERROR_STATUS_STRINGS: Record<string, string> = {
-      DISK_SPACE_ERROR: "insufficient_storage",
-      MEMORY_ERROR: "insufficient_storage",
-      GITHUB_NETWORK_ERROR: "service_unavailable",
-      LOCAL_DIRECTORY_ERROR: "configuration_error",
-    };
-    const errorCode = status?.content?.lastError?.code;
-    const httpCode = isFailed ? (errorCode && ERROR_HTTP_CODES[errorCode]) || 503 : 200;
-    const statusString = isFailed ? (errorCode && ERROR_STATUS_STRINGS[errorCode]) || "failed" : "ok";
+    const lastError = status?.content?.lastError;
+
+    const httpCode = isFailed ? (lastError?.httpStatusCode ?? 503) : 200;
+    const statusString = isFailed ? (lastError?.httpStatusText ?? "failed") : "ok";
 
     reply
       .code(httpCode)
@@ -277,7 +265,7 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
         timestamp: new Date().toISOString(),
         version,
         sync: {
-          hasContent: opts.sourceType !== OptSourceType.Github || !!currentVersion,
+          hasContent: opts.sourceType !== OptSourceType.Github || !!status?.content?.currentVersion,
         },
       });
   });
