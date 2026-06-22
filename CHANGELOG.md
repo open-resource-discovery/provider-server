@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Made `/health` public.
-- Altered behavior of `/health` to respond with `503` when update status is `failed`.
+- Altered behavior of `/health` to respond with `503` or a more specific `5XX` code (if available) when update status is `failed`
 
 ## [[1.2.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.0)] - 2026-06-10
 
