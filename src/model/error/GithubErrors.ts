@@ -51,6 +51,7 @@ export class GitHubFileNotFoundError extends BackendError {
 export class GitHubNetworkError extends BackendError {
   public name = "GitHubNetworkError";
   public httpStatusCode = 503; // Service Unavailable
+  public httpStatusText = "service_unavailable";
 
   public constructor(message: string, target?: string, details?: DetailError[]) {
     super(message, "GITHUB_NETWORK_ERROR", target, details);

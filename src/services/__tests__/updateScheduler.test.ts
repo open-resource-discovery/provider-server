@@ -599,7 +599,11 @@ describe("UpdateScheduler", () => {
       await expect(scheduler.forceUpdate()).rejects.toThrow(DiskSpaceError);
 
       const status = scheduler.getStatus();
-      expect(status.lastError).toBe("No disk space available");
+      expect(status.lastError).toEqual({
+        httpStatusCode: 507,
+        httpStatusText: "insufficient_storage",
+        item: { code: "DISK_SPACE_ERROR", message: "No space left on device" },
+      });
       expect(status.lastUpdateFailed).toBe(true);
       expect(status.failedCommitHash).toBe("latest123commit");
     });
@@ -611,7 +615,11 @@ describe("UpdateScheduler", () => {
       await expect(scheduler.forceUpdate()).rejects.toThrow(MemoryError);
 
       const status = scheduler.getStatus();
-      expect(status.lastError).toBe("Insufficient memory available");
+      expect(status.lastError).toEqual({
+        httpStatusCode: 507,
+        httpStatusText: "insufficient_storage",
+        item: { code: "MEMORY_ERROR", message: "Out of memory" },
+      });
       expect(status.lastUpdateFailed).toBe(true);
     });
 
@@ -622,9 +630,11 @@ describe("UpdateScheduler", () => {
       await expect(scheduler.forceUpdate()).rejects.toThrow(GitHubNetworkError);
 
       const status = scheduler.getStatus();
-      expect(status.lastError).toBe(
-        "Unable to connect to GitHub. Please check your network connection and GitHub API settings.",
-      );
+      expect(status.lastError).toEqual({
+        httpStatusCode: 503,
+        httpStatusText: "service_unavailable",
+        item: { code: "GITHUB_NETWORK_ERROR", message: "Connection failed" },
+      });
       expect(status.lastUpdateFailed).toBe(true);
     });
 

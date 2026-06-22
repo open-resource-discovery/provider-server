@@ -4,6 +4,7 @@ import * as fs from "fs/promises";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { ProviderServerOptions, startProviderServer } from "src/server.js";
+import { StatusService } from "../services/statusService.js";
 
 // Mock bcrypt to avoid native module issues in tests
 jest.mock("bcryptjs", () => ({
@@ -29,6 +30,8 @@ jest.mock("../services/gitCloneContentFetcher.js", () => ({
     getWorkerCount: jest.fn().mockReturnValue(1),
   })),
 }));
+
+const statusServiceGetStatus = jest.spyOn(StatusService.prototype, "getStatus");
 
 describe("Server Integration", () => {
   const TEST_PORT = 8081;
@@ -388,25 +391,20 @@ describe("Server Integration", () => {
   });
 
   describe("Health Endpoint", () => {
-    it("should return health check with authentication", async () => {
-      const credentials = Buffer.from("admin:secret").toString("base64");
-      const response = await fetch(`${SERVER_URL}/health`, {
-        headers: {
-          Authorization: `Basic ${credentials}`,
-        },
-      });
-
-      expect(response.status).toBe(200);
+    it("should return health check without authentication", async () => {
+      const response = await fetch(`${SERVER_URL}/health`);
       const data = (await response.json()) as {
         status: string;
         timestamp: string;
         version: string;
         sync: { hasContent: boolean };
       };
-      expect(data).toHaveProperty("status", "ok");
+
+      expect(response.status).toBe(200);
       expect(data).toHaveProperty("timestamp");
       expect(data).toHaveProperty("version");
       expect(data.sync).toHaveProperty("hasContent");
+      expect(data).toHaveProperty("status", "ok");
     });
   });
 
@@ -632,18 +630,161 @@ describe("GitHub Source Type Integration", () => {
   describe("Health Endpoint for GitHub", () => {
     it("should return health check with GitHub sync status", async () => {
       const response = await fetch(`${GITHUB_SERVER_URL}/health`);
-
-      expect(response.status).toBe(200);
       const data = (await response.json()) as {
         status: string;
         timestamp: string;
         version: string;
         sync: { hasContent: boolean };
       };
+
+      expect(response.status).toBe(200);
       expect(data).toHaveProperty("status", "ok");
       expect(data).toHaveProperty("timestamp");
       expect(data).toHaveProperty("version");
       expect(data.sync).toHaveProperty("hasContent");
+    });
+
+    it("should return 503 on health check when GitHub sync status is failed", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "2.0.0",
+            isOutdated: true,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+
+      expect(response.status).toBe(503);
+      expect(data).toHaveProperty("status", "failed");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+
+    it("should return 507 on health check when failure was caused by disk space exhaustion", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "1.0.0",
+            isOutdated: false,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+            lastError: {
+              httpStatusCode: 507,
+              httpStatusText: "insufficient_storage",
+              item: { code: "DISK_SPACE_ERROR", message: "No disk space available" },
+            },
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+
+      expect(response.status).toBe(507);
+      expect(data).toHaveProperty("status", "insufficient_storage");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+
+    it("should return 507 on health check when failure was caused by insufficient memory", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "1.0.0",
+            isOutdated: false,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+            lastError: {
+              httpStatusCode: 507,
+              httpStatusText: "insufficient_storage",
+              item: { code: "MEMORY_ERROR", message: "Insufficient memory available" },
+            },
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as {
+        status: string;
+        timestamp: string;
+        version: string;
+        sync: { hasContent: boolean };
+      };
+
+      expect(response.status).toBe(507);
+      expect(data).toHaveProperty("status", "insufficient_storage");
+      expect(data).toHaveProperty("timestamp");
+      expect(data).toHaveProperty("version");
+      expect(data.sync).toHaveProperty("hasContent");
+    });
+
+    it("should return 503 (not 507) when failure is not disk-space-related", async () => {
+      statusServiceGetStatus.mockImplementation(() => {
+        return Promise.resolve({
+          version: "1.0.0",
+          versionInfo: {
+            current: "1.0.0",
+            latest: "1.0.0",
+            isOutdated: false,
+          },
+          content: {
+            lastFetchTime: null,
+            currentVersion: null,
+            failedUpdates: 1,
+            commitHash: null,
+            updateStatus: "failed",
+            lastError: {
+              httpStatusCode: 503,
+              httpStatusText: "service_unavailable",
+              item: { code: "GITHUB_NETWORK_ERROR", message: "Unable to connect to GitHub" },
+            },
+          },
+        });
+      });
+
+      const response = await fetch(`${GITHUB_SERVER_URL}/health`);
+      const data = (await response.json()) as { status: string };
+
+      expect(response.status).toBe(503);
+      expect(data).toHaveProperty("status", "service_unavailable");
     });
   });
 });
@@ -703,6 +844,8 @@ describe("GitHub Source Type - Error Handling", () => {
       // Ignore cleanup errors
     }
   });
+
+  afterEach(() => jest.clearAllMocks());
 
   describe("Online Validation Error Handling", () => {
     it("should handle GitHub repository not found error gracefully", () => {

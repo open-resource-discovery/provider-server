@@ -241,7 +241,11 @@ describe("StatusService", () => {
           failedUpdates: 3,
           currentVersion: null,
           failedCommitHash: "failed123",
-          lastError: "Connection timeout",
+          lastError: {
+            httpStatusCode: 500,
+            httpStatusText: "failed",
+            item: { code: "INTERNAL_ERROR", message: "Connection timeout" },
+          },
         });
 
         const status = await statusService.getStatus();
@@ -249,7 +253,11 @@ describe("StatusService", () => {
         expect(status.content?.updateStatus).toBe("failed");
         expect(status.content?.failedUpdates).toBe(3);
         expect(status.content?.failedCommitHash).toBe("failed123");
-        expect(status.content?.lastError).toBe("Connection timeout");
+        expect(status.content?.lastError).toEqual({
+          httpStatusCode: 500,
+          httpStatusText: "failed",
+          item: { code: "INTERNAL_ERROR", message: "Connection timeout" },
+        });
       });
 
       it("should include webhook time if available", async () => {

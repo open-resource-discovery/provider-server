@@ -16,7 +16,7 @@ import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
 import { UpdateScheduler } from "./services/updateScheduler.js";
 import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
-import { StatusService } from "./services/statusService.js";
+import { StatusResponse, StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
@@ -249,16 +249,25 @@ async function setupServer(server: FastifyInstanceType, opts: ProviderServerOpti
   });
 
   // Add health check endpoint
-  server.get("/health", { logLevel: "error" }, async (_request, _reply) => {
-    const currentVersion = await fileSystemManager?.getCurrentVersion();
-    return {
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      version,
-      sync: {
-        hasContent: opts.sourceType !== OptSourceType.Github || !!currentVersion,
-      },
-    };
+  server.get(PATH_CONSTANTS.HEALTH_ENDPOINT, { logLevel: "error" }, async (_request, reply) => {
+    const status: StatusResponse = await statusService.getStatus();
+    const isFailed = status?.content?.updateStatus === "failed";
+    const lastError = status?.content?.lastError;
+
+    const httpCode = isFailed ? (lastError?.httpStatusCode ?? 503) : 200;
+    const statusString = isFailed ? (lastError?.httpStatusText ?? "failed") : "ok";
+
+    reply
+      .code(httpCode)
+      .header("Content-Type", "application/json; charset=utf-8")
+      .send({
+        status: statusString,
+        timestamp: new Date().toISOString(),
+        version,
+        sync: {
+          hasContent: opts.sourceType !== OptSourceType.Github || !!status?.content?.currentVersion,
+        },
+      });
   });
 
   // Add version header to all responses

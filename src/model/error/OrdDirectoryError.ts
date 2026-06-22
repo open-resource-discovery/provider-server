@@ -3,6 +3,7 @@ import { BackendError, DetailError } from "./BackendError.js";
 export class LocalDirectoryError extends BackendError {
   public name = "LocalDirectoryError";
   public httpStatusCode = 400;
+  public httpStatusText = "configuration_error";
 
   public constructor(message: string, target?: string, details?: DetailError[]) {
     super(message, "LOCAL_DIRECTORY_ERROR", target, details);
