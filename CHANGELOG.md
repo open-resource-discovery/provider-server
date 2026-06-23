@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Security updates and overrides (@types/got, form-data, js-yaml, esbuild)
+- Revert automated token usage for Docker image deployments to GHCR
 
 ## [[1.2.2](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.2)] - 2026-06-23
 
