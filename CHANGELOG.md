@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+
+- Release workflow now authenticates to GitHub Container Registry using the built-in `GITHUB_TOKEN` instead of a classic PAT.
+
 ## [[1.2.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.1)] - 2026-06-22
 
 ### Changed
