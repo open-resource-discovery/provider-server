@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+
+- Revert automated token usage for Docker image deployments to GHCR
+
 ## [[1.2.2](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.2)] - 2026-06-23
 
 ### Changed
