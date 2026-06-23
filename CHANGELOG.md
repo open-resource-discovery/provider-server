@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.2.2](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.2)] - 2026-06-23
+
 ### Changed
 
 - Release workflow now authenticates to GitHub Container Registry using the built-in `GITHUB_TOKEN` instead of a classic PAT.
