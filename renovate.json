@@ -77,8 +77,7 @@
         "jest-watch-typeahead",
         "fetch-mock",
         "@types/jest",
-        "@types/js-yaml",
-        "@types/got"
+        "@types/js-yaml"
       ]
     },
     {
