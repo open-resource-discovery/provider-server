@@ -115,4 +115,4 @@ jobs:
           fetch-depth: 0
 
       - name: Create GitHub Release
-        uses: open-resource-discovery/github-release@1394005a81f4065a076e4071983bb9802a9e5e10 # main
+        uses: open-resource-discovery/github-release@26ed9b9f0e6ea6bee770d02776b5ed0a50c32e35 # main
