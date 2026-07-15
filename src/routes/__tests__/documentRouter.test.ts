@@ -160,6 +160,27 @@ describe("DocumentRouter", () => {
       await expect(handler(mockRequest as FastifyRequest, mockReply)).rejects.toThrow(InternalServerError);
       expect(log.error).toHaveBeenCalled();
     });
+    it("should serve non-JSON files via getFileContent instead of getProcessedDocument", async () => {
+      const pdfContent = Buffer.from("PDF content");
+      mockDocumentService.getFileContent.mockResolvedValue(pdfContent);
+      mockRequest.params = { "*": "Files/DeveloperPortal/guide.pdf" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("documents/Files/DeveloperPortal/guide.pdf");
+      expect(mockDocumentService.getProcessedDocument).not.toHaveBeenCalled();
+      expect(mockReply.send).toHaveBeenCalledWith(pdfContent);
+    });
+
+    it("should serve .yaml files via getFileContent", async () => {
+      mockDocumentService.getFileContent.mockResolvedValue(Buffer.from("openapi: 3.0.0"));
+      mockRequest.params = { "*": "specs/api.yaml" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("documents/specs/api.yaml");
+      expect(mockDocumentService.getProcessedDocument).not.toHaveBeenCalled();
+    });
 
     it("should serve non-JSON files via getFileContent instead of getProcessedDocument", async () => {
       const pdfContent = Buffer.from("PDF content");
@@ -197,6 +218,33 @@ describe("DocumentRouter", () => {
       expect(mockDocumentService.getFileContent).toHaveBeenCalledWith("documents/Artifacts/api/api.json");
       expect(mockReply.type).toHaveBeenCalledWith("application/json");
       expect(mockReply.send).toHaveBeenCalledWith(swaggerDef);
+    });
+
+    it("should treat a semver-tailed document name as an ORD document, not a file", async () => {
+      const mockDoc = { openResourceDiscovery: "1.9" };
+      mockDocumentService.getProcessedDocument.mockResolvedValue(mockDoc as never);
+      mockRequest.params = { "*": "sap.bdc.ccm_package_DataProducts_1.0.0" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getProcessedDocument).toHaveBeenCalledWith(
+        "documents/sap.bdc.ccm_package_DataProducts_1.0.0.json",
+      );
+      expect(mockDocumentService.getFileContent).not.toHaveBeenCalled();
+      expect(mockReply.send).toHaveBeenCalledWith(mockDoc);
+    });
+
+    it("should serve a semver-tailed document even when requested with the .json extension", async () => {
+      const mockDoc = { openResourceDiscovery: "1.9" };
+      mockDocumentService.getProcessedDocument.mockResolvedValue(mockDoc as never);
+      mockRequest.params = { "*": "sap.bdc.ccm_package_DataProducts_1.0.0.json" };
+
+      await handler(mockRequest as FastifyRequest, mockReply);
+
+      expect(mockDocumentService.getProcessedDocument).toHaveBeenCalledWith(
+        "documents/sap.bdc.ccm_package_DataProducts_1.0.0.json",
+      );
+      expect(mockDocumentService.getFileContent).not.toHaveBeenCalled();
     });
   });
 
