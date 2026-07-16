@@ -42,10 +42,12 @@ export class DocumentRouter extends BaseRouter {
       const { "*": documentPath } = request.params as { "*": string };
       const relativePath = `${this.documentsSubDirectory}/${documentPath}`;
 
-      // If the path has a non-JSON file extension, serve as raw file content.
-      // Use a strict regex to avoid matching ORD-style names with dots (e.g., "sap.ref-app-example").
+      // A path with a non-`.json` file extension is a raw resource file (linked from a package,
+      // e.g. OpenAPI YAML, PDF) and is served verbatim. An extension is a trailing dot-segment
+      // starting with a letter, so numeric semver tails on ORD document names (e.g. "..._1.0.0")
+      // are NOT treated as extensions and fall through to ORD-document serving below.
       const fileName = documentPath.split("/").pop() || "";
-      const hasFileExtension = /\.[a-zA-Z0-9]{1,10}$/.test(fileName);
+      const hasFileExtension = /\.[a-zA-Z][a-zA-Z0-9]*$/.test(fileName);
       if (hasFileExtension && !documentPath.endsWith(".json")) {
         log.info(`[FILES ROUTE] Request received for file: ${relativePath}`);
         try {
@@ -61,6 +63,7 @@ export class DocumentRouter extends BaseRouter {
         }
       }
 
+      // ORD documents are always `.json`; append the extension if the request omitted it.
       const documentPathWithExtension = documentPath.endsWith(".json") ? documentPath : `${documentPath}.json`;
       const documentRelativePath = `${this.documentsSubDirectory}/${documentPathWithExtension}`;
       log.info(`[DOCUMENTS ROUTE] Request received for ORD document: ${documentRelativePath}`);
@@ -69,12 +72,12 @@ export class DocumentRouter extends BaseRouter {
         const document = await this.documentService.getProcessedDocument(documentRelativePath);
         return reply.send(document);
       } catch (error) {
-        // If NotFoundError for a .json path, the file might be a resource file (e.g. Swagger/OpenAPI)
-        // rather than an ORD document. Fall back to serving it as raw file content.
-        if (error instanceof NotFoundError && documentPath.endsWith(".json")) {
-          log.info(`[DOCUMENTS ROUTE] Not an ORD document, falling back to file serving: ${relativePath}`);
+        // The path might be a non-ORD resource file (e.g. Swagger/OpenAPI JSON) rather than an
+        // ORD document. Fall back to serving it as raw file content.
+        if (error instanceof NotFoundError) {
+          log.info(`[DOCUMENTS ROUTE] Not an ORD document, falling back to file serving: ${documentRelativePath}`);
           try {
-            const content = await this.documentService.getFileContent(relativePath);
+            const content = await this.documentService.getFileContent(documentRelativePath);
             const contentString = Buffer.isBuffer(content) ? content.toString("utf-8") : content;
             try {
               const jsonData = JSON.parse(contentString);
