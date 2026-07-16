@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.2.4](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.4)] - 2026-07-16
+
 ### Fixed
 
 - Serve ORD documents whose filename ends in a version segment (e.g. `..._1.0.0`); the version tail is no longer mistaken for a file extension.
