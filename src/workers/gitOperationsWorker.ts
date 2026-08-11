@@ -1,8 +1,51 @@
 import { parentPort } from "worker_threads";
-import * as fs from "fs/promises";
+import * as fsPromises from "fs/promises";
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
 import type { GitOperationData, GitProgressEvent } from "./gitWorkerTypes.js";
+
+// Limit concurrent file writes to avoid EMFILE on large repos (100k+ files).
+// isomorphic-git checkout fans out all writes via Promise.allSettled with no
+// concurrency cap, which exhausts the OS file descriptor limit.
+const WRITE_CONCURRENCY = 50;
+
+function makeConcurrencyLimitedFs(concurrency: number): typeof fsPromises {
+  let active = 0;
+  const queue: (() => void)[] = [];
+
+  function acquire(): Promise<void> {
+    return new Promise((resolve) => {
+      if (active < concurrency) {
+        active++;
+        resolve();
+      } else {
+        queue.push(() => {
+          active++;
+          resolve();
+        });
+      }
+    });
+  }
+
+  function release(): void {
+    active--;
+    const next = queue.shift();
+    if (next) next();
+  }
+
+  async function writeFile(...args: Parameters<typeof fsPromises.writeFile>): Promise<void> {
+    await acquire();
+    try {
+      await fsPromises.writeFile(...args);
+    } finally {
+      release();
+    }
+  }
+
+  return { ...fsPromises, writeFile };
+}
+
+const fs = makeConcurrencyLimitedFs(WRITE_CONCURRENCY);
 
 interface WorkerMessage {
   type: "clone" | "checkout" | "resetIndex" | "pull" | "abort";
