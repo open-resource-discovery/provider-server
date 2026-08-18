@@ -14,4 +14,7 @@ export default defineConfig({
     target: "esnext",
   },
   base: "/status-ui/",
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
 });
