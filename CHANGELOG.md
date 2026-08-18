@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+
+- For huge repositories we need to take care of EMFILE errors, as we might write (and have opened) too many files. Therefore we have a concurrency limited wrapper for `fs`.
+
 ## [[1.2.4](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.4)] - 2026-07-16
 
 ### Fixed
