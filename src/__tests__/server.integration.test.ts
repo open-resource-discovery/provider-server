@@ -467,11 +467,11 @@ describe("Server Integration", () => {
           headers,
         });
 
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(414);
         const body = await response.json();
-        expect(body).toHaveProperty("statusCode", 404);
-        expect(body).toHaveProperty("error", "Not Found");
-        expect(body).not.toHaveProperty("error.code");
+        expect(body).toHaveProperty("statusCode", 414);
+        expect(body).toHaveProperty("error", "Bad Request");
+        expect(body).toHaveProperty("code", "FST_ERR_MAX_PARAM_LENGTH");
       });
 
       it("should reject very long ORD IDs well above the limit", async () => {
@@ -486,11 +486,11 @@ describe("Server Integration", () => {
           headers,
         });
 
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(414);
         const body = await response.json();
-        expect(body).toHaveProperty("statusCode", 404);
-        expect(body).toHaveProperty("error", "Not Found");
-        expect(body).not.toHaveProperty("error.code");
+        expect(body).toHaveProperty("statusCode", 414);
+        expect(body).toHaveProperty("error", "Bad Request");
+        expect(body).toHaveProperty("code", "FST_ERR_MAX_PARAM_LENGTH");
       });
     });
 
@@ -513,11 +513,11 @@ describe("Server Integration", () => {
 
         const response = await fetch(`${SERVER_URL}${PATH_CONSTANTS.SERVER_PREFIX}/${longFileName}`, { headers });
 
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(414);
         const body = await response.json();
-        expect(body).toHaveProperty("statusCode", 404);
-        expect(body).toHaveProperty("error", "Not Found");
-        expect(body).not.toHaveProperty("error.code");
+        expect(body).toHaveProperty("statusCode", 414);
+        expect(body).toHaveProperty("error", "Bad Request");
+        expect(body).toHaveProperty("code", "FST_ERR_MAX_PARAM_LENGTH");
       });
     });
   });
