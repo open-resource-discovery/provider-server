@@ -1,9 +1,7 @@
 import type { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import fastifyStatic from "@fastify/static";
-import fs from "node:fs";
 import path from "node:path";
-import { log } from "../util/logger.js";
 import { FileSystemManager } from "../services/fileSystemManager.js";
 import { UpdateScheduler } from "../services/updateScheduler.js";
 import { PATH_CONSTANTS } from "../constant.js";
@@ -23,7 +21,6 @@ async function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions)
   await fastify.register(fastifyStatic, {
     root: distUiPath,
     prefix: "/status-ui/",
-    decorateReply: false,
   });
 
   // REST endpoint for status data
@@ -36,13 +33,7 @@ async function statusRouter(fastify: FastifyInstance, opts: StatusRouterOptions)
       void reply.redirect(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT);
       return;
     }
-    try {
-      const html = fs.readFileSync(path.join(distUiPath, "index.html"), "utf-8");
-      void reply.type("text/html").send(html);
-    } catch (error) {
-      log.error(`Failed to serve status UI: ${error}`);
-      void reply.code(500).send("Status page not available");
-    }
+    void reply.sendFile("index.html");
   };
 
   // Serve React SPA for /status and all sub-paths (client-side routing)
