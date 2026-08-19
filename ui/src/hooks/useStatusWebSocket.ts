@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { StatusResponse } from "@open-resource-discovery/explorer/components";
+import { WS_PATH } from "../constants";
 
 function isStatusResponse(value: unknown): value is StatusResponse {
   return (
@@ -33,7 +34,7 @@ export function useStatusWebSocket(): StatusResponse | undefined {
         });
 
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      ws = new WebSocket(`${protocol}//${window.location.host}/api/v1/ws`);
+      ws = new WebSocket(`${protocol}//${window.location.host}${WS_PATH}`);
 
       ws.onmessage = (event: MessageEvent): void => {
         try {
