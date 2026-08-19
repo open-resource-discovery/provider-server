@@ -75,7 +75,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       apiUrl: opts.githubApiUrl!,
       repository: opts.githubRepository!,
       branch: opts.githubBranch!,
-      token: opts.githubToken,
+      ...(opts.githubToken !== undefined && { token: opts.githubToken }),
       rootDirectory: opts.ordDirectory,
     });
 
@@ -107,10 +107,14 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   // Setup authentication
   await setupAuthentication(server, {
     authMethods: opts.authentication.methods,
-    validUsers: opts.authentication.basicAuthUsers,
-    trustedCerts: opts.authentication.trustedCerts,
-    trustedRootCaDns: opts.authentication.trustedRootCaDns,
-    cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
+    ...(opts.authentication.basicAuthUsers !== undefined && { validUsers: opts.authentication.basicAuthUsers }),
+    ...(opts.authentication.trustedCerts !== undefined && { trustedCerts: opts.authentication.trustedCerts }),
+    ...(opts.authentication.trustedRootCaDns !== undefined && {
+      trustedRootCaDns: opts.authentication.trustedRootCaDns,
+    }),
+    ...(opts.authentication.cfMtlsConfigEndpoints !== undefined && {
+      cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
+    }),
   });
 
   // Setup readiness gate for GitHub source type
@@ -127,7 +131,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     const webhookRouter = new WebhookRouter(
       updateScheduler,
       {
-        secret: opts.webhookSecret,
+        ...(opts.webhookSecret !== undefined && { secret: opts.webhookSecret }),
         branch: opts.githubBranch!,
         repository: opts.githubRepository!,
       },
@@ -319,17 +323,16 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     fqnDocumentMap: {},
     documentsSubDirectory: opts.ordDocumentsSubDirectory,
     ordDirectory: effectiveOrdDirectory,
-    githubOpts:
-      opts.sourceType === OptSourceType.Github
-        ? {
-            githubApiUrl: opts.githubApiUrl!,
-            githubRepository: opts.githubRepository!,
-            githubBranch: opts.githubBranch!,
-            githubToken: opts.githubToken,
-            customDirectory: opts.ordDirectory,
-          }
-        : undefined,
-    fileSystemManager: fileSystemManager || undefined,
+    ...(opts.sourceType === OptSourceType.Github && {
+      githubOpts: {
+        githubApiUrl: opts.githubApiUrl!,
+        githubRepository: opts.githubRepository!,
+        githubBranch: opts.githubBranch!,
+        ...(opts.githubToken !== undefined && { githubToken: opts.githubToken }),
+        customDirectory: opts.ordDirectory,
+      },
+    }),
+    ...(fileSystemManager !== null && { fileSystemManager }),
   });
 
   cacheServiceGlobal = cacheService;

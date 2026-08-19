@@ -154,6 +154,13 @@ export class StatusService {
         status = "cache_warming";
       }
 
+      // The scheduler stores a rich StatusError (with httpStatusCode/Text);
+      // the stateManager only keeps a plain message. Prefer the rich one
+      // and fall back to wrapping the message as a generic 500 error.
+      const lastError =
+        updateSchedulerStatus?.lastError ??
+        (stateManagerStatus?.lastError ? toStatusError(new Error(stateManagerStatus.lastError)) : undefined);
+
       response.content = {
         lastFetchTime:
           (stateManagerStatus?.lastUpdateTime || updateSchedulerStatus?.lastUpdateTime)?.toISOString() || null,
@@ -165,12 +172,7 @@ export class StatusService {
         commitHash: metadata?.commitHash || null,
         failedCommitHash: stateManagerStatus?.failedCommitHash ?? updateSchedulerStatus?.failedCommitHash ?? null,
         lastWebhookTime: this.updateScheduler?.getLastWebhookReceivedTime()?.toISOString() || null,
-        // The scheduler stores a rich StatusError (with httpStatusCode/Text);
-        // the stateManager only keeps a plain message. Prefer the rich one
-        // and fall back to wrapping the message as a generic 500 error.
-        lastError:
-          updateSchedulerStatus?.lastError ??
-          (stateManagerStatus?.lastError ? toStatusError(new Error(stateManagerStatus.lastError)) : undefined),
+        ...(lastError !== undefined && { lastError }),
       };
     }
 

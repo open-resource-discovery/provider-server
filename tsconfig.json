@@ -10,6 +10,8 @@
     "outDir": "dist",
     "declaration": true,
     "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "paths": {
       "src/*": ["./src/*"]
     }

@@ -46,7 +46,7 @@ export class RouterFactory {
         githubBranch: options.githubOpts.githubBranch,
         githubApiUrl: options.githubOpts.githubApiUrl,
         githubRepo: options.githubOpts.githubRepository,
-        githubToken: options.githubOpts.githubToken,
+        ...(options.githubOpts.githubToken !== undefined && { githubToken: options.githubOpts.githubToken }),
       };
     } else if (options.sourceType === OptSourceType.Local && options.ordDirectory) {
       repository = new LocalDocumentRepository(options.ordDirectory);

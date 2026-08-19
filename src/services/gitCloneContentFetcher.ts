@@ -99,7 +99,7 @@ export class GitCloneContentFetcher implements ContentFetcher {
       // Return metadata
       return {
         commitHash: this.currentCommitHash,
-        directoryTreeSha: directoryTreeSha || undefined,
+        ...(directoryTreeSha !== null && { directoryTreeSha }),
         fetchTime: new Date(),
         branch: this.config.branch,
         repository: `${this.config.owner}/${this.config.repo}`,
