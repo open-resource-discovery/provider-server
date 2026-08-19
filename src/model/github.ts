@@ -52,13 +52,15 @@ export function buildGithubConfig(opts: {
   token?: string;
   rootDirectory?: string;
 }): GithubConfig {
-  const [owner, repo] = opts.repository.split("/");
+  const parts = opts.repository.split("/");
+  const owner = parts[0] ?? "";
+  const repo = parts[1] ?? "";
   return {
     apiUrl: opts.apiUrl,
     owner,
     repo,
     branch: opts.branch,
-    token: opts.token,
+    ...(opts.token !== undefined && { token: opts.token }),
     rootDirectory: opts.rootDirectory || ".",
   };
 }

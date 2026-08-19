@@ -405,7 +405,6 @@ describe("GitCloneContentFetcher", () => {
     it("should return undefined when no token", () => {
       const noAuthConfig: GithubConfig = {
         ...config,
-        token: undefined,
       };
 
       const noAuthFetcher = new GitCloneContentFetcher(noAuthConfig);
@@ -737,7 +736,8 @@ describe("GitCloneContentFetcher", () => {
       await fetcherWithSubdir.fetchAllContent(targetDir);
 
       expect(extractSpy).toHaveBeenCalled();
-      expect(extractSpy.mock.calls[0][0]).toBe(targetDir);
+      // SAFETY: mock.calls is non-empty because toHaveBeenCalled() asserted it above.
+      expect(extractSpy.mock.calls[0]![0]).toBe(targetDir);
 
       fetcherWithSubdir.destroy();
     });
@@ -770,7 +770,8 @@ describe("GitCloneContentFetcher", () => {
       await fetcherWithSubdir.fetchAllContent(targetDir);
 
       expect(extractSpy).toHaveBeenCalled();
-      expect(extractSpy.mock.calls[0][0]).toBe(targetDir);
+      // SAFETY: mock.calls is non-empty because toHaveBeenCalled() asserted it above.
+      expect(extractSpy.mock.calls[0]![0]).toBe(targetDir);
 
       fetcherWithSubdir.destroy();
     });

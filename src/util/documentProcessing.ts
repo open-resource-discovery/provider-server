@@ -101,9 +101,9 @@ export function processOrdDocument(
       ...document.describedSystemInstance,
       baseUrl: context.baseUrl,
     },
-    describedSystemVersion,
-    packages: packages.length ? packages : undefined,
-    apiResources: apiResources.length ? apiResources : undefined,
-    eventResources: eventResources.length ? eventResources : undefined,
+    ...(describedSystemVersion !== undefined && { describedSystemVersion }),
+    ...(packages.length ? { packages } : {}),
+    ...(apiResources.length ? { apiResources } : {}),
+    ...(eventResources.length ? { eventResources } : {}),
   };
 }
