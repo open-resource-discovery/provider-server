@@ -11,7 +11,11 @@ function buildPerspectives(config: OrdConfiguration): Perspective[] {
   const perspOrder: string[] = [];
 
   for (const entry of entries) {
-    const id = (entry as { perspective?: string }).perspective ?? DEFAULT_PERSPECTIVE;
+    // SAFETY: ORD document entries carry a 'perspective' extension field not declared in
+    // the upstream OrdConfiguration type; we cast to Record<string,unknown> to read it and
+    // narrow with typeof before use.
+    const raw = entry as unknown as Record<string, unknown>;
+    const id = typeof raw["perspective"] === "string" ? raw["perspective"] : DEFAULT_PERSPECTIVE;
     if (!perspMap.has(id)) {
       perspMap.set(id, []);
       perspOrder.push(id);
