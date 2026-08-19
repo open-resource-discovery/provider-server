@@ -1,29 +1,43 @@
 import { useCallback, useEffect, useState } from "react";
-import type { OrdConfiguration } from "@open-resource-discovery/specification";
 import type { Perspective, PerspectivesState } from "@open-resource-discovery/explorer/components";
 import { ORD_CONFIG_URL } from "../constants";
 
 const DEFAULT_PERSPECTIVE = "system-instance";
 
-function buildPerspectives(config: OrdConfiguration): Perspective[] {
+interface OrdConfigShape {
+  openResourceDiscoveryV1?: {
+    documents?: Record<string, unknown>[];
+  };
+}
+
+function isOrdConfigShape(v: unknown): v is OrdConfigShape {
+  if (typeof v !== "object" || v === null) return false;
+  // SAFETY: v is a non-null object; casting to Record<string,unknown> to read optional fields.
+  const r = v as Record<string, unknown>;
+  if (!("openResourceDiscoveryV1" in r)) return true;
+  const v1 = r["openResourceDiscoveryV1"];
+  if (typeof v1 !== "object" || v1 === null) return false;
+  // SAFETY: v1 is a non-null object; casting to Record<string,unknown> to read the documents field.
+  const docs = (v1 as Record<string, unknown>)["documents"];
+  return docs === undefined || Array.isArray(docs);
+}
+
+function buildPerspectives(config: OrdConfigShape): Perspective[] {
   const entries = config.openResourceDiscoveryV1?.documents ?? [];
   const perspMap = new Map<string, { url: string }[]>();
   const perspOrder: string[] = [];
 
   for (const entry of entries) {
-    // SAFETY: ORD document entries carry a 'perspective' extension field not declared in
-    // the upstream OrdConfiguration type; we cast to Record<string,unknown> to read it and
-    // narrow with typeof before use.
-    const raw = entry as unknown as Record<string, unknown>;
-    const id = typeof raw["perspective"] === "string" ? raw["perspective"] : DEFAULT_PERSPECTIVE;
+    const id = typeof entry["perspective"] === "string" ? entry["perspective"] : DEFAULT_PERSPECTIVE;
     if (!perspMap.has(id)) {
       perspMap.set(id, []);
       perspOrder.push(id);
     }
-    if (entry.url?.trim()) {
+    const url = entry["url"];
+    if (typeof url === "string" && url.trim()) {
       const docs = perspMap.get(id);
       if (docs !== undefined) {
-        docs.push({ url: entry.url });
+        docs.push({ url });
       }
     }
   }
@@ -50,9 +64,9 @@ export function useProviderPerspectives(): [PerspectivesState, () => void] {
       try {
         const res = await fetch(ORD_CONFIG_URL);
         if (!res.ok) throw new Error(`HTTP ${res.status.toString()}`);
-        // SAFETY: ORD_CONFIG_URL is a server-controlled endpoint that always returns OrdConfiguration-shaped JSON.
-        const config = (await res.json()) as OrdConfiguration;
-        const perspectives = buildPerspectives(config);
+        const raw: unknown = await res.json();
+        if (!isOrdConfigShape(raw)) throw new Error("Unexpected ORD config shape");
+        const perspectives = buildPerspectives(raw);
         if (!cancelled) {
           setState({ status: "ready", perspectives, fetchedAt: new Date() });
         }
