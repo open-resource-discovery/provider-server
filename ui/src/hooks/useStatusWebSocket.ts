@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import type { StatusResponse } from "@open-resource-discovery/explorer/components";
 import { WS_PATH } from "../constants";
 
+interface WsMessage {
+  type: string;
+  data?: unknown;
+}
+
+function isWsMessage(v: unknown): v is WsMessage {
+  return (
+    typeof v === "object" && v !== null && "type" in v && typeof (v as Record<string, unknown>)["type"] === "string"
+  );
+}
+
 function isStatusResponse(value: unknown): value is StatusResponse {
   return (
     typeof value === "object" &&
@@ -38,20 +49,17 @@ export function useStatusWebSocket(): StatusResponse | undefined {
 
       ws.onmessage = (event: MessageEvent): void => {
         try {
-          // SAFETY: only `.type` (string) and `.data` (unknown) are read before further narrowing.
-          const msg = JSON.parse(String(event.data)) as {
-            type: string;
-            data?: unknown;
-          };
-          if (msg.type === "status" && msg.data !== undefined) {
+          const raw: unknown = JSON.parse(String(event.data));
+          if (!isWsMessage(raw)) return;
+          if (raw.type === "status" && raw.data !== undefined) {
+            const incoming = raw.data;
             setStatus((prev: StatusResponse | undefined): StatusResponse => {
               if (prev !== undefined) {
-                // SAFETY: WS "status" messages are server-emitted Partial<StatusResponse>; narrowed in ticket 06.
-                const partial = msg.data as Partial<StatusResponse>;
-                return { ...prev, ...partial };
+                // SAFETY: type === "status" messages carry a StatusResponse-shaped payload per server contract.
+                return { ...prev, ...(incoming as Partial<StatusResponse>) };
               }
-              // SAFETY: WS "status" messages are server-emitted StatusResponse; narrowed in ticket 06.
-              return msg.data as StatusResponse;
+              // SAFETY: type === "status" messages carry a StatusResponse-shaped payload per server contract.
+              return incoming as StatusResponse;
             });
           }
         } catch {
