@@ -35,9 +35,9 @@ export function getOrdDocumentAccessStrategies(
 
   return authOpts.flatMap((ao) => {
     if (ao === OptAuthMethod.CfMtls) {
-      return (cfMtlsAccessStrategies ?? [OrdAccessStrategy.CfMtls]).map(
-        (type): OrdV1DocumentAccessStrategy => ({ type }),
-      );
+      return (cfMtlsAccessStrategies ?? [OrdAccessStrategy.CfMtls]).map((type): OrdV1DocumentAccessStrategy => ({
+        type,
+      }));
     }
     return [{ type: mapOptAuthToOrdAccessStrategy(ao) } satisfies OrdV1DocumentAccessStrategy];
   }) as [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]];
