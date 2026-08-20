@@ -4,11 +4,50 @@ import { Link } from "@tanstack/react-router";
 import { ServerStatusPanel, ConnectionDetailPage } from "@open-resource-discovery/explorer/components";
 import type { Perspective } from "@open-resource-discovery/explorer/components";
 import { useStatusWebSocket } from "../hooks/useStatusWebSocket";
+import type { UpdateProgress } from "../hooks/useStatusWebSocket";
 import { useProviderPerspectives } from "../hooks/usePerspectives";
 import { ORD_CONFIG_URL, WEBHOOK_PATH } from "../constants";
 import { assertNever } from "../utils";
 
 type UpdateStatus = "idle" | "scheduled" | "in_progress" | "failed" | "cache_warming";
+
+const GIT_PREFIXES = [
+  "Receiving objects:",
+  "Resolving deltas:",
+  "Downloading objects:",
+  "Checking out files:",
+  "Analyzing workdir:",
+  "Updating workdir:",
+  "Counting objects:",
+] as const;
+
+function getProgressText(progress: UpdateProgress): string {
+  let text = "";
+
+  const currentFile = progress.currentFile;
+  if (currentFile !== undefined) {
+    const isGit = GIT_PREFIXES.some((p: string): boolean => currentFile.includes(p));
+    if (isGit) {
+      text = currentFile;
+    } else if (!currentFile.includes("git objects")) {
+      text = currentFile.split("/").pop() ?? "";
+    }
+  }
+
+  if (text === "" && progress.totalFiles !== undefined && progress.fetchedFiles !== undefined) {
+    if (progress.totalFiles < 20000 || progress.fetchedFiles > progress.totalFiles / 2) {
+      const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
+      text = `Fetching files: ${progress.fetchedFiles}/${progress.totalFiles} (${percentage}%)`;
+    }
+  }
+
+  const errors = progress.errors;
+  if (errors !== undefined && errors.length > 0) {
+    text += ` [${errors.length} errors]`;
+  }
+
+  return text.trim();
+}
 
 function getTriggerButtonLabel(
   updateStatus: UpdateStatus | undefined,
@@ -27,7 +66,7 @@ function getTriggerButtonLabel(
 }
 
 export function StatusHubPage(): ReactNode {
-  const status = useStatusWebSocket();
+  const { status, updateProgress } = useStatusWebSocket();
   const [perspectivesState, onRefresh] = useProviderPerspectives();
   const [isTriggering, setIsTriggering] = useState<boolean>(false);
 
@@ -37,6 +76,11 @@ export function StatusHubPage(): ReactNode {
   const buttonDisabled =
     isTriggering ||
     (updateStatus !== undefined && updateStatus !== "idle" && updateStatus !== "failed");
+
+  const progressText =
+    updateStatus === "in_progress" && updateProgress !== undefined
+      ? getProgressText(updateProgress)
+      : "";
 
   useEffect((): void => {
     if (
@@ -67,7 +111,10 @@ export function StatusHubPage(): ReactNode {
     <div>
       {status !== undefined && <ServerStatusPanel status={status} />}
       {showTriggerButton && (
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-col items-end gap-1.5">
+          {progressText !== "" && (
+            <p className="text-xs text-muted-foreground">{progressText}</p>
+          )}
           <button
             onClick={handleTriggerUpdate}
             disabled={buttonDisabled}

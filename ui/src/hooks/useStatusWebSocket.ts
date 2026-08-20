@@ -7,6 +7,18 @@ interface WsMessage {
   data?: unknown;
 }
 
+export interface UpdateProgress {
+  fetchedFiles?: number;
+  totalFiles?: number;
+  currentFile?: string;
+  errors?: readonly string[];
+}
+
+export interface UseStatusWebSocketResult {
+  status: StatusResponse | undefined;
+  updateProgress: UpdateProgress | undefined;
+}
+
 function isWsMessage(v: unknown): v is WsMessage {
   return (
     typeof v === "object" && v !== null && "type" in v && typeof (v as Record<string, unknown>)["type"] === "string"
@@ -23,8 +35,13 @@ function isStatusResponse(value: unknown): value is StatusResponse {
   );
 }
 
-export function useStatusWebSocket(): StatusResponse | undefined {
+function isUpdateProgress(v: unknown): v is UpdateProgress {
+  return typeof v === "object" && v !== null;
+}
+
+export function useStatusWebSocket(): UseStatusWebSocketResult {
   const [status, setStatus] = useState<StatusResponse | undefined>(undefined);
+  const [updateProgress, setUpdateProgress] = useState<UpdateProgress | undefined>(undefined);
 
   useEffect((): (() => void) => {
     let ws: WebSocket | undefined;
@@ -61,6 +78,10 @@ export function useStatusWebSocket(): StatusResponse | undefined {
               // SAFETY: type === "status" messages carry a StatusResponse-shaped payload per server contract.
               return incoming as StatusResponse;
             });
+          } else if (raw.type === "update-progress" && raw.data !== undefined) {
+            if (isUpdateProgress(raw.data)) {
+              setUpdateProgress(raw.data);
+            }
           }
         } catch {
           // ignore parse errors
@@ -88,5 +109,5 @@ export function useStatusWebSocket(): StatusResponse | undefined {
     };
   }, []);
 
-  return status;
+  return { status, updateProgress };
 }
