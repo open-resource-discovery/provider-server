@@ -5,5 +5,6 @@ import { ORD_CONFIG_URL } from "../constants";
 
 export function ExplorerViewPage(): ReactNode {
   const { perspId } = useParams({ from: "/status/$perspId" });
-  return <ExplorerPage ordConfigUrl={ORD_CONFIG_URL} perspectiveId={perspId} />;
+  const absoluteOrdConfigUrl = `${window.location.origin}${ORD_CONFIG_URL}`;
+  return <ExplorerPage ordConfigUrl={absoluteOrdConfigUrl} perspectiveId={perspId} />;
 }
