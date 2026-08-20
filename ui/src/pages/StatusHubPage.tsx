@@ -20,7 +20,11 @@ export function StatusHubPage(): ReactNode {
         perspectivesState={perspectivesState}
         onRefresh={onRefresh}
         renderPerspectiveAction={(perspective: Perspective): ReactNode => (
-          <Link to="/status/$perspId" params={{ perspId: perspective.id }}>
+          <Link
+            to="/status/$perspId"
+            params={{ perspId: perspective.id }}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
             Explore
           </Link>
         )}
