@@ -25,10 +25,6 @@ function isWsMessage(v: unknown): v is WsMessage {
   );
 }
 
-function isUpdateProgress(v: unknown): v is UpdateProgress {
-  return typeof v === "object" && v !== null;
-}
-
 export function useStatusWebSocket(): UseStatusWebSocketResult {
   const [status, setStatus] = useState<StatusResponse | undefined>(undefined);
   const [updateProgress, setUpdateProgress] = useState<UpdateProgress | undefined>(undefined);
@@ -70,9 +66,8 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
               return incoming as StatusResponse;
             });
           } else if (raw.type === "update-progress" && raw.data !== undefined) {
-            if (isUpdateProgress(raw.data)) {
-              setUpdateProgress(raw.data);
-            }
+            // SAFETY: type === "update-progress" messages carry an UpdateProgress-shaped payload per server contract.
+            setUpdateProgress(raw.data as UpdateProgress);
           }
         } catch {
           // ignore parse errors
