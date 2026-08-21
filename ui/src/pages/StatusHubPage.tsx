@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ServerStatusPanel, ConnectionDetailPage } from "@open-resource-discovery/explorer/components";
-import type { Perspective } from "@open-resource-discovery/explorer/components";
-import { useStatusWebSocket } from "../hooks/useStatusWebSocket";
-import type { UpdateProgress } from "../hooks/useStatusWebSocket";
+import {
+  ServerStatusPanel,
+  ConnectionDetailPage,
+  type Perspective,
+} from "@open-resource-discovery/explorer/components";
+import { useStatusWebSocket, type UpdateProgress } from "../hooks/useStatusWebSocket";
 import { useProviderPerspectives } from "../hooks/usePerspectives";
 import { ORD_CONFIG_URL, WEBHOOK_PATH } from "../constants";
 import { assertNever } from "../utils";
@@ -49,19 +50,20 @@ function getProgressText(progress: UpdateProgress): string {
   return text.trim();
 }
 
-function getTriggerButtonLabel(
-  updateStatus: UpdateStatus | undefined,
-  isTriggering: boolean,
-): string {
+function getTriggerButtonLabel(updateStatus: UpdateStatus | undefined, isTriggering: boolean): string {
   if (isTriggering) return "Scheduling…";
   if (updateStatus === undefined || updateStatus === "idle" || updateStatus === "failed") {
     return "Trigger Update";
   }
   switch (updateStatus) {
-    case "scheduled": return "Update Scheduled";
-    case "in_progress": return "Fetching…";
-    case "cache_warming": return "Warming Cache…";
-    default: return assertNever(updateStatus);
+    case "scheduled":
+      return "Update Scheduled";
+    case "in_progress":
+      return "Fetching…";
+    case "cache_warming":
+      return "Warming Cache…";
+    default:
+      return assertNever(updateStatus);
   }
 }
 
@@ -74,20 +76,13 @@ export function StatusHubPage(): ReactNode {
   const sourceType = status?.settings?.sourceType;
   const showTriggerButton = sourceType !== undefined && sourceType !== "local";
   const buttonDisabled =
-    isTriggering ||
-    (updateStatus !== undefined && updateStatus !== "idle" && updateStatus !== "failed");
+    isTriggering || (updateStatus !== undefined && updateStatus !== "idle" && updateStatus !== "failed");
 
   const progressText =
-    updateStatus === "in_progress" && updateProgress !== undefined
-      ? getProgressText(updateProgress)
-      : "";
+    updateStatus === "in_progress" && updateProgress !== undefined ? getProgressText(updateProgress) : "";
 
   useEffect((): void => {
-    if (
-      updateStatus !== undefined &&
-      updateStatus !== "idle" &&
-      updateStatus !== "failed"
-    ) {
+    if (updateStatus !== undefined && updateStatus !== "idle" && updateStatus !== "failed") {
       setIsTriggering(false);
     }
   }, [updateStatus]);
@@ -99,10 +94,7 @@ export function StatusHubPage(): ReactNode {
         method: "POST",
         headers: { "x-manual-trigger": "true" },
       });
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        console.error("Failed to trigger update:", e.message);
-      }
+    } catch {
       setIsTriggering(false);
     }
   }
@@ -112,14 +104,11 @@ export function StatusHubPage(): ReactNode {
       {status !== undefined && <ServerStatusPanel status={status} />}
       {showTriggerButton && (
         <div className="mt-4 flex flex-col items-end gap-1.5">
-          {progressText !== "" && (
-            <p className="text-xs text-muted-foreground">{progressText}</p>
-          )}
+          {progressText !== "" && <p className="text-xs text-muted-foreground">{progressText}</p>}
           <button
             onClick={handleTriggerUpdate}
             disabled={buttonDisabled}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
             {getTriggerButtonLabel(updateStatus, isTriggering)}
           </button>
         </div>
@@ -134,8 +123,7 @@ export function StatusHubPage(): ReactNode {
           <Link
             to="/status/$perspId"
             params={{ perspId: perspective.id }}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
             Explore
           </Link>
         )}
