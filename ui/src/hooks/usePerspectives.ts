@@ -29,22 +29,22 @@ function buildPerspectives(config: OrdConfigShape): Perspective[] {
 
   for (const entry of entries) {
     const id = typeof entry["perspective"] === "string" ? entry["perspective"] : DEFAULT_PERSPECTIVE;
-    if (!perspMap.has(id)) {
-      perspMap.set(id, []);
+    const url = entry["url"];
+    let docs = perspMap.get(id);
+    if (docs === undefined) {
+      docs = [];
+      perspMap.set(id, docs);
       perspOrder.push(id);
     }
-    const url = entry["url"];
     if (typeof url === "string" && url.trim()) {
-      const docs = perspMap.get(id);
-      if (docs !== undefined) {
-        docs.push({ url });
-      }
+      docs.push({ url });
     }
   }
 
   return perspOrder.map((id) => ({
     id,
-    documents: perspMap.get(id) ?? [],
+    // SAFETY: perspOrder is populated in lockstep with perspMap; every id in the order was set in the map.
+    documents: perspMap.get(id) as { url: string }[],
   }));
 }
 
