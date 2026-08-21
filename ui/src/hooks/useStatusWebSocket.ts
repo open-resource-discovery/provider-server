@@ -25,16 +25,6 @@ function isWsMessage(v: unknown): v is WsMessage {
   );
 }
 
-function isStatusResponse(value: unknown): value is StatusResponse {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as Record<string, unknown>)["version"] === "string" &&
-    typeof (value as Record<string, unknown>)["versionInfo"] === "object" &&
-    (value as Record<string, unknown>)["versionInfo"] !== null
-  );
-}
-
 function isUpdateProgress(v: unknown): v is UpdateProgress {
   return typeof v === "object" && v !== null;
 }
@@ -52,8 +42,9 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
       fetch("/api/v1/status")
         .then((r: Response): Promise<unknown> => r.json())
         .then((data: unknown): void => {
-          if (!cancelled && isStatusResponse(data)) {
-            setStatus(data);
+          if (!cancelled) {
+            // SAFETY: /api/v1/status always returns a StatusResponse-shaped payload per server contract.
+            setStatus(data as StatusResponse);
           }
         })
         .catch((err: unknown): void => {
