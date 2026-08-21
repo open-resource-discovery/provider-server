@@ -52,10 +52,7 @@ export class UpdateStateManager extends EventEmitter {
    */
   public setState(updates: { [K in keyof UpdateState]?: UpdateState[K] | undefined }): void {
     const previousState = { ...this.state };
-    const definedUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([, v]) => v !== undefined),
-    ) as Partial<UpdateState>;
-    this.state = { ...this.state, ...definedUpdates };
+    Object.assign(this.state, updates);
 
     this.logger.debug(`Update state changed from ${previousState.status} to ${this.state.status}`);
 
