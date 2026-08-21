@@ -78,6 +78,30 @@ function parseMtlsTrustedCerts(value: string | undefined):
   }
 }
 
+function parseBasicAuthUsers(): Record<string, string> {
+  const raw = process.env.BASIC_AUTH;
+  if (!raw) {
+    throw new Error("BASIC_AUTH env var is required when basic auth is enabled");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    throw new Error("BASIC_AUTH env var is not valid JSON", { cause });
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    Array.isArray(parsed) ||
+    // SAFETY: non-null non-array object cast to Record for value iteration only; string values verified by the predicate.
+    Object.values(parsed as Record<string, unknown>).some((v: unknown) => typeof v !== "string")
+  ) {
+    throw new Error("BASIC_AUTH env var must be a JSON object mapping usernames to string passwords");
+  }
+  // SAFETY: shape verified above — non-null non-array object with all-string values.
+  return parsed as Record<string, string>;
+}
+
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
 
@@ -104,7 +128,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     authentication: {
       methods: options.auth,
       ...(options.auth.includes(OptAuthMethod.Basic) && {
-        basicAuthUsers: JSON.parse(process.env.BASIC_AUTH!) as Record<string, string>,
+        basicAuthUsers: parseBasicAuthUsers(),
       }),
       ...(mtlsConfig !== undefined && {
         trustedCerts: mtlsConfig.certs,
