@@ -106,9 +106,11 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
       ...(options.auth.includes(OptAuthMethod.Basic) && {
         basicAuthUsers: JSON.parse(process.env.BASIC_AUTH!) as Record<string, string>,
       }),
-      ...(mtlsConfig !== undefined && { trustedCerts: mtlsConfig.certs }),
-      ...(mtlsConfig !== undefined && { trustedRootCaDns: mtlsConfig.rootCaDns }),
-      ...(mtlsConfig !== undefined && { cfMtlsConfigEndpoints: mtlsConfig.configEndpoints }),
+      ...(mtlsConfig !== undefined && {
+        trustedCerts: mtlsConfig.certs,
+        trustedRootCaDns: mtlsConfig.rootCaDns,
+        cfMtlsConfigEndpoints: mtlsConfig.configEndpoints,
+      }),
       cfMtlsAccessStrategies: mtlsConfig?.accessStrategies ?? [],
     },
     dataDir: options.dataDir || "./data",
