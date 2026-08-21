@@ -38,7 +38,6 @@ describe("Perspective Model", () => {
         describedSystemInstance: {
           baseUrl: "http://example.com",
         },
-        perspective: undefined,
       };
 
       expect(hasPerspecive(doc)).toBe(false);
@@ -75,7 +74,6 @@ describe("Perspective Model", () => {
         describedSystemInstance: {
           baseUrl: "http://example.com",
         },
-        perspective: undefined,
       };
 
       expect(getDocumentPerspective(doc)).toBe("system-instance");

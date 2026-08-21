@@ -78,34 +78,68 @@ function parseMtlsTrustedCerts(value: string | undefined):
   }
 }
 
+function parseBasicAuthUsers(): Record<string, string> {
+  const raw = process.env.BASIC_AUTH;
+  if (!raw) {
+    throw new Error("BASIC_AUTH env var is required when basic auth is enabled");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    throw new Error("BASIC_AUTH env var is not valid JSON", { cause });
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    Array.isArray(parsed) ||
+    // SAFETY: non-null non-array object cast to Record for value iteration only; string values verified by the predicate.
+    Object.values(parsed as Record<string, unknown>).some((v: unknown) => typeof v !== "string")
+  ) {
+    throw new Error("BASIC_AUTH env var must be a JSON object mapping usernames to string passwords");
+  }
+  // SAFETY: shape verified above — non-null non-array object with all-string values.
+  return parsed as Record<string, string>;
+}
+
 export function buildProviderServerOptions(options: CommandLineOptions): ProviderServerOptions {
   log.info("Building server configuration...");
 
   const isMtls = options.auth.includes(OptAuthMethod.CfMtls);
   const mtlsConfig = isMtls ? parseMtlsTrustedCerts(process.env.CF_MTLS_TRUSTED_CERTS) : undefined;
 
+  const baseUrl = updateBaseUrl(options.baseUrl);
+  const host = trimTrailingSlash(options.host);
+  const port = options.port ? parseInt(options.port) : undefined;
+  const githubApiUrl = trimTrailingSlash(options.githubApiUrl);
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+
   return {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
     ordDocumentsSubDirectory: trimLeadingAndTrailingSlashes(options.documentsSubdirectory) || "", // Ensure it's never undefined
-    baseUrl: updateBaseUrl(options.baseUrl),
-    host: trimTrailingSlash(options.host),
-    port: options.port ? parseInt(options.port) : undefined,
+    ...(baseUrl !== undefined && { baseUrl }),
+    ...(host !== undefined && { host }),
+    ...(port !== undefined && { port }),
     sourceType: options.sourceType,
-    githubApiUrl: trimTrailingSlash(options.githubApiUrl),
-    githubRepository: options.githubRepository,
-    githubBranch: options.githubBranch,
-    githubToken: options.githubToken,
+    ...(githubApiUrl !== undefined && { githubApiUrl }),
+    ...(options.githubRepository !== undefined && { githubRepository: options.githubRepository }),
+    ...(options.githubBranch !== undefined && { githubBranch: options.githubBranch }),
+    ...(options.githubToken !== undefined && { githubToken: options.githubToken }),
     authentication: {
       methods: options.auth,
-      basicAuthUsers: options.auth.includes(OptAuthMethod.Basic) ? JSON.parse(process.env.BASIC_AUTH!) : undefined,
-      trustedCerts: mtlsConfig?.certs,
-      trustedRootCaDns: mtlsConfig?.rootCaDns,
-      cfMtlsConfigEndpoints: mtlsConfig?.configEndpoints,
+      ...(options.auth.includes(OptAuthMethod.Basic) && {
+        basicAuthUsers: parseBasicAuthUsers(),
+      }),
+      ...(mtlsConfig !== undefined && {
+        trustedCerts: mtlsConfig.certs,
+        trustedRootCaDns: mtlsConfig.rootCaDns,
+        cfMtlsConfigEndpoints: mtlsConfig.configEndpoints,
+      }),
       cfMtlsAccessStrategies: mtlsConfig?.accessStrategies ?? [],
     },
     dataDir: options.dataDir || "./data",
-    cors: options.cors ? options.cors.split(",") : undefined,
-    webhookSecret: process.env.WEBHOOK_SECRET,
+    ...(options.cors !== undefined && options.cors !== "" && { cors: options.cors.split(",") }),
+    ...(webhookSecret !== undefined && { webhookSecret }),
     updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
     statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
   };

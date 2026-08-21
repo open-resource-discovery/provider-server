@@ -10,10 +10,12 @@
     "outDir": "dist",
     "declaration": true,
     "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "paths": {
       "src/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "node_modules/**/*", "package.json"]
+  "exclude": ["node_modules", "node_modules/**/*", "package.json", "ui"]
 }

@@ -22,6 +22,14 @@ export default withCustomConfig([
     },
   },
   {
+    files: ["vite.config.ts", "ui/**/*.ts", "ui/**/*.tsx"],
+    languageOptions: {
+      parserOptions: {
+        project: null,
+      },
+    },
+  },
+  {
     files: ["public/**/*.js"],
     languageOptions: {
       globals: {

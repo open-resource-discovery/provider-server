@@ -131,8 +131,8 @@ class GitWorker {
   private sendResult(data?: { success: boolean }, error?: string): void {
     const message: ResultMessage = {
       type: "result",
-      data,
-      error,
+      ...(data !== undefined && { data }),
+      ...(error !== undefined && { error }),
     };
     parentPort!.postMessage(message);
   }

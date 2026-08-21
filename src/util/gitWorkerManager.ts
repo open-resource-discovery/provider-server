@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 export class GitWorkerManager {
   private worker: Worker | null = null;
   private currentOperation: Promise<void> | null = null;
-  private progressCallback?: (progress: GitProgressEvent) => void;
+  private progressCallback: ((progress: GitProgressEvent) => void) | undefined = undefined;
 
   private ensureWorker(): Worker {
     if (!this.worker) {
@@ -84,7 +84,7 @@ export class GitWorkerManager {
           ref,
           singleBranch: true,
           depth: 1,
-          auth,
+          ...(auth !== undefined && { auth }),
         },
       },
       onProgress,
@@ -134,8 +134,8 @@ export class GitWorkerManager {
       type: "pull",
       data: {
         dir,
-        ref,
-        auth,
+        ...(ref !== undefined && { ref }),
+        ...(auth !== undefined && { auth }),
       },
     });
 

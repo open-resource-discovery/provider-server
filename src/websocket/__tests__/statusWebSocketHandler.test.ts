@@ -97,7 +97,7 @@ describe("StatusWebSocketHandler", () => {
 
     beforeEach(() => {
       handler.register(mockFastify);
-      connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
     });
 
     it("should handle new connection and send initial status", async () => {
@@ -259,7 +259,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should broadcast update-started event", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
       mockClient.on = jest.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
@@ -270,7 +270,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should broadcast update-completed event and refresh status", async () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
       mockClient.on = jest.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
@@ -284,7 +284,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should broadcast update-failed event with error", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
       mockClient.on = jest.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
@@ -301,7 +301,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should broadcast update-scheduled event with time", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
       mockClient.on = jest.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
@@ -318,7 +318,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should broadcast update-progress event", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
       mockClient.on = jest.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
@@ -335,7 +335,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should not send to closed sockets", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
       mockClient.on = jest.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
@@ -356,7 +356,7 @@ describe("StatusWebSocketHandler", () => {
   describe("isOpen", () => {
     it("should correctly identify open sockets", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
 
       const openSocket = {
         readyState: 1,
@@ -374,7 +374,7 @@ describe("StatusWebSocketHandler", () => {
 
     it("should correctly identify closed sockets", () => {
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
 
       const closedSocket = {
         readyState: 3,
@@ -409,7 +409,7 @@ describe("StatusWebSocketHandler", () => {
 
       // Register and connect a socket
       handlerWithState.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
 
       const testSocket = {
         readyState: 1,
@@ -456,7 +456,7 @@ describe("StatusWebSocketHandler", () => {
       jest.mocked(VersionService).getInstance = mockGetInstance;
 
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
 
       connectionHandler(mockSocket, {});
 
@@ -482,7 +482,7 @@ describe("StatusWebSocketHandler", () => {
       jest.mocked(VersionService).getInstance = mockGetInstance;
 
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
 
       connectionHandler(mockSocket, {});
 
@@ -504,7 +504,7 @@ describe("StatusWebSocketHandler", () => {
       } as unknown as WebSocket;
 
       handler.register(mockFastify);
-      const connectionHandler = mockFastify.get.mock.calls[0][2] as (socket: WebSocket, req: unknown) => void;
+      const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
 
       connectionHandler(closedSocket, {});
 
