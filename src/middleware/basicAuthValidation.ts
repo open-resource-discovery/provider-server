@@ -12,9 +12,6 @@ export function createBasicAuthValidator(validUsers: Record<string, string>) {
   ): Promise<void> {
     try {
       const storedPassword = validUsers[username];
-      if (!storedPassword) {
-        throw new UnauthorizedError("Unauthorized");
-      }
       const isValid = await comparePassword(password, storedPassword);
 
       if (!isValid) {

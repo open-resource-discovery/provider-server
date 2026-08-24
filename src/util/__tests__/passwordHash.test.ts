@@ -121,15 +121,17 @@ describe("passwordHash", () => {
       await expect(comparePassword(password, hash)).rejects.toThrow("Password and hashed password are required");
     });
 
-    it("should throw error when hashedPassword is null/undefined", async () => {
+    it("should return false when hashedPassword is undefined", async () => {
       const password = "myPassword";
 
-      await expect(comparePassword(password, null as unknown as string)).rejects.toThrow(
-        "Password and hashed password are required",
-      );
-      await expect(comparePassword(password, undefined as unknown as string)).rejects.toThrow(
-        "Password and hashed password are required",
-      );
+      await expect(comparePassword(password, undefined)).resolves.toBe(false);
+      expect(mockCompare).not.toHaveBeenCalled();
+    });
+
+    it("should throw error when hashedPassword is empty string", async () => {
+      const password = "myPassword";
+
+      await expect(comparePassword(password, "")).rejects.toThrow("Password and hashed password are required");
     });
 
     it("should handle bcrypt comparison errors", async () => {
