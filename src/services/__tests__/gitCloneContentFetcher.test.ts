@@ -403,11 +403,7 @@ describe("GitCloneContentFetcher", () => {
     });
 
     it("should return undefined when no token", () => {
-      const noAuthConfig: GithubConfig = {
-        ...config,
-        token: undefined,
-      };
-
+      const { token: _token, ...noAuthConfig } = config;
       const noAuthFetcher = new GitCloneContentFetcher(noAuthConfig);
       const authCallback = noAuthFetcher["getAuthCallback"]();
 
