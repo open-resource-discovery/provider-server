@@ -405,6 +405,7 @@ describe("GitCloneContentFetcher", () => {
     it("should return undefined when no token", () => {
       const noAuthConfig: GithubConfig = {
         ...config,
+        token: undefined,
       };
 
       const noAuthFetcher = new GitCloneContentFetcher(noAuthConfig);
