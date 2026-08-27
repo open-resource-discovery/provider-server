@@ -102,17 +102,6 @@ export function StatusHubPage(): ReactNode {
   return (
     <div>
       {status !== undefined && <ServerStatusPanel status={status} />}
-      {showTriggerButton && (
-        <div className="mt-4 flex flex-col items-end gap-1.5">
-          {progressText !== "" && <p className="text-xs text-muted-foreground">{progressText}</p>}
-          <button
-            onClick={handleTriggerUpdate}
-            disabled={buttonDisabled}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
-            {getTriggerButtonLabel(updateStatus, isTriggering)}
-          </button>
-        </div>
-      )}
       <ConnectionDetailPage
         ordConfigUrl={ORD_CONFIG_URL}
         connectionName="ORD Provider Server"
@@ -128,6 +117,17 @@ export function StatusHubPage(): ReactNode {
           </Link>
         )}
       />
+      {showTriggerButton && (
+        <div className="mt-4 flex flex-col items-end gap-1.5">
+          {progressText !== "" && <p className="text-xs text-muted-foreground">{progressText}</p>}
+          <button
+            onClick={handleTriggerUpdate}
+            disabled={buttonDisabled}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
+            {getTriggerButtonLabel(updateStatus, isTriggering)}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
