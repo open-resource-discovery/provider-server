@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ServerStatusPanel,
-  ConnectionDetailPage,
+  ConnectionDetailSection,
   type Perspective,
 } from "@open-resource-discovery/explorer/components";
 import { useStatusWebSocket, type UpdateProgress } from "../hooks/useStatusWebSocket";
@@ -101,22 +101,28 @@ export function StatusHubPage(): ReactNode {
 
   return (
     <div>
-      {status !== undefined && <ServerStatusPanel status={status} />}
-      <ConnectionDetailPage
-        ordConfigUrl={ORD_CONFIG_URL}
-        connectionName="ORD Provider Server"
-        auth="none"
-        perspectivesState={perspectivesState}
-        onRefresh={onRefresh}
-        renderPerspectiveAction={(perspective: Perspective): ReactNode => (
-          <Link
-            to="/status/$perspId"
-            params={{ perspId: perspective.id }}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-            Explore
-          </Link>
-        )}
-      />
+      {status !== undefined && (
+        <ServerStatusPanel
+          status={status}
+          afterContent={
+            <ConnectionDetailSection
+              ordConfigUrl={ORD_CONFIG_URL}
+              connectionName="ORD Provider Server"
+              auth="none"
+              perspectivesState={perspectivesState}
+              onRefresh={onRefresh}
+              renderPerspectiveAction={(perspective: Perspective): ReactNode => (
+                <Link
+                  to="/status/$perspId"
+                  params={{ perspId: perspective.id }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  Explore
+                </Link>
+              )}
+            />
+          }
+        />
+      )}
       {showTriggerButton && (
         <div className="mt-4 flex flex-col items-end gap-1.5">
           {progressText !== "" && <p className="text-xs text-muted-foreground">{progressText}</p>}
