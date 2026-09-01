@@ -69,7 +69,7 @@ function getTriggerButtonLabel(updateStatus: UpdateStatus | undefined, isTrigger
 
 export function StatusHubPage(): ReactNode {
   const { status, updateProgress } = useStatusWebSocket();
-  const [perspectivesState, onRefresh] = useProviderPerspectives();
+  const [perspectivesState] = useProviderPerspectives();
   const [isTriggering, setIsTriggering] = useState<boolean>(false);
 
   const updateStatus = status?.content?.updateStatus;
@@ -104,37 +104,38 @@ export function StatusHubPage(): ReactNode {
       {status !== undefined && (
         <ServerStatusPanel
           status={status}
+          collapsibleSettings={true}
           afterContent={
-            <>
-              {showTriggerButton && (
-                <div className="flex items-center gap-4">
-                  {progressText !== "" && (
-                    <p className="flex-1 text-sm text-muted-foreground">{progressText}</p>
-                  )}
-                  <button
-                    onClick={handleTriggerUpdate}
-                    disabled={buttonDisabled}
-                    className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
-                    {getTriggerButtonLabel(updateStatus, isTriggering)}
-                  </button>
-                </div>
-              )}
-              <ConnectionDetailSection
-                ordConfigUrl={ORD_CONFIG_URL}
-                connectionName="ORD Provider Server"
-                auth="none"
-                perspectivesState={perspectivesState}
-                onRefresh={onRefresh}
-                renderPerspectiveAction={(perspective: Perspective): ReactNode => (
-                  <Link
-                    to="/status/$perspId"
-                    params={{ perspId: perspective.id }}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                    Explore
-                  </Link>
+            showTriggerButton ? (
+              <div className="flex items-center gap-4">
+                {progressText !== "" && (
+                  <p className="flex-1 text-sm text-muted-foreground">{progressText}</p>
                 )}
-              />
-            </>
+                <button
+                  onClick={handleTriggerUpdate}
+                  disabled={buttonDisabled}
+                  className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
+                  {getTriggerButtonLabel(updateStatus, isTriggering)}
+                </button>
+              </div>
+            ) : null
+          }
+          footerContent={
+            <ConnectionDetailSection
+              showHeader={false}
+              ordConfigUrl={ORD_CONFIG_URL}
+              connectionName="ORD Provider Server"
+              auth="none"
+              perspectivesState={perspectivesState}
+              renderPerspectiveAction={(perspective: Perspective): ReactNode => (
+                <Link
+                  to="/status/$perspId"
+                  params={{ perspId: perspective.id }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  Explore
+                </Link>
+              )}
+            />
           }
         />
       )}
