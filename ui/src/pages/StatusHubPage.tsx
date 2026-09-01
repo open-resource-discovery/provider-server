@@ -104,7 +104,6 @@ export function StatusHubPage(): ReactNode {
       {status !== undefined && (
         <ServerStatusPanel
           status={status}
-          collapsibleSettings={true}
           afterContent={
             showTriggerButton ? (
               <div className="flex items-center gap-4">
