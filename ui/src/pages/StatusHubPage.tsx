@@ -122,6 +122,7 @@ export function StatusHubPage(): ReactNode {
           footerContent={
             <ConnectionDetailSection
               showHeader={false}
+              showStatusBadge={false}
               ordConfigUrl={ORD_CONFIG_URL}
               connectionName="ORD Provider Server"
               perspectivesState={perspectivesState}
