@@ -124,7 +124,6 @@ export function StatusHubPage(): ReactNode {
               showHeader={false}
               ordConfigUrl={ORD_CONFIG_URL}
               connectionName="ORD Provider Server"
-              auth="none"
               perspectivesState={perspectivesState}
               renderPerspectiveAction={(perspective: Perspective): ReactNode => (
                 <Link
