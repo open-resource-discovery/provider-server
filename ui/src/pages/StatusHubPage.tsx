@@ -90,10 +90,13 @@ export function StatusHubPage(): ReactNode {
   async function handleTriggerUpdate(): Promise<void> {
     setIsTriggering(true);
     try {
-      await fetch(WEBHOOK_PATH, {
+      const response = await fetch(WEBHOOK_PATH, {
         method: "POST",
         headers: { "x-manual-trigger": "true" },
       });
+      if (!response.ok) {
+        setIsTriggering(false);
+      }
     } catch {
       setIsTriggering(false);
     }
@@ -104,19 +107,33 @@ export function StatusHubPage(): ReactNode {
       {status !== undefined && (
         <ServerStatusPanel
           status={status}
-          afterContent={
+          headerActions={
             showTriggerButton ? (
-              <div className="flex items-center gap-4">
-                {progressText !== "" && (
-                  <p className="flex-1 text-sm text-muted-foreground">{progressText}</p>
-                )}
-                <button
-                  onClick={handleTriggerUpdate}
-                  disabled={buttonDisabled}
-                  className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
-                  {getTriggerButtonLabel(updateStatus, isTriggering)}
-                </button>
-              </div>
+              <button
+                onClick={handleTriggerUpdate}
+                disabled={buttonDisabled}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
+                </svg>
+                {getTriggerButtonLabel(updateStatus, isTriggering)}
+              </button>
+            ) : null
+          }
+          afterContent={
+            progressText !== "" ? (
+              <p className="text-sm text-muted-foreground">{progressText}</p>
             ) : null
           }
           footerContent={
