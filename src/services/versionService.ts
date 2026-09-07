@@ -114,7 +114,8 @@ export class VersionService {
     }
 
     versionTags.sort((a, b) => this.compareVersions(b, a));
-    return versionTags[0] ?? "0.0.0";
+    // SAFETY: versionTags is non-empty — the `length === 0` guard above returns early.
+    return versionTags[0]!;
   }
 
   private compareVersions(v1: string, v2: string): number {
