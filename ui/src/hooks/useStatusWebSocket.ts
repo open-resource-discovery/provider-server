@@ -25,6 +25,14 @@ function isWsMessage(v: unknown): v is WsMessage {
   );
 }
 
+function isStatusResponse(v: unknown): v is StatusResponse {
+  return typeof v === "object" && v !== null;
+}
+
+function isUpdateProgress(v: unknown): v is UpdateProgress {
+  return typeof v === "object" && v !== null;
+}
+
 export function useStatusWebSocket(): UseStatusWebSocketResult {
   const [status, setStatus] = useState<StatusResponse | undefined>(undefined);
   const [updateProgress, setUpdateProgress] = useState<UpdateProgress | undefined>(undefined);
@@ -39,8 +47,12 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
         .then((r: Response): Promise<unknown> => r.json())
         .then((data: unknown): void => {
           if (!cancelled) {
-            // SAFETY: /api/v1/status always returns a StatusResponse-shaped payload per server contract.
-            setStatus(data as StatusResponse);
+            if (isStatusResponse(data)) {
+              setStatus(data);
+            } else {
+              // eslint-disable-next-line no-console
+              console.warn("[ws] unexpected status shape from /api/v1/status", data);
+            }
           }
         })
         .catch((err: unknown): void => {
@@ -57,17 +69,24 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
           if (!isWsMessage(raw)) return;
           if (raw.type === "status" && raw.data !== undefined) {
             const incoming = raw.data;
-            setStatus((prev: StatusResponse | undefined): StatusResponse => {
-              if (prev !== undefined) {
-                // SAFETY: type === "status" messages carry a StatusResponse-shaped payload per server contract.
-                return { ...prev, ...(incoming as Partial<StatusResponse>) };
-              }
-              // SAFETY: type === "status" messages carry a StatusResponse-shaped payload per server contract.
-              return incoming as StatusResponse;
-            });
+            if (isStatusResponse(incoming)) {
+              setStatus((prev: StatusResponse | undefined): StatusResponse => {
+                if (prev !== undefined) {
+                  return { ...prev, ...incoming };
+                }
+                return incoming;
+              });
+            } else {
+              // eslint-disable-next-line no-console
+              console.warn("[ws] unexpected status message payload", incoming);
+            }
           } else if (raw.type === "update-progress" && raw.data !== undefined) {
-            // SAFETY: type === "update-progress" messages carry an UpdateProgress-shaped payload per server contract.
-            setUpdateProgress(raw.data as UpdateProgress);
+            if (isUpdateProgress(raw.data)) {
+              setUpdateProgress(raw.data);
+            } else {
+              // eslint-disable-next-line no-console
+              console.warn("[ws] unexpected update-progress payload", raw.data);
+            }
           }
         } catch {
           // ignore parse errors
