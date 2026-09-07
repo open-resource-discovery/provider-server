@@ -118,7 +118,7 @@ describe("passwordHash", () => {
       const password = "myPassword";
       const hash = "";
 
-      await expect(comparePassword(password, hash)).rejects.toThrow("Password and hashed password are required");
+      await expect(comparePassword(password, hash)).rejects.toThrow("Hashed password must not be empty");
     });
 
     it("should return false when hashedPassword is undefined", async () => {
@@ -131,7 +131,7 @@ describe("passwordHash", () => {
     it("should throw error when hashedPassword is empty string", async () => {
       const password = "myPassword";
 
-      await expect(comparePassword(password, "")).rejects.toThrow("Password and hashed password are required");
+      await expect(comparePassword(password, "")).rejects.toThrow("Hashed password must not be empty");
     });
 
     it("should handle bcrypt comparison errors", async () => {

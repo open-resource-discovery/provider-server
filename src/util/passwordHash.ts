@@ -13,8 +13,8 @@ export async function comparePassword(password: string, hashedPassword: string |
   if (hashedPassword === undefined) {
     return false;
   }
-  if (!hashedPassword) {
-    throw new Error("Password and hashed password are required");
+  if (hashedPassword === "") {
+    throw new Error("Hashed password must not be empty");
   }
   return await bcrypt.compare(password, hashedPassword.replace(/^\$2y/, "$2a"));
 }
