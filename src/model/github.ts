@@ -52,9 +52,10 @@ export function buildGithubConfig(opts: {
   token?: string;
   rootDirectory?: string;
 }): GithubConfig {
-  const parts = opts.repository.split("/");
-  const owner = parts[0] ?? "";
-  const repo = parts[1] ?? "";
+  const [owner, repo] = opts.repository.split("/");
+  if (!owner || !repo) {
+    throw new Error(`Invalid repository format: "${opts.repository}" — expected "owner/repo"`);
+  }
   return {
     apiUrl: opts.apiUrl,
     owner,

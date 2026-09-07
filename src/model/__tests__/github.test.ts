@@ -139,5 +139,55 @@ describe("Github Model", () => {
 
       expect(result.rootDirectory).toBe("docs/api/v1");
     });
+
+    it("should throw when repository has no slash", () => {
+      expect(() =>
+        buildGithubConfig({
+          apiUrl: "https://api.github.com",
+          repository: "ownerrepo",
+          branch: "main",
+        }),
+      ).toThrow(/Invalid repository format.*expected "owner\/repo"/);
+    });
+
+    it("should throw when repository is empty string", () => {
+      expect(() =>
+        buildGithubConfig({
+          apiUrl: "https://api.github.com",
+          repository: "",
+          branch: "main",
+        }),
+      ).toThrow(/Invalid repository format.*expected "owner\/repo"/);
+    });
+
+    it("should throw when repository is just a slash", () => {
+      expect(() =>
+        buildGithubConfig({
+          apiUrl: "https://api.github.com",
+          repository: "/",
+          branch: "main",
+        }),
+      ).toThrow(/Invalid repository format.*expected "owner\/repo"/);
+    });
+
+    it("should throw when repository is missing owner (leading slash)", () => {
+      expect(() =>
+        buildGithubConfig({
+          apiUrl: "https://api.github.com",
+          repository: "/repo",
+          branch: "main",
+        }),
+      ).toThrow(/Invalid repository format.*expected "owner\/repo"/);
+    });
+
+    it("should throw when repository is missing repo (trailing slash)", () => {
+      expect(() =>
+        buildGithubConfig({
+          apiUrl: "https://api.github.com",
+          repository: "owner/",
+          branch: "main",
+        }),
+      ).toThrow(/Invalid repository format.*expected "owner\/repo"/);
+    });
   });
 });
