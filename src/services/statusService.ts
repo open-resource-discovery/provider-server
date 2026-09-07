@@ -112,20 +112,11 @@ export class StatusService {
     };
 
     if (this.serverOptions.sourceType === OptSourceType.Local) {
-      let currentVersion = "current";
-
-      // Get directory hash for local mode
-      if (this.localRepository) {
-        const directoryPath = this.serverOptions.ordDocumentsSubDirectory || "";
-        const hash = await this.localRepository.getDirectoryHash(directoryPath);
-        if (hash) {
-          currentVersion = hash.substring(0, 7); // Use first 7 chars like git short hash
-        }
-      }
-
+      // Local mode has no meaningful "version" — the directory content is served as-is.
+      // Leave currentVersion null so the status panel omits the field (matching commitHash).
       response.content = {
         lastFetchTime: this.serverStartupTime.toISOString(),
-        currentVersion: currentVersion,
+        currentVersion: null,
         updateStatus: "idle",
         scheduledUpdateTime: null,
         failedUpdates: 0,
