@@ -93,14 +93,11 @@ export function StatusHubPage(): ReactNode {
   async function handleTriggerUpdate(): Promise<void> {
     setIsTriggering(true);
     try {
-      const response = await fetch(WEBHOOK_PATH, {
+      await fetch(WEBHOOK_PATH, {
         method: "POST",
         headers: { "x-manual-trigger": "true" },
       });
-      if (!response.ok) {
-        setIsTriggering(false);
-      }
-    } catch {
+    } finally {
       setIsTriggering(false);
     }
   }
