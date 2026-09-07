@@ -10,7 +10,6 @@ const indexRoute = createRoute({
   beforeLoad: (): never => {
     throw redirect({ to: "/status" });
   },
-  component: (): null => null,
 });
 
 const statusRoute = createRoute({

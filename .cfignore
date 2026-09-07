@@ -1,0 +1,22 @@
+# Don't push source, tests, or lock file — CF will do a fresh npm install
+# from the patched package.json (file: dep removed before push).
+# dist/ is pre-built locally and IS pushed.
+node_modules
+src
+/ui
+e2e
+package-lock.json
+tsconfig*.json
+vite.config.ts
+eslint.config.js
+jest.config.js
+jest.setup.js
+playwright.config.ts
+renovate.json
+Dockerfile*
+docker-compose.yml
+.env
+.env.*
+.github
+.husky
+internal

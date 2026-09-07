@@ -1,0 +1,21 @@
+---
+applications:
+  - name: ord-explorer-provider-server-dev
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    buildpacks:
+      - nodejs_buildpack
+    routes:
+      - route: ord-explorer-provider-server-dev.cfapps.sap.hana.ondemand.com
+    health-check-type: http
+    health-check-http-endpoint: /health
+    env:
+      NODE_ENV: production
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      ORD_BASE_URL: https://ord-explorer-provider-server-dev.cfapps.sap.hana.ondemand.com
+      ORD_SOURCE_TYPE: local
+      ORD_DIRECTORY: ./example
+      ORD_AUTH_TYPE: open
+      STATUS_DASHBOARD_ENABLED: "true"
