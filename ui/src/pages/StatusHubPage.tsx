@@ -22,6 +22,9 @@ const GIT_PREFIXES = [
   "Counting objects:",
 ] as const;
 
+// Below this count, fetching file totals are shown immediately; above it, wait until halfway through.
+const LARGE_REPO_FILE_THRESHOLD = 20_000;
+
 function getProgressText(progress: UpdateProgress): string {
   let text = "";
 
@@ -36,7 +39,7 @@ function getProgressText(progress: UpdateProgress): string {
   }
 
   if (text === "" && progress.totalFiles !== undefined && progress.fetchedFiles !== undefined) {
-    if (progress.totalFiles < 20000 || progress.fetchedFiles > progress.totalFiles / 2) {
+    if (progress.totalFiles < LARGE_REPO_FILE_THRESHOLD || progress.fetchedFiles > progress.totalFiles / 2) {
       const percentage = Math.round((progress.fetchedFiles / progress.totalFiles) * 100);
       text = `Fetching files: ${progress.fetchedFiles}/${progress.totalFiles} (${percentage}%)`;
     }
