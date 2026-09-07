@@ -1,3 +1,5 @@
+import { omitUndefined } from "../util/util.js";
+
 export interface GitHubInstance {
   host: string;
   repo: string;
@@ -61,7 +63,7 @@ export function buildGithubConfig(opts: {
     owner,
     repo,
     branch: opts.branch,
-    ...(opts.token !== undefined && { token: opts.token }),
+    ...omitUndefined({ token: opts.token }),
     rootDirectory: opts.rootDirectory || ".",
   };
 }

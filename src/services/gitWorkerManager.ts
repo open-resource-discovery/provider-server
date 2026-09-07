@@ -1,6 +1,7 @@
 import { createRequire } from "module";
 import { Worker } from "worker_threads";
 import { GitOperation, GitProgressEvent, WorkerMessage } from "../workers/gitWorkerTypes.js";
+import { omitUndefined } from "../util/util.js";
 
 const require = createRequire(import.meta.url);
 
@@ -84,7 +85,7 @@ export class GitWorkerManager {
           ref,
           singleBranch: true,
           depth: 1,
-          ...(auth !== undefined && { auth }),
+          ...omitUndefined({ auth }),
         },
       },
       onProgress,
@@ -134,8 +135,7 @@ export class GitWorkerManager {
       type: "pull",
       data: {
         dir,
-        ...(ref !== undefined && { ref }),
-        ...(auth !== undefined && { auth }),
+        ...omitUndefined({ ref, auth }),
       },
     });
 

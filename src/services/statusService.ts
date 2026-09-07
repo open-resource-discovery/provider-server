@@ -11,6 +11,7 @@ import { getPackageVersion } from "../util/files.js";
 import { UpdateStateManager } from "./updateStateManager.js";
 import { CacheService } from "./interfaces/cacheService.js";
 import { StatusError, toStatusError } from "../model/error/BackendError.js";
+import { omitUndefined } from "../util/util.js";
 
 export interface StatusResponse {
   version: string;
@@ -172,7 +173,7 @@ export class StatusService {
         commitHash: metadata?.commitHash || null,
         failedCommitHash: stateManagerStatus?.failedCommitHash ?? updateSchedulerStatus?.failedCommitHash ?? null,
         lastWebhookTime: this.updateScheduler?.getLastWebhookReceivedTime()?.toISOString() || null,
-        ...(lastError !== undefined && { lastError }),
+        ...omitUndefined({ lastError }),
       };
     }
 

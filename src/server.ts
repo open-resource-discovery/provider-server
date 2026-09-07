@@ -18,6 +18,7 @@ import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
 import { StatusResponse, StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
+import { omitUndefined } from "src/util/util.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
 import { initializeGitSource } from "./util/gitInitializer.js";
@@ -75,7 +76,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       apiUrl: opts.githubApiUrl!,
       repository: opts.githubRepository!,
       branch: opts.githubBranch!,
-      ...(opts.githubToken !== undefined && { token: opts.githubToken }),
+      ...omitUndefined({ token: opts.githubToken }),
       rootDirectory: opts.ordDirectory,
     });
 
@@ -107,12 +108,10 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   // Setup authentication
   await setupAuthentication(server, {
     authMethods: opts.authentication.methods,
-    ...(opts.authentication.basicAuthUsers !== undefined && { validUsers: opts.authentication.basicAuthUsers }),
-    ...(opts.authentication.trustedCerts !== undefined && { trustedCerts: opts.authentication.trustedCerts }),
-    ...(opts.authentication.trustedRootCaDns !== undefined && {
+    ...omitUndefined({
+      validUsers: opts.authentication.basicAuthUsers,
+      trustedCerts: opts.authentication.trustedCerts,
       trustedRootCaDns: opts.authentication.trustedRootCaDns,
-    }),
-    ...(opts.authentication.cfMtlsConfigEndpoints !== undefined && {
       cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
     }),
   });
@@ -131,7 +130,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     const webhookRouter = new WebhookRouter(
       updateScheduler,
       {
-        ...(opts.webhookSecret !== undefined && { secret: opts.webhookSecret }),
+        ...omitUndefined({ secret: opts.webhookSecret }),
         branch: opts.githubBranch!,
         repository: opts.githubRepository!,
       },
@@ -328,7 +327,7 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
         githubApiUrl: opts.githubApiUrl!,
         githubRepository: opts.githubRepository!,
         githubBranch: opts.githubBranch!,
-        ...(opts.githubToken !== undefined && { githubToken: opts.githubToken }),
+        ...omitUndefined({ githubToken: opts.githubToken }),
         customDirectory: opts.ordDirectory,
       },
     }),

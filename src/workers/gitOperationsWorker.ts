@@ -3,6 +3,7 @@ import * as fsPromises from "fs/promises";
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
 import type { GitOperationData, GitProgressEvent } from "./gitWorkerTypes.js";
+import { omitUndefined } from "../util/util.js";
 
 // Limit concurrent file writes to avoid EMFILE on large repos (100k+ files).
 // isomorphic-git checkout fans out all writes via Promise.allSettled with no
@@ -131,8 +132,7 @@ class GitWorker {
   private sendResult(data?: { success: boolean }, error?: string): void {
     const message: ResultMessage = {
       type: "result",
-      ...(data !== undefined && { data }),
-      ...(error !== undefined && { error }),
+      ...omitUndefined({ data, error }),
     };
     parentPort!.postMessage(message);
   }

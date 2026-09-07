@@ -2,6 +2,7 @@ import { log } from "src/util/logger.js";
 import { CommandLineOptions, OptAuthMethod, OptSourceType, OrdAccessStrategy } from "src/model/cli.js";
 import { getBaseUrl as updateBaseUrl } from "src/util/ordConfig.js";
 import { normalizePath, trimLeadingAndTrailingSlashes, trimTrailingSlash } from "src/util/pathUtils.js";
+import { omitUndefined } from "src/util/util.js";
 
 export interface ProviderServerOptions {
   ordDirectory: string;
@@ -117,14 +118,14 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
   return {
     ordDirectory: parseOrdDirectory(options.directory, options.sourceType),
     ordDocumentsSubDirectory: trimLeadingAndTrailingSlashes(options.documentsSubdirectory) || "", // Ensure it's never undefined
-    ...(baseUrl !== undefined && { baseUrl }),
-    ...(host !== undefined && { host }),
-    ...(port !== undefined && { port }),
+    ...omitUndefined({ baseUrl, host, port }),
     sourceType: options.sourceType,
-    ...(githubApiUrl !== undefined && { githubApiUrl }),
-    ...(options.githubRepository !== undefined && { githubRepository: options.githubRepository }),
-    ...(options.githubBranch !== undefined && { githubBranch: options.githubBranch }),
-    ...(options.githubToken !== undefined && { githubToken: options.githubToken }),
+    ...omitUndefined({
+      githubApiUrl,
+      githubRepository: options.githubRepository,
+      githubBranch: options.githubBranch,
+      githubToken: options.githubToken,
+    }),
     authentication: {
       methods: options.auth,
       ...(options.auth.includes(OptAuthMethod.Basic) && {
@@ -139,7 +140,7 @@ export function buildProviderServerOptions(options: CommandLineOptions): Provide
     },
     dataDir: options.dataDir || "./data",
     ...(options.cors !== undefined && options.cors !== "" && { cors: options.cors.split(",") }),
-    ...(webhookSecret !== undefined && { webhookSecret }),
+    ...omitUndefined({ webhookSecret }),
     updateDelay: (parseInt(options.updateDelay as string) || 30) * 1000, // Convert seconds to milliseconds
     statusDashboardEnabled: options.statusDashboardEnabled?.toLowerCase() !== "false", // Default to true
   };

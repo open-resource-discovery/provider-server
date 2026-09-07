@@ -10,6 +10,7 @@ import { ProcessingContext } from "../services/interfaces/processingContext.js";
 import { PATH_CONSTANTS } from "../constant.js";
 import { FileSystemManager } from "../services/fileSystemManager.js";
 import { log } from "../util/logger.js";
+import { omitUndefined } from "../util/util.js";
 
 interface FactoryOptions {
   sourceType: OptSourceType;
@@ -46,7 +47,7 @@ export class RouterFactory {
         githubBranch: options.githubOpts.githubBranch,
         githubApiUrl: options.githubOpts.githubApiUrl,
         githubRepo: options.githubOpts.githubRepository,
-        ...(options.githubOpts.githubToken !== undefined && { githubToken: options.githubOpts.githubToken }),
+        ...omitUndefined({ githubToken: options.githubOpts.githubToken }),
       };
     } else if (options.sourceType === OptSourceType.Local && options.ordDirectory) {
       repository = new LocalDocumentRepository(options.ordDirectory);

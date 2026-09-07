@@ -6,6 +6,7 @@ import { getOrdDocumentAccessStrategies } from "./ordConfig.js";
 import { OptAuthMethod } from "../model/cli.js";
 import { getDocumentPerspective } from "../model/perspective.js";
 import { ProcessingContext } from "../services/interfaces/processingContext.js";
+import { omitUndefined } from "./util.js";
 
 export function fixResourceDefinitionUrl(url: string, ordId: string): string {
   const escapedOrdId = ordIdToPathSegment(ordId);
@@ -101,7 +102,7 @@ export function processOrdDocument(
       ...document.describedSystemInstance,
       baseUrl: context.baseUrl,
     },
-    ...(describedSystemVersion !== undefined && { describedSystemVersion }),
+    ...omitUndefined({ describedSystemVersion }),
     ...(packages.length ? { packages } : {}),
     ...(apiResources.length ? { apiResources } : {}),
     ...(eventResources.length ? { eventResources } : {}),
