@@ -45,7 +45,11 @@ coverage/
 .env
 .env.test
 
+# Cloud Foundry deploy tooling (local only)
 manifest.yaml
+manifest.yml
+.cfignore
+scripts/cf-push-staging.sh
 
 # Generated worker wrapper for development
 src/workers/gitOperationsWorker.js
