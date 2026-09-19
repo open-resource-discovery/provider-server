@@ -59,7 +59,7 @@
     "@sap/eslint-config": "0.5.2",
     "@tsconfig/node24": "24.0.5",
     "@types/jest": "30.0.0",
-    "@types/node": "24.13.4",
+    "@types/node": "24.13.6",
     "@types/ws": "8.18.1",
     "eslint": "10.10.0",
     "fetch-mock": "12.6.0",
