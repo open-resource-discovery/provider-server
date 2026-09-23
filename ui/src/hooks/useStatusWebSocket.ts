@@ -19,18 +19,39 @@ export interface UseStatusWebSocketResult {
   updateProgress: UpdateProgress | undefined;
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 function isWsMessage(v: unknown): v is WsMessage {
-  return (
-    typeof v === "object" && v !== null && "type" in v && typeof (v as Record<string, unknown>)["type"] === "string"
-  );
+  return isRecord(v) && typeof v["type"] === "string";
 }
 
+// The WS "status" message carries either a full StatusResponse or a partial patch:
+// sendFullStatusDelayed broadcasts only { versionInfo, systemMetrics } with no `version`,
+// and the hook merges patches onto the previous status. So this guard deliberately
+// accepts partial shapes — it rejects non-objects, arrays and empty/unrelated objects
+// (e.g. {}, class instances), and type-checks every StatusResponse field that is present.
 function isStatusResponse(v: unknown): v is StatusResponse {
-  return typeof v === "object" && v !== null;
+  if (!isRecord(v)) return false;
+  if ("version" in v && typeof v["version"] !== "string") return false;
+  if ("versionInfo" in v && !isRecord(v["versionInfo"])) return false;
+  if ("content" in v && !isRecord(v["content"])) return false;
+  if ("settings" in v && !isRecord(v["settings"])) return false;
+  if ("systemMetrics" in v && !isRecord(v["systemMetrics"])) return false;
+  // Require at least one recognised field so {} and unrelated objects are rejected.
+  return "version" in v || "versionInfo" in v || "content" in v || "settings" in v || "systemMetrics" in v;
 }
 
+// UpdateProgress fields are all optional, so this guard type-checks every field that is
+// present and requires at least one recognised field — rejecting {}, arrays and unrelated objects.
 function isUpdateProgress(v: unknown): v is UpdateProgress {
-  return typeof v === "object" && v !== null;
+  if (!isRecord(v)) return false;
+  if ("fetchedFiles" in v && typeof v["fetchedFiles"] !== "number") return false;
+  if ("totalFiles" in v && typeof v["totalFiles"] !== "number") return false;
+  if ("currentFile" in v && typeof v["currentFile"] !== "string") return false;
+  if ("errors" in v && !Array.isArray(v["errors"])) return false;
+  return "fetchedFiles" in v || "totalFiles" in v || "currentFile" in v || "errors" in v;
 }
 
 export function useStatusWebSocket(): UseStatusWebSocketResult {
