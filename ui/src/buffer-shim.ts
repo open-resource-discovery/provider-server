@@ -1,5 +1,19 @@
+/**
+ * Browser shim for the Node.js built-ins that the `avsc` dependency reaches for.
+ *
+ * WHAT: minimal, browser-safe stand-ins for `Buffer`, `util`, `events` (EventEmitter),
+ * and `stream` (Transform/Readable/Writable/Duplex), installed under a global `require`.
+ *
+ * WHY: `avsc` is a CommonJS module that does `require("buffer" | "util" | "events" | "stream")`
+ * at load time. Those Node built-ins do not exist in the browser bundle, so without this shim
+ * the explorer UI throws "require is not defined" / "module not found" as soon as `avsc` loads.
+ * See commit 59e3a16. The shims implement only the surface `avsc` actually touches — they are
+ * deliberately incomplete and are NOT general-purpose Node polyfills.
+ */
 import { Buffer } from "buffer";
 
+// Shim for Node's `events` module: the EventEmitter surface avsc subscribes/emits on.
+// Just enough of on/once/off/emit/removeListener/removeAllListeners/listenerCount to work.
 class EventEmitter {
   private _events: Record<string, ((...args: unknown[]) => void)[]> = {};
 
@@ -44,6 +58,9 @@ class EventEmitter {
   }
 }
 
+// Shim for Node's `stream` classes (Transform/Readable/Writable/Duplex/Stream). avsc pipes
+// data through streams; in the browser we never actually stream, so every method is a no-op
+// that keeps the call chain intact (write/end invoke their callback, pipe returns the dest).
 class Transform extends EventEmitter {
   public readable = true;
   public writable = true;
@@ -80,6 +97,9 @@ class Transform extends EventEmitter {
   }
 }
 
+// Shim for Node's `util` module: the formatting/inspection helpers avsc uses for error and
+// debug messages (debuglog is a no-op logger; format/inspect/inherits/deprecate/custom mirror
+// the Node API closely enough for avsc's call sites).
 const utilShim = {
   debuglog:
     (_name: string): ((..._args: unknown[]) => void) =>
