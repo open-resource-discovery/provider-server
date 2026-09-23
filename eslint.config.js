@@ -22,7 +22,7 @@ export default withCustomConfig([
     },
   },
   {
-    files: ["vite.config.ts", "ui/**/*.ts", "ui/**/*.tsx"],
+    files: ["vite.config.ts", "vitest.config.ts", "ui/**/*.ts", "ui/**/*.tsx"],
     languageOptions: {
       parserOptions: {
         project: null,
