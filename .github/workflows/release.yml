@@ -36,7 +36,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "24.19.0"
+          node-version: "24.21.0"
           registry-url: ${{ vars.NPM_REGISTRY }}
 
       - name: Install dependencies
@@ -66,7 +66,7 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Set Docker Tags
         id: docker_tags
@@ -90,7 +90,7 @@ jobs:
           echo $TAGS
 
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: Dockerfile
@@ -115,4 +115,4 @@ jobs:
           fetch-depth: 0
 
       - name: Create GitHub Release
-        uses: open-resource-discovery/github-release@d5edbf0ffc1413cec30199ab5fca7de30130ce5f # main
+        uses: open-resource-discovery/github-release@2945a43df22584dadbf4ff1918dd6cfc8ef2ed00 # main
