@@ -103,6 +103,7 @@
     ]
   },
   "overrides": {
+    "content-disposition": "2.0.1",
     "test-exclude": "8.0.0",
     "glob": "13.0.6",
     "js-yaml": "5.4.2",
