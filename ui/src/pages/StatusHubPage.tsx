@@ -131,11 +131,7 @@ export function StatusHubPage(): ReactNode {
               </button>
             ) : null
           }
-          afterContent={
-            progressText !== "" ? (
-              <p className="text-sm text-muted-foreground">{progressText}</p>
-            ) : null
-          }
+          afterContent={progressText !== "" ? <p className="text-sm text-muted-foreground">{progressText}</p> : null}
           footerContent={
             <ConnectionDetailSection
               showHeader={false}
