@@ -1,3 +1,5 @@
+import { omitUndefined } from "../util/util.js";
+
 export interface GitHubInstance {
   host: string;
   repo: string;
@@ -53,12 +55,15 @@ export function buildGithubConfig(opts: {
   rootDirectory?: string;
 }): GithubConfig {
   const [owner, repo] = opts.repository.split("/");
+  if (!owner || !repo) {
+    throw new Error(`Invalid repository format: "${opts.repository}" — expected "owner/repo"`);
+  }
   return {
     apiUrl: opts.apiUrl,
     owner,
     repo,
     branch: opts.branch,
-    token: opts.token,
+    ...omitUndefined({ token: opts.token }),
     rootDirectory: opts.rootDirectory || ".",
   };
 }

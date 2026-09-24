@@ -56,7 +56,7 @@ export async function initializeGitSource(
   }
 
   const version = await fileSystemManager.getCurrentVersion();
-  return { contentAvailable: true, version: version ?? undefined };
+  return { contentAvailable: true, ...(version !== null && version !== undefined && { version }) };
 }
 
 async function performGitInitialization(

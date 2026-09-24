@@ -6,9 +6,15 @@ import bcrypt from "bcryptjs";
  * @param hashedPassword Hashed password to compare against
  * @returns Promise resolving to true if passwords match, false otherwise
  */
-export async function comparePassword(password: string, hashedPassword: string): Promise<boolean> {
-  if (!password || !hashedPassword) {
+export async function comparePassword(password: string, hashedPassword: string | undefined): Promise<boolean> {
+  if (!password) {
     throw new Error("Password and hashed password are required");
+  }
+  if (hashedPassword === undefined) {
+    return false;
+  }
+  if (hashedPassword === "") {
+    throw new Error("Hashed password must not be empty");
   }
   return await bcrypt.compare(password, hashedPassword.replace(/^\$2y/, "$2a"));
 }

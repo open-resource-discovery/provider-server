@@ -1,13 +1,14 @@
 import { createRequire } from "module";
 import { Worker } from "worker_threads";
 import { GitOperation, GitProgressEvent, WorkerMessage } from "../workers/gitWorkerTypes.js";
+import { omitUndefined } from "../util/util.js";
 
 const require = createRequire(import.meta.url);
 
 export class GitWorkerManager {
   private worker: Worker | null = null;
   private currentOperation: Promise<void> | null = null;
-  private progressCallback?: (progress: GitProgressEvent) => void;
+  private progressCallback: ((progress: GitProgressEvent) => void) | undefined = undefined;
 
   private ensureWorker(): Worker {
     if (!this.worker) {
@@ -84,7 +85,7 @@ export class GitWorkerManager {
           ref,
           singleBranch: true,
           depth: 1,
-          auth,
+          ...omitUndefined({ auth }),
         },
       },
       onProgress,
@@ -134,8 +135,7 @@ export class GitWorkerManager {
       type: "pull",
       data: {
         dir,
-        ref,
-        auth,
+        ...omitUndefined({ ref, auth }),
       },
     });
 

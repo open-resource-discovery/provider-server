@@ -18,6 +18,7 @@ import { WebhookRouter } from "./routes/webhookRouter.js";
 import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
 import { StatusResponse, StatusService } from "./services/statusService.js";
 import { buildGithubConfig } from "./model/github.js";
+import { omitUndefined } from "src/util/util.js";
 import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
 import { getPackageVersion } from "./util/files.js";
 import { initializeGitSource } from "./util/gitInitializer.js";
@@ -75,7 +76,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
       apiUrl: opts.githubApiUrl!,
       repository: opts.githubRepository!,
       branch: opts.githubBranch!,
-      token: opts.githubToken,
+      ...omitUndefined({ token: opts.githubToken }),
       rootDirectory: opts.ordDirectory,
     });
 
@@ -107,10 +108,12 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
   // Setup authentication
   await setupAuthentication(server, {
     authMethods: opts.authentication.methods,
-    validUsers: opts.authentication.basicAuthUsers,
-    trustedCerts: opts.authentication.trustedCerts,
-    trustedRootCaDns: opts.authentication.trustedRootCaDns,
-    cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
+    ...omitUndefined({
+      validUsers: opts.authentication.basicAuthUsers,
+      trustedCerts: opts.authentication.trustedCerts,
+      trustedRootCaDns: opts.authentication.trustedRootCaDns,
+      cfMtlsConfigEndpoints: opts.authentication.cfMtlsConfigEndpoints,
+    }),
   });
 
   // Setup readiness gate for GitHub source type
@@ -127,7 +130,7 @@ export async function startProviderServer(opts: ProviderServerOptions): Promise<
     const webhookRouter = new WebhookRouter(
       updateScheduler,
       {
-        secret: opts.webhookSecret,
+        ...omitUndefined({ secret: opts.webhookSecret }),
         branch: opts.githubBranch!,
         repository: opts.githubRepository!,
       },
@@ -319,17 +322,16 @@ async function setupRouting(server: FastifyInstanceType, opts: ProviderServerOpt
     fqnDocumentMap: {},
     documentsSubDirectory: opts.ordDocumentsSubDirectory,
     ordDirectory: effectiveOrdDirectory,
-    githubOpts:
-      opts.sourceType === OptSourceType.Github
-        ? {
-            githubApiUrl: opts.githubApiUrl!,
-            githubRepository: opts.githubRepository!,
-            githubBranch: opts.githubBranch!,
-            githubToken: opts.githubToken,
-            customDirectory: opts.ordDirectory,
-          }
-        : undefined,
-    fileSystemManager: fileSystemManager || undefined,
+    ...(opts.sourceType === OptSourceType.Github && {
+      githubOpts: {
+        githubApiUrl: opts.githubApiUrl!,
+        githubRepository: opts.githubRepository!,
+        githubBranch: opts.githubBranch!,
+        ...omitUndefined({ githubToken: opts.githubToken }),
+        customDirectory: opts.ordDirectory,
+      },
+    }),
+    ...(fileSystemManager !== null && { fileSystemManager }),
   });
 
   cacheServiceGlobal = cacheService;
