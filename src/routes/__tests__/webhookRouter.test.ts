@@ -139,7 +139,7 @@ describe("WebhookRouter", () => {
     it("should skip verification when no secret configured", (done) => {
       const routerNoSecret = new WebhookRouter(
         mockUpdateScheduler,
-        { ...defaultConfig, secret: undefined },
+        { branch: defaultConfig.branch, repository: defaultConfig.repository },
         mockLogger,
       );
       routerNoSecret.register(mockFastify);

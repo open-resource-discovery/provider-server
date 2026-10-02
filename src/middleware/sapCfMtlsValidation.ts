@@ -80,9 +80,9 @@ export function createSapCfMtlsValidator(options: MtlsValidationOptions) {
         return done(new UnauthorizedError("Missing mTLS client certificate headers"));
       }
 
-      const issuerDnRaw = Array.isArray(issuerDnHeader) ? issuerDnHeader[0] : issuerDnHeader;
-      const subjectDnRaw = Array.isArray(subjectDnHeader) ? subjectDnHeader[0] : subjectDnHeader;
-      const rootCaDnRaw = Array.isArray(rootCaDnHeader) ? rootCaDnHeader[0] : rootCaDnHeader;
+      const issuerDnRaw = Array.isArray(issuerDnHeader) ? (issuerDnHeader[0] ?? "") : issuerDnHeader;
+      const subjectDnRaw = Array.isArray(subjectDnHeader) ? (subjectDnHeader[0] ?? "") : subjectDnHeader;
+      const rootCaDnRaw = Array.isArray(rootCaDnHeader) ? (rootCaDnHeader[0] ?? "") : rootCaDnHeader;
 
       // Decode base64 encoded headers
       let issuerDn: string;

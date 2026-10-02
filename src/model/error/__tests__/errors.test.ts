@@ -65,7 +65,7 @@ describe("Error Classes", () => {
         expect(error.message).toContain("403");
         expect(error.errorItem.target).toBe("/test/path");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("HTTP_403");
+        expect(error.errorItem.details?.[0]?.code).toBe("HTTP_403");
       });
 
       it("should create from HTTP error without target", () => {
@@ -96,8 +96,8 @@ describe("Error Classes", () => {
         const error = GitHubFileNotFoundError.forPath("/test/file.json", originalError);
 
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("ORIGINAL_ERROR");
-        expect(error.errorItem.details?.[0].message).toBe("Network failure");
+        expect(error.errorItem.details?.[0]?.code).toBe("ORIGINAL_ERROR");
+        expect(error.errorItem.details?.[0]?.message).toBe("Network failure");
       });
     });
 
@@ -110,7 +110,7 @@ describe("Error Classes", () => {
         expect(error.message).toBe("Failed to connect to GitHub");
         expect(error.errorItem.target).toBe("https://github.com");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("CONNECTION_ERROR");
+        expect(error.errorItem.details?.[0]?.code).toBe("CONNECTION_ERROR");
       });
 
       it("should create from Failed to fetch TypeError", () => {
@@ -118,7 +118,7 @@ describe("Error Classes", () => {
         const error = GitHubNetworkError.fromError(originalError, "https://github.com");
 
         expect(error.message).toBe("Unable to reach GitHub server");
-        expect(error.errorItem.details?.[0].code).toBe("NETWORK_UNREACHABLE");
+        expect(error.errorItem.details?.[0]?.code).toBe("NETWORK_UNREACHABLE");
       });
     });
 
@@ -136,7 +136,7 @@ describe("Error Classes", () => {
         const error = GitHubDirectoryNotFoundError.forPath("/test/dir", originalError);
 
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].message).toBe("Directory does not exist");
+        expect(error.errorItem.details?.[0]?.message).toBe("Directory does not exist");
       });
     });
 
@@ -155,8 +155,8 @@ describe("Error Classes", () => {
         const error = GitHubDirectoryInvalidError.forPath("/test/dir", originalError);
 
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("ORIGINAL_ERROR");
-        expect(error.errorItem.details?.[0].message).toBe("No JSON files found");
+        expect(error.errorItem.details?.[0]?.code).toBe("ORIGINAL_ERROR");
+        expect(error.errorItem.details?.[0]?.message).toBe("No JSON files found");
       });
     });
 
@@ -168,8 +168,8 @@ describe("Error Classes", () => {
         expect(error.message).toContain("owner/repo");
         expect(error.errorItem.target).toBe("owner/repo");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("REPOSITORY_NOT_FOUND");
-        expect(error.errorItem.details?.[0].message).toContain("owner/repo");
+        expect(error.errorItem.details?.[0]?.code).toBe("REPOSITORY_NOT_FOUND");
+        expect(error.errorItem.details?.[0]?.message).toContain("owner/repo");
       });
 
       it("should include original error details", () => {
@@ -177,8 +177,8 @@ describe("Error Classes", () => {
         const error = GitHubRepositoryNotFoundError.forRepository("owner", "repo", originalError);
 
         expect(error.errorItem.details).toHaveLength(2);
-        expect(error.errorItem.details?.[1].code).toBe("ORIGINAL_ERROR");
-        expect(error.errorItem.details?.[1].message).toBe("404 Not Found");
+        expect(error.errorItem.details?.[1]?.code).toBe("ORIGINAL_ERROR");
+        expect(error.errorItem.details?.[1]?.message).toBe("404 Not Found");
       });
     });
 
@@ -190,7 +190,7 @@ describe("Error Classes", () => {
         expect(error.message).toContain("feature-branch");
         expect(error.errorItem.target).toBe("owner/repo#feature-branch");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("BRANCH_NOT_FOUND");
+        expect(error.errorItem.details?.[0]?.code).toBe("BRANCH_NOT_FOUND");
       });
 
       it("should include original error details", () => {
@@ -198,8 +198,8 @@ describe("Error Classes", () => {
         const error = GitHubBranchNotFoundError.forBranch("main", "owner/repo", originalError);
 
         expect(error.errorItem.details).toHaveLength(2);
-        expect(error.errorItem.details?.[1].code).toBe("ORIGINAL_ERROR");
-        expect(error.errorItem.details?.[1].message).toBe("Branch does not exist");
+        expect(error.errorItem.details?.[1]?.code).toBe("ORIGINAL_ERROR");
+        expect(error.errorItem.details?.[1]?.message).toBe("Branch does not exist");
       });
     });
   });
@@ -214,15 +214,15 @@ describe("Error Classes", () => {
         expect(error.message).toBe("No disk space available");
         expect(error.errorItem.target).toBe("/data/tmp");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("ENOSPC");
-        expect(error.errorItem.details?.[0].message).toContain("ENOSPC");
+        expect(error.errorItem.details?.[0]?.code).toBe("ENOSPC");
+        expect(error.errorItem.details?.[0]?.message).toContain("ENOSPC");
       });
 
       it("should handle error without message", () => {
         const originalError = new Error();
         const error = DiskSpaceError.fromError(originalError);
 
-        expect(error.errorItem.details?.[0].message).toBe("No space left on device");
+        expect(error.errorItem.details?.[0]?.message).toBe("No space left on device");
       });
     });
 
@@ -235,14 +235,14 @@ describe("Error Classes", () => {
         expect(error.message).toBe("Insufficient memory available");
         expect(error.errorItem.target).toBe("operation");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("ENOMEM");
+        expect(error.errorItem.details?.[0]?.code).toBe("ENOMEM");
       });
 
       it("should handle error without message", () => {
         const originalError = new Error();
         const error = MemoryError.fromError(originalError);
 
-        expect(error.errorItem.details?.[0].message).toBe("Out of memory");
+        expect(error.errorItem.details?.[0]?.message).toBe("Out of memory");
       });
     });
 
@@ -255,15 +255,15 @@ describe("Error Classes", () => {
         expect(error.message).toContain("timed out while waiting");
         expect(error.errorItem.target).toBe("git clone");
         expect(error.errorItem.details).toHaveLength(1);
-        expect(error.errorItem.details?.[0].code).toBe("WAIT_TIMEOUT");
-        expect(error.errorItem.details?.[0].message).toBe("Operation timed out after 30s");
+        expect(error.errorItem.details?.[0]?.code).toBe("WAIT_TIMEOUT");
+        expect(error.errorItem.details?.[0]?.message).toBe("Operation timed out after 30s");
       });
 
       it("should handle error without message", () => {
         const originalError = new Error();
         const error = TimeoutError.fromWaitError(originalError, "fetch");
 
-        expect(error.errorItem.details?.[0].message).toBe("Timeout during fetch");
+        expect(error.errorItem.details?.[0]?.message).toBe("Timeout during fetch");
       });
     });
   });

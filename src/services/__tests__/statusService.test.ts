@@ -293,14 +293,14 @@ describe("StatusService", () => {
         });
       });
 
-      it("should return status for local mode with directory hash", async () => {
-        mockLocalRepository.getDirectoryHash.mockResolvedValue("abcdef1234567890");
-
+      it("should report a null content version in local mode", async () => {
         const status = await statusService.getStatus();
 
+        // Local mode has no meaningful version; the field is left null so the
+        // status panel omits it (matching commitHash).
         expect(status.content).toEqual({
           lastFetchTime: "2024-01-01T00:00:00.000Z",
-          currentVersion: "abcdef1",
+          currentVersion: null,
           updateStatus: "idle",
           scheduledUpdateTime: null,
           failedUpdates: 0,
@@ -308,14 +308,6 @@ describe("StatusService", () => {
         });
 
         expect(status.settings?.directory).toBe(".../ord/documents");
-      });
-
-      it("should handle missing directory hash", async () => {
-        mockLocalRepository.getDirectoryHash.mockResolvedValue(null);
-
-        const status = await statusService.getStatus();
-
-        expect(status.content?.currentVersion).toBe("current");
       });
 
       it("should handle single directory path", async () => {
@@ -350,7 +342,7 @@ describe("StatusService", () => {
 
         const status = await statusService.getStatus();
 
-        expect(status.content?.currentVersion).toBe("current");
+        expect(status.content?.currentVersion).toBeNull();
       });
     });
 

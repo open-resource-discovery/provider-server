@@ -4,6 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Built-in web UI served by the provider server at `/status`: an interactive ORD Explorer view and a status hub dashboard, bundled from the published `@open-resource-discovery/explorer` package (static assets under `/status-ui/`).
+- Real-time status updates over WebSocket — version info, system metrics, update progress and content perspectives — surfaced in the status hub.
+
 ## [[1.2.5](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.2.5)] - 2026-08-18
 
 ### Changed

@@ -16,7 +16,7 @@ export function createReadinessGate(updateStateManager?: UpdateStateManager) {
     }
 
     // Only gate well-known and ord/v1 routes that need documents to be ready
-    const path = request.url.split("?")[0];
+    const path = request.url.split("?")[0] ?? request.url;
     const shouldGate = path === PATH_CONSTANTS.WELL_KNOWN_ENDPOINT || path.startsWith(PATH_CONSTANTS.SERVER_PREFIX);
 
     if (!shouldGate) {

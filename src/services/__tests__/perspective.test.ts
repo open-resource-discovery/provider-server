@@ -29,7 +29,7 @@ const createMockDocument = (perspective?: Perspective): OrdDocument => ({
   describedSystemInstance: {
     baseUrl: "http://example.com",
   },
-  perspective,
+  ...(perspective !== undefined && { perspective }),
 });
 
 describe("Perspective Support", () => {
