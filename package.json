@@ -45,7 +45,7 @@
     "@fastify/cors": "11.3.0",
     "@fastify/etag": "6.2.0",
     "@fastify/static": "10.1.5",
-    "@fastify/websocket": "11.3.1",
+    "@fastify/websocket": "11.3.2",
     "@octokit/rest": "22.0.1",
     "@open-resource-discovery/explorer": "0.2.1",
     "@open-resource-discovery/specification": "1.16.3",
