@@ -62,7 +62,7 @@
   },
   "devDependencies": {
     "@sap/eslint-config": "0.5.2",
-    "@tanstack/react-router": "1.170.21",
+    "@tanstack/react-router": "1.170.41",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
     "@tsconfig/node24": "24.0.5",
