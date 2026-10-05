@@ -2,7 +2,7 @@
 
 # Open Resource Discovery Provider Server
 
-This project helps to expose static metadata using [Open Resource Discovery](https://open-resource-discovery.github.io/specification/) (ORD) protocol via HTTP endpoint. Exposed metadata can be consumed by other application/services or [aggregators](https://open-resource-discovery.github.io/specification/spec-v1#ord-aggregator).
+This project helps to expose static metadata using [Open Resource Discovery](https://open-resource-discovery.org/) (ORD) protocol via HTTP endpoint. Exposed metadata can be consumed by other application/services or [aggregators](https://open-resource-discovery.org/spec-v1#ord-aggregator).
 
 ## Usage
 
@@ -237,7 +237,7 @@ This structure applies to both source types:
    - The access strategies of the `resourceDefinitions` will be overwritten by the configured access strategies (derived from the authentication method, or from `accessStrategies` in `CF_MTLS_TRUSTED_CERTS` when using `cf-mtls`)
 
 3. **Base URL**
-   - The `baseUrl` is a required parameter that must match the format specified in the [ORD Specification](https://open-resource-discovery.github.io/specification/spec-v1/interfaces/configuration#ord-configuration_baseurl).
+   - The `baseUrl` is a required parameter that must match the format specified in the [ORD Specification](https://open-resource-discovery.org/spec-v1/interfaces/Configuration#ord-configuration_baseurl).
    - For local development:
      - Use `http://127.0.0.1:8080` instead of `localhost`
      - Alternatively, use a [Fully Qualified Domain Name (FQDN)](https://en.wikipedia.org/wiki/Fully_qualified_domain_name)
