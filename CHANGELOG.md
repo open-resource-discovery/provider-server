@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+
+- Update the ORD specification dependency and bundled examples to ORD 1.17.
+
 ### Added
 
 - Built-in web UI served by the provider server at `/status`: an interactive ORD Explorer view and a status hub dashboard, bundled from the published `@open-resource-discovery/explorer` package (static assets under `/status-ui/`).
