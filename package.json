@@ -91,7 +91,7 @@
     "tsc-alias": "1.9.8",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vite": "6.4.4",
+    "vite": "6.4.5",
     "vitest": "5.0.5"
   },
   "lint-staged": {
