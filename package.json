@@ -67,7 +67,7 @@
     "@testing-library/react": "16.3.3",
     "@tsconfig/node24": "24.0.5",
     "@types/jest": "30.0.0",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/ws": "8.18.2",
@@ -90,7 +90,7 @@
     "ts-jest": "29.4.15",
     "tsc-alias": "1.9.10",
     "tsx": "4.23.15",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite": "6.4.5",
     "vitest": "5.0.5"
   },
