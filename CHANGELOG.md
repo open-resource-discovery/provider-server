@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [[1.3.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.3.0)] - 2026-11-03
+
+- Update to Node v26
+
 ### Added
 
 - Built-in web UI served by the provider server at `/status`: an interactive ORD Explorer view and a status hub dashboard, bundled from the published `@open-resource-discovery/explorer` package (static assets under `/status-ui/`).
