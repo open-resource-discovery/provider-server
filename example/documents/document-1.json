@@ -1,5 +1,5 @@
 {
-  "openResourceDiscovery": "1.12",
+  "openResourceDiscovery": "1.17",
   "description": "This is an example ORD document which is unprotected and openly accessible.",
   "perspective": "system-version",
   "describedSystemInstance": {

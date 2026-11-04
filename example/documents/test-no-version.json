@@ -1,5 +1,5 @@
 {
-  "openResourceDiscovery": "1.12",
+  "openResourceDiscovery": "1.17",
   "description": "Test document without describedSystemVersion",
   "perspective": "system-version",
   "describedSystemInstance": {
