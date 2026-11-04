@@ -1,0 +1,7 @@
+.env
+.env.*
+
+.git
+dev-assets
+reports
+*.log

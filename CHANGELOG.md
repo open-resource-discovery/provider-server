@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Update the ORD specification dependency and bundled examples to ORD 1.17.
+## [[1.3.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.3.1)] - 2026-11-04
+
+### Fixed
+
+- Docker image now bundles the `/status` web UI: the image build runs `build:all` and includes `dist/ui`, so the status dashboard works out of the box without mounting assets.
+
+## [[1.3.0](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.3.0)] - 2026-11-03
+
+- Update to Node v26
 
 ### Added
 
