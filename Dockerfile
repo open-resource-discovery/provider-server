@@ -15,8 +15,10 @@ RUN npm ci
 COPY ./src ./src
 COPY ./public ./public
 COPY ./scripts ./scripts
+COPY ./ui ./ui
+COPY ./vite.config.ts ./
 
-RUN npm run build \
+RUN npm run build:all \
     && npm prune --production \
     && chown -R nodejs:nodejs /app
 

@@ -3,6 +3,8 @@
 !src/**
 !public/**
 !scripts/**
+!ui/**
+!vite.config.ts
 !package*.json
 !tsconfig.json
 !tsconfig.prod.json
