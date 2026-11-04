@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Update the ORD specification dependency and bundled examples to ORD 1.17.
+
 ## [[1.3.1](https://github.com/open-resource-discovery/provider-server/releases/tag/v1.3.1)] - 2026-11-04
 
 ### Fixed
