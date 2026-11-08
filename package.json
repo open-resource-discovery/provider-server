@@ -50,7 +50,7 @@
     "@open-resource-discovery/explorer": "0.2.1",
     "@open-resource-discovery/specification": "1.17.1",
     "bcryptjs": "3.0.3",
-    "commander": "15.0.0",
+    "commander": "15.1.0",
     "dotenv": "18.0.9",
     "fastify": "5.12.7",
     "fastify-plugin": "6.0.1",
