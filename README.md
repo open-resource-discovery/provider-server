@@ -50,7 +50,7 @@ docker run -p 8080:8080 \
 
 **Prerequisites**
 
-- Node.js >=26.13
+- Node.js >=26.13.1
 - NPM >=11.6
 
 1. **Local** (default: open)
