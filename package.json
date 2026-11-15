@@ -42,9 +42,9 @@
   "dependencies": {
     "@fastify/auth": "5.1.2",
     "@fastify/basic-auth": "6.3.1",
-    "@fastify/cors": "11.4.1",
+    "@fastify/cors": "11.4.3",
     "@fastify/etag": "6.2.2",
-    "@fastify/static": "10.1.10",
+    "@fastify/static": "10.1.11",
     "@fastify/websocket": "11.3.7",
     "@octokit/rest": "22.0.1",
     "@open-resource-discovery/explorer": "0.2.1",
