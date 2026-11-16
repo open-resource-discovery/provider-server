@@ -104,12 +104,28 @@
   },
   "overrides": {
     "content-disposition": "3.0.0",
-    "test-exclude": "8.0.0",
-    "glob": "14.0.2",
+    "test-exclude": {
+      ".": "8.0.0",
+      "minimatch": "11.0.8"
+    },
+    "glob": "14.0.6",
     "js-yaml": "5.5.0",
     "esbuild": "0.28.2",
-    "brace-expansion": "5.0.12",
+    "brace-expansion": "5.0.13",
     "fast-uri": "4.2.3",
-    "find-my-way": "9.10.0"
+    "find-my-way": "9.10.1",
+    "hono": "4.13.16",
+    "fast-xml-parser": "5.12.0",
+    "seroval": "1.6.11",
+    "undici": "8.12.4",
+    "@scalar/json-magic": {
+      "undici": "7.30.1"
+    },
+    "isomorphic-dompurify": {
+      "undici": "7.30.1"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.8"
+    }
   }
 }
