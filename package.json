@@ -105,7 +105,7 @@
   "overrides": {
     "content-disposition": "3.0.0",
     "test-exclude": "8.0.0",
-    "glob": "14.0.2",
+    "glob": "14.0.6",
     "js-yaml": "5.5.0",
     "esbuild": "0.28.2",
     "brace-expansion": "5.0.12",
