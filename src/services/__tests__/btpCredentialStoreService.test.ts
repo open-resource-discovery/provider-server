@@ -8,6 +8,7 @@ import {
   isBtpCredentialStoreEnabled,
   loadBtpCredentialStoreIntoEnv,
   parseCredentialStoreBindings,
+  warnAboutSecretsInEnvironment,
 } from "../btpCredentialStoreService.js";
 import { CredentialStoreError } from "../../model/error/CredentialStoreError.js";
 import { encryptJwe } from "../../__tests__/helpers/jwe.js";
@@ -387,7 +388,26 @@ describe("btpCredentialStoreService", () => {
       );
     });
 
-    it("should override secrets from the environment / .env file and warn about it", async () => {
+    it("should override secrets from the environment / .env file and warn about the deprecation on Cloud Foundry", async () => {
+      const env: NodeJS.ProcessEnv = {
+        VCAP_SERVICES: vcapServices(mtlsBinding("my-credstore", ["ns1"])),
+        CF_INSTANCE_GUID: "instance-guid",
+        GITHUB_TOKEN: "token-from-env-file",
+      };
+      const httpGet = fakeCredentialStore({ ns1: { GITHUB_TOKEN: "token-from-credstore" } }, { encryptFor: publicKey });
+
+      await loadBtpCredentialStoreIntoEnv(env, dependencies(httpGet));
+
+      expect(env.GITHUB_TOKEN).toBe("token-from-credstore");
+      expect(log.warn).toHaveBeenCalledTimes(1);
+      expect(log.warn).toHaveBeenCalledWith(
+        'Secret "GITHUB_TOKEN" is set in the environment (.env file or process environment) and in the SAP BTP Credential Store ("my-credstore/ns1"). ' +
+          'The Credential Store value is used. Remove "GITHUB_TOKEN" from the environment. ' +
+          "Providing secrets via environment variables or the .env file is deprecated on Cloud Foundry and will no longer be supported in an upcoming version.",
+      );
+    });
+
+    it("should not mention the deprecation outside of Cloud Foundry", async () => {
       const env: NodeJS.ProcessEnv = {
         VCAP_SERVICES: vcapServices(mtlsBinding("my-credstore", ["ns1"])),
         GITHUB_TOKEN: "token-from-env-file",
@@ -398,34 +418,28 @@ describe("btpCredentialStoreService", () => {
 
       expect(env.GITHUB_TOKEN).toBe("token-from-credstore");
       expect(log.warn).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /Secret "GITHUB_TOKEN" is set in the environment \(.env file or process environment\) and in the SAP BTP Credential Store \("my-credstore\/ns1"\).*deprecated and will no longer be supported/,
-        ),
+        'Secret "GITHUB_TOKEN" is set in the environment (.env file or process environment) and in the SAP BTP Credential Store ("my-credstore/ns1"). ' +
+          'The Credential Store value is used. Remove "GITHUB_TOKEN" from the environment.',
       );
     });
 
-    it("should warn about secrets that are only provided via the environment / .env file", async () => {
-      const env: NodeJS.ProcessEnv = {
-        VCAP_SERVICES: vcapServices(mtlsBinding("my-credstore", ["ns1"])),
-        WEBHOOK_SECRET: "hook-from-env-file",
-        BASIC_AUTH: "",
-      };
-      const httpGet = fakeCredentialStore({ ns1: { GITHUB_TOKEN: "ghp_token" } }, { encryptFor: publicKey });
+    it("should return the names of the loaded secrets", async () => {
+      const env = { VCAP_SERVICES: vcapServices(mtlsBinding("my-credstore", ["ns1"])) };
+      const httpGet = fakeCredentialStore(
+        { ns1: { GITHUB_TOKEN: "ghp_token", CF_MTLS_TRUSTED_CERTS: "{}" } },
+        { encryptFor: publicKey },
+      );
 
-      await loadBtpCredentialStoreIntoEnv(env, dependencies(httpGet));
-
-      expect(env.WEBHOOK_SECRET).toBe("hook-from-env-file");
-      expect(log.warn).toHaveBeenCalledTimes(1);
-      expect(log.warn).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /Secret "WEBHOOK_SECRET" is read from the environment.*Store it in the SAP BTP Credential Store instead.*deprecated/,
-        ),
+      await expect(loadBtpCredentialStoreIntoEnv(env, dependencies(httpGet))).resolves.toEqual(
+        new Set(["GITHUB_TOKEN", "CF_MTLS_TRUSTED_CERTS"]),
       );
     });
 
     it("should never log secret values", async () => {
       const env: NodeJS.ProcessEnv = {
         VCAP_SERVICES: vcapServices(mtlsBinding("my-credstore", ["ns1", "ns2"])),
+        CF_INSTANCE_GUID: "instance-guid",
+        USE_BTP_CREDENTIAL_STORE: "true",
         GITHUB_TOKEN: "env-token-value",
         WEBHOOK_SECRET: "env-hook-value",
       };
@@ -434,8 +448,9 @@ describe("btpCredentialStoreService", () => {
         { encryptFor: publicKey },
       );
 
-      await loadBtpCredentialStoreIntoEnv(env, dependencies(httpGet));
+      warnAboutSecretsInEnvironment(await loadBtpCredentialStoreIntoEnv(env, dependencies(httpGet)), env);
 
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('Secret "WEBHOOK_SECRET" is read from'));
       const messages = loggedMessages().join("\n");
       expect(messages).toContain("GITHUB_TOKEN");
       for (const value of ["env-token-value", "env-hook-value", "credstore-value-1", "credstore-value-2"]) {
@@ -646,6 +661,57 @@ describe("btpCredentialStoreService", () => {
 
     it("should fail if VCAP_SERVICES contains no Credential Store binding", async () => {
       await expectLoadError({ VCAP_SERVICES: vcapServices() }, fakeCredentialStore({}), "no SAP BTP Credential Store");
+    });
+  });
+
+  describe("warnAboutSecretsInEnvironment", () => {
+    const deprecation =
+      "Providing secrets via environment variables or the .env file is deprecated on Cloud Foundry and will no longer be supported in an upcoming version.";
+
+    it("should warn about secrets in the environment on Cloud Foundry, even with the Credential Store disabled", () => {
+      const env = { CF_INSTANCE_GUID: "instance-guid", GITHUB_TOKEN: "ghp_token", BASIC_AUTH: " " };
+
+      warnAboutSecretsInEnvironment(new Set(), env);
+
+      expect(log.warn).toHaveBeenCalledTimes(1);
+      expect(log.warn).toHaveBeenCalledWith(
+        'Secret "GITHUB_TOKEN" is read from the environment (.env file or process environment). ' +
+          `Store it in a bound SAP BTP Credential Store and set USE_BTP_CREDENTIAL_STORE=true instead. ${deprecation}`,
+      );
+    });
+
+    it("should only warn about secrets that were not loaded from the Credential Store", () => {
+      const env = {
+        CF_INSTANCE_GUID: "instance-guid",
+        USE_BTP_CREDENTIAL_STORE: "true",
+        GITHUB_TOKEN: "from-credstore",
+        WEBHOOK_SECRET: "from-env",
+      };
+
+      warnAboutSecretsInEnvironment(new Set(["GITHUB_TOKEN"]), env);
+
+      expect(log.warn).toHaveBeenCalledTimes(1);
+      expect(log.warn).toHaveBeenCalledWith(
+        'Secret "WEBHOOK_SECRET" is read from the environment (.env file or process environment). ' +
+          `Store it in the SAP BTP Credential Store instead. ${deprecation}`,
+      );
+    });
+
+    it("should not warn outside of Cloud Foundry", () => {
+      warnAboutSecretsInEnvironment(new Set(), {
+        GITHUB_TOKEN: "ghp_token",
+        WEBHOOK_SECRET: "hook",
+        BASIC_AUTH: "{}",
+        CF_INSTANCE_GUID: "",
+      });
+
+      expect(log.warn).not.toHaveBeenCalled();
+    });
+
+    it("should not warn about non-secret configuration", () => {
+      warnAboutSecretsInEnvironment(new Set(), { CF_INSTANCE_GUID: "instance-guid", CF_MTLS_TRUSTED_CERTS: "{}" });
+
+      expect(log.warn).not.toHaveBeenCalled();
     });
   });
 

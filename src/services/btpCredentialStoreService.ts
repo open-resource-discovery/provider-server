@@ -2,6 +2,7 @@ import { KeyObject } from "node:crypto";
 import https from "node:https";
 import { setTimeout as delay } from "node:timers/promises";
 import { CredentialStoreError } from "src/model/error/CredentialStoreError.js";
+import { isCloudFoundryEnvironment } from "src/util/env.js";
 import { decryptJwe, parseRsaPrivateKey } from "src/util/jwe.js";
 import { log } from "src/util/logger.js";
 
@@ -36,7 +37,7 @@ const MAX_ERROR_DETAIL_LENGTH = 300;
 const DISABLE_HINT = `or set ${USE_BTP_CREDENTIAL_STORE_ENV}=false`;
 const BIND_EXAMPLE = `cf bind-service <app> <credstore-instance> -c '{"authorization":{"namespace_permissions":{"<namespace>":["list","read"]}}}'`;
 const ENV_SECRET_DEPRECATION =
-  "Providing secrets via environment variables or the .env file is deprecated and will no longer be supported in an upcoming version.";
+  "Providing secrets via environment variables or the .env file is deprecated on Cloud Foundry and will no longer be supported in an upcoming version.";
 
 type CredentialStoreAuth =
   { type: "basic"; username: string; password: string } | { type: "mtls"; certificate: string; key: string };
@@ -140,12 +141,13 @@ export function isBtpCredentialStoreEnabled(env: NodeJS.ProcessEnv = process.env
 /**
  * Reads all passwords from the namespaces of every bound SAP BTP Credential Store instance and writes them into the
  * environment, overriding values from the environment / .env file.
+ * @returns the names of the secrets loaded from the Credential Store
  * @throws CredentialStoreError with a human readable message if no Credential Store is bound or loading fails
  */
 export async function loadBtpCredentialStoreIntoEnv(
   env: NodeJS.ProcessEnv = process.env,
   dependencies: CredentialStoreDependencies = defaultDependencies,
-): Promise<void> {
+): Promise<Set<string>> {
   const bindings = parseCredentialStoreBindings(env.VCAP_SERVICES);
   const sources = bindings.flatMap((binding) => binding.namespaces.map((namespace) => `${binding.name}/${namespace}`));
   log.info(`Loading secrets from SAP BTP Credential Store namespaces: ${sources.join(", ")}`);
@@ -158,6 +160,7 @@ export async function loadBtpCredentialStoreIntoEnv(
   } else {
     log.info(`Loaded ${secrets.size} secret(s) from the SAP BTP Credential Store: ${[...secrets.keys()].join(", ")}`);
   }
+  return new Set(secrets.keys());
 }
 
 /**
@@ -245,28 +248,47 @@ export async function loadCredentialStoreSecrets(
 }
 
 /**
- * Writes the secrets into the environment (Credential Store values take precedence) and warns about secrets that are
- * (also) provided via the environment / .env file.
+ * Writes the secrets into the environment (Credential Store values take precedence) and warns about values that are
+ * also set in the environment / .env file.
  */
 export function applySecretsToEnv(
   secrets: Map<string, CredentialStoreSecret>,
   env: NodeJS.ProcessEnv = process.env,
 ): void {
+  const deprecation = isCloudFoundryEnvironment(env) ? ` ${ENV_SECRET_DEPRECATION}` : "";
+
   for (const [name, { value, source }] of secrets) {
     if (isSet(env[name])) {
       log.warn(
         `Secret "${name}" is set in the environment (.env file or process environment) and in the SAP BTP Credential Store ("${source}"). ` +
-          `The Credential Store value is used. Remove "${name}" from the environment. ${ENV_SECRET_DEPRECATION}`,
+          `The Credential Store value is used. Remove "${name}" from the environment.${deprecation}`,
       );
     }
     env[name] = value;
   }
+}
+
+/**
+ * On Cloud Foundry, warns about secrets that are read from the environment / .env file instead of the
+ * SAP BTP Credential Store, as this is deprecated there. Outside of Cloud Foundry, secrets in the environment are fine.
+ * @param credentialStoreSecrets names of the secrets that were loaded from the Credential Store
+ */
+export function warnAboutSecretsInEnvironment(
+  credentialStoreSecrets: ReadonlySet<string>,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (!isCloudFoundryEnvironment(env)) {
+    return;
+  }
+
+  const hint = isBtpCredentialStoreEnabled(env)
+    ? "Store it in the SAP BTP Credential Store instead."
+    : `Store it in a bound SAP BTP Credential Store and set ${USE_BTP_CREDENTIAL_STORE_ENV}=true instead.`;
 
   for (const name of SECRET_ENV_VARIABLES) {
-    if (!secrets.has(name) && isSet(env[name])) {
+    if (!credentialStoreSecrets.has(name) && isSet(env[name])) {
       log.warn(
-        `Secret "${name}" is read from the environment (.env file or process environment). ` +
-          `Store it in the SAP BTP Credential Store instead. ${ENV_SECRET_DEPRECATION}`,
+        `Secret "${name}" is read from the environment (.env file or process environment). ${hint} ${ENV_SECRET_DEPRECATION}`,
       );
     }
   }

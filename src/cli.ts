@@ -13,13 +13,18 @@ import { CredentialStoreError } from "./model/error/CredentialStoreError.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
 import { PATH_CONSTANTS } from "./constant.js";
-import { isBtpCredentialStoreEnabled, loadBtpCredentialStoreIntoEnv } from "./services/btpCredentialStoreService.js";
+import {
+  isBtpCredentialStoreEnabled,
+  loadBtpCredentialStoreIntoEnv,
+  warnAboutSecretsInEnvironment,
+} from "./services/btpCredentialStoreService.js";
 
 // Secrets from the SAP BTP Credential Store override the environment / .env file.
 // This has to happen before the CLI options below read their defaults from the environment.
+let credentialStoreSecrets = new Set<string>();
 if (isBtpCredentialStoreEnabled()) {
   try {
-    await loadBtpCredentialStoreIntoEnv();
+    credentialStoreSecrets = await loadBtpCredentialStoreIntoEnv();
   } catch (error) {
     if (error instanceof CredentialStoreError) {
       log.fatal(error.message);
@@ -29,6 +34,7 @@ if (isBtpCredentialStoreEnabled()) {
     process.exit(1);
   }
 }
+warnAboutSecretsInEnvironment(credentialStoreSecrets);
 
 const program = new Command();
 

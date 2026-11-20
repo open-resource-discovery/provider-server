@@ -493,7 +493,7 @@ On startup, the server then:
 The binding authentication types `mtls` (default) and `basic` are supported, with and without payload encryption.
 
 > [!WARNING]
-> With the Credential Store enabled, secrets that are (also) set in the environment or the `.env` file are logged as a warning. Providing secrets via environment variables is deprecated and will no longer be supported in an upcoming version.
+> On Cloud Foundry, providing secrets (`GITHUB_TOKEN`, `WEBHOOK_SECRET`, `BASIC_AUTH`) via environment variables or the `.env` file is deprecated and will no longer be supported in an upcoming version. Such secrets are logged as a warning, also when the Credential Store is disabled. Outside of Cloud Foundry, secrets can still be provided via environment variables.
 
 ## GitHub Token Permissions
 
