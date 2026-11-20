@@ -9,9 +9,26 @@ import { startProviderServer } from "src/server.js";
 import { getBaseUrlFromVcapEnv } from "src/util/env.js";
 import { log } from "src/util/logger.js";
 import { validateOffline } from "src/util/validateOptions.js";
+import { CredentialStoreError } from "./model/error/CredentialStoreError.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
 import { PATH_CONSTANTS } from "./constant.js";
+import { isBtpCredentialStoreEnabled, loadBtpCredentialStoreIntoEnv } from "./services/btpCredentialStoreService.js";
+
+// Secrets from the SAP BTP Credential Store override the environment / .env file.
+// This has to happen before the CLI options below read their defaults from the environment.
+if (isBtpCredentialStoreEnabled()) {
+  try {
+    await loadBtpCredentialStoreIntoEnv();
+  } catch (error) {
+    if (error instanceof CredentialStoreError) {
+      log.fatal(error.message);
+    } else {
+      log.fatal({ err: error }, "Failed to load secrets from the SAP BTP Credential Store");
+    }
+    process.exit(1);
+  }
+}
 
 const program = new Command();
 
@@ -49,7 +66,13 @@ program
   .option("--github-api-url <githubApiUrl>", "GitHub host to make API calls", process.env.GITHUB_API_URL)
   .option("--github-branch <githubBranch>", "GitHub branch", process.env.GITHUB_BRANCH)
   .option("--github-repository <githubRepository>", "GitHub repository <OWNER>/<REPO>", process.env.GITHUB_REPOSITORY)
-  .option("--github-token <githubToken>", "GitHub token for authentication", process.env.GITHUB_TOKEN)
+  .addOption(
+    // The description replaces the default value in the help output, otherwise the token would be printed
+    new Option("--github-token <githubToken>", "GitHub token for authentication").default(
+      process.env.GITHUB_TOKEN,
+      "<hidden>",
+    ),
+  )
   .option("--data-dir <dataDir>", "Base directory for content storage", process.env.ORD_DATA_DIR || "./data")
   .option("--cors <cors>", "CORS active: default disabled", process.env.CORS)
   .option(
