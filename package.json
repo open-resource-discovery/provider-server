@@ -116,7 +116,7 @@
     "find-my-way": "9.10.1",
     "hono": "4.13.16",
     "fast-xml-parser": "5.12.0",
-    "seroval": "1.6.11",
+    "seroval": "1.8.2",
     "undici": "8.12.4",
     "@scalar/json-magic": {
       "undici": "7.30.1"
