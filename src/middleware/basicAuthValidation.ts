@@ -1,4 +1,4 @@
-import { FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 import { comparePassword } from "src/util/passwordHash.js";
 import { log } from "../util/logger.js";

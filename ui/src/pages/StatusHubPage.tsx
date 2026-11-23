@@ -1,13 +1,13 @@
-import { type ReactNode, useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
-  ServerStatusPanel,
   ConnectionDetailSection,
   type Perspective,
+  ServerStatusPanel,
 } from "@open-resource-discovery/explorer/components";
-import { useStatusWebSocket, type UpdateProgress } from "../hooks/useStatusWebSocket";
-import { useProviderPerspectives } from "../hooks/usePerspectives";
+import { Link } from "@tanstack/react-router";
+import { type ReactNode, useEffect, useState } from "react";
 import { ORD_CONFIG_URL, WEBHOOK_PATH } from "../constants";
+import { useProviderPerspectives } from "../hooks/usePerspectives";
+import { type UpdateProgress, useStatusWebSocket } from "../hooks/useStatusWebSocket";
 import { assertNever } from "../utils";
 
 type UpdateStatus = "idle" | "scheduled" | "in_progress" | "failed" | "cache_warming";
@@ -112,7 +112,8 @@ export function StatusHubPage(): ReactNode {
               <button
                 onClick={handleTriggerUpdate}
                 disabled={buttonDisabled}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 <svg
                   className="h-3.5 w-3.5"
                   viewBox="0 0 24 24"
@@ -121,7 +122,8 @@ export function StatusHubPage(): ReactNode {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  aria-hidden="true">
+                  aria-hidden="true"
+                >
                   <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                   <path d="M21 3v5h-5" />
                   <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
@@ -143,7 +145,8 @@ export function StatusHubPage(): ReactNode {
                 <Link
                   to="/status/$perspId"
                   params={{ perspId: perspective.id }}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
                   Explore
                 </Link>
               )}

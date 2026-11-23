@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, createRouter, Outlet, redirect } from "@tanstack/react-router";
-import { StatusHubPage } from "./pages/StatusHubPage";
 import { ExplorerViewPage } from "./pages/ExplorerViewPage";
+import { StatusHubPage } from "./pages/StatusHubPage";
 
 const rootRoute = createRootRoute({ component: Outlet });
 

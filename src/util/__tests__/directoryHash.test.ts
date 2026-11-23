@@ -1,20 +1,21 @@
-import * as fs from "fs";
 import * as crypto from "crypto";
+import * as fs from "fs";
+import { type Mock, vi } from "vitest";
 import { calculateDirectoryHash } from "../directoryHash.js";
 import { getAllFiles } from "../files.js";
 
-jest.mock("fs");
-jest.mock("../files.js");
-jest.mock("../logger.js", () => ({
+vi.mock("fs");
+vi.mock("../files.js");
+vi.mock("../logger.js", () => ({
   log: {
-    debug: jest.fn(),
-    error: jest.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
 describe("directoryHash", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("calculateDirectoryHash", () => {
@@ -23,9 +24,9 @@ describe("directoryHash", () => {
       const mockFiles = ["/test/directory/file2.txt", "/test/directory/file1.txt"];
       const mockStats = { mtimeMs: 1234567890 };
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue(mockFiles);
-      (fs.statSync as jest.Mock).mockReturnValue(mockStats);
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue(mockFiles);
+      (fs.statSync as Mock).mockReturnValue(mockStats);
 
       const result = await calculateDirectoryHash(mockDirectoryPath);
 
@@ -39,7 +40,7 @@ describe("directoryHash", () => {
     it("should return null when directory does not exist", async () => {
       const mockDirectoryPath = "/nonexistent/directory";
 
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as Mock).mockReturnValue(false);
 
       const result = await calculateDirectoryHash(mockDirectoryPath);
 
@@ -50,8 +51,8 @@ describe("directoryHash", () => {
 
     it("should handle empty directory", async () => {
       const mockDirectoryPath = "/test/empty";
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue([]);
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue([]);
 
       const result = await calculateDirectoryHash(mockDirectoryPath);
 
@@ -66,17 +67,17 @@ describe("directoryHash", () => {
       const mockFiles = ["/test/directory/zebra.txt", "/test/directory/apple.txt"];
       const mockStats = { mtimeMs: 1234567890 };
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue(mockFiles);
-      (fs.statSync as jest.Mock).mockReturnValue(mockStats);
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue(mockFiles);
+      (fs.statSync as Mock).mockReturnValue(mockStats);
 
       const result1 = await calculateDirectoryHash(mockDirectoryPath);
 
       // Reset and calculate again with reversed array
-      jest.clearAllMocks();
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue([...mockFiles].reverse());
-      (fs.statSync as jest.Mock).mockReturnValue(mockStats);
+      vi.clearAllMocks();
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue([...mockFiles].reverse());
+      (fs.statSync as Mock).mockReturnValue(mockStats);
 
       const result2 = await calculateDirectoryHash(mockDirectoryPath);
 
@@ -88,17 +89,17 @@ describe("directoryHash", () => {
       const mockDirectoryPath = "/test/directory";
       const mockFiles = ["/test/directory/file.txt"];
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue(mockFiles);
-      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: 1111111111 });
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue(mockFiles);
+      (fs.statSync as Mock).mockReturnValue({ mtimeMs: 1111111111 });
 
       const result1 = await calculateDirectoryHash(mockDirectoryPath);
 
       // Reset and calculate with different mtime
-      jest.clearAllMocks();
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue(mockFiles);
-      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: 2222222222 });
+      vi.clearAllMocks();
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue(mockFiles);
+      (fs.statSync as Mock).mockReturnValue({ mtimeMs: 2222222222 });
 
       const result2 = await calculateDirectoryHash(mockDirectoryPath);
 
@@ -109,9 +110,9 @@ describe("directoryHash", () => {
       const mockDirectoryPath = "/test/directory";
       const mockFiles = ["/test/directory/file.txt"];
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue(mockFiles);
-      (fs.statSync as jest.Mock).mockImplementation(() => {
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue(mockFiles);
+      (fs.statSync as Mock).mockImplementation(() => {
         throw new Error("Permission denied");
       });
 
@@ -123,8 +124,8 @@ describe("directoryHash", () => {
     it("should return null on error from getAllFiles", async () => {
       const mockDirectoryPath = "/test/directory";
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockRejectedValue(new Error("Read error"));
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockRejectedValue(new Error("Read error"));
 
       const result = await calculateDirectoryHash(mockDirectoryPath);
 
@@ -136,9 +137,9 @@ describe("directoryHash", () => {
       const mockFile = "/test/directory/file.txt";
       const mockMtimeMs = 1234567890;
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue([mockFile]);
-      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: mockMtimeMs });
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue([mockFile]);
+      (fs.statSync as Mock).mockReturnValue({ mtimeMs: mockMtimeMs });
 
       // Calculate expected hash manually
       const expectedHash = crypto.createHash("sha256");

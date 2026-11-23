@@ -1,8 +1,10 @@
+import { vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-require-imports */
-import { getOrdDocumentAccessStrategies, emptyOrdConfig, getBaseUrl, listGithubOrdDirectory } from "../ordConfig.js";
-import { OptAuthMethod, OrdAccessStrategy } from "../../model/cli.js";
 
-jest.mock("../github.js");
+import { OptAuthMethod, OrdAccessStrategy } from "../../model/cli.js";
+import { emptyOrdConfig, getBaseUrl, getOrdDocumentAccessStrategies, listGithubOrdDirectory } from "../ordConfig.js";
+
+vi.mock("../github.js");
 
 describe("ordConfig", () => {
   describe("getOrdDocumentAccessStrategies", () => {
@@ -132,7 +134,7 @@ describe("ordConfig", () => {
         { type: "dir", path: "documents/subdir" },
       ];
 
-      const { getGithubDirectoryContents } = require("../github.js");
+      const { getGithubDirectoryContents } = await import("../github.js");
       getGithubDirectoryContents.mockResolvedValue(mockGithubDirectoryContents);
 
       const githubOpts = {
@@ -155,7 +157,7 @@ describe("ordConfig", () => {
         { type: "file", path: "documents/readme.md" },
       ];
 
-      const { getGithubDirectoryContents } = require("../github.js");
+      const { getGithubDirectoryContents } = await import("../github.js");
       getGithubDirectoryContents.mockResolvedValue(mockGithubDirectoryContents);
 
       const githubOpts = {
@@ -170,7 +172,7 @@ describe("ordConfig", () => {
     });
 
     it("should handle empty directory", async () => {
-      const { getGithubDirectoryContents } = require("../github.js");
+      const { getGithubDirectoryContents } = await import("../github.js");
       getGithubDirectoryContents.mockResolvedValue([]);
 
       const githubOpts = {
@@ -185,7 +187,7 @@ describe("ordConfig", () => {
     });
 
     it("should use custom directory if provided", async () => {
-      const { getGithubDirectoryContents } = require("../github.js");
+      const { getGithubDirectoryContents } = await import("../github.js");
       getGithubDirectoryContents.mockResolvedValue([{ type: "file", path: "custom/documents/doc.json" }]);
 
       const githubOpts = {
@@ -210,7 +212,7 @@ describe("ordConfig", () => {
     });
 
     it("should pass GitHub token to API call", async () => {
-      const { getGithubDirectoryContents } = require("../github.js");
+      const { getGithubDirectoryContents } = await import("../github.js");
       getGithubDirectoryContents.mockResolvedValue([]);
 
       const githubOpts = {

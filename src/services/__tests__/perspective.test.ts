@@ -1,18 +1,19 @@
-import { OrdDocument } from "@open-resource-discovery/specification";
-import { DocumentService } from "../documentService.js";
-import { CacheService } from "../cacheService.js";
-import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
-import { ProcessingContext } from "../interfaces/processingContext.js";
+import type { OrdDocument } from "@open-resource-discovery/specification";
+import { type Mocked, vi } from "vitest";
 import { OptAuthMethod } from "../../model/cli.js";
-import { Perspective } from "../../model/perspective.js";
+import type { Perspective } from "../../model/perspective.js";
+import type { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
+import { CacheService } from "../cacheService.js";
+import { DocumentService } from "../documentService.js";
+import type { ProcessingContext } from "../interfaces/processingContext.js";
 
-const mockRepository: jest.Mocked<DocumentRepository> = {
-  getDocument: jest.fn(),
-  getDocuments: jest.fn(),
-  getDirectoryHash: jest.fn(),
-  listFiles: jest.fn(),
-  getFileContent: jest.fn(),
-  getOrdDirectory: jest.fn(() => "/mock/ord/dir"),
+const mockRepository: Mocked<DocumentRepository> = {
+  getDocument: vi.fn(),
+  getDocuments: vi.fn(),
+  getDirectoryHash: vi.fn(),
+  listFiles: vi.fn(),
+  getFileContent: vi.fn(),
+  getOrdDirectory: vi.fn(() => "/mock/ord/dir"),
 };
 
 let cacheService: CacheService;
@@ -34,7 +35,7 @@ const createMockDocument = (perspective?: Perspective): OrdDocument => ({
 
 describe("Perspective Support", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     cacheService = new CacheService();
     documentService = new DocumentService(mockRepository, cacheService, mockContext, "documents");
   });

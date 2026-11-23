@@ -1,26 +1,29 @@
+import { vi } from "vitest";
 import { GitWorkerManager } from "../gitWorkerManager.js";
 
 // Mock the actual git worker manager to avoid worker thread complexities in tests
-jest.mock("../gitWorkerManager.js", () => {
+vi.mock("../gitWorkerManager.js", () => {
   return {
-    GitWorkerManager: jest.fn().mockImplementation(() => ({
-      clone: jest.fn().mockResolvedValue(undefined),
-      pull: jest.fn().mockResolvedValue(undefined),
-      checkout: jest.fn().mockResolvedValue(undefined),
-      resetIndex: jest.fn().mockResolvedValue(undefined),
-      abort: jest.fn(),
-      destroy: jest.fn(),
-      executeOperation: jest.fn().mockResolvedValue(undefined),
-    })),
+    GitWorkerManager: vi.fn().mockImplementation(function () {
+      return {
+        clone: vi.fn().mockResolvedValue(undefined),
+        pull: vi.fn().mockResolvedValue(undefined),
+        checkout: vi.fn().mockResolvedValue(undefined),
+        resetIndex: vi.fn().mockResolvedValue(undefined),
+        abort: vi.fn(),
+        destroy: vi.fn(),
+        executeOperation: vi.fn().mockResolvedValue(undefined),
+      };
+    }),
   };
 });
 
 describe("GitWorkerManager", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
   let manager: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     manager = new GitWorkerManager();
   });
 

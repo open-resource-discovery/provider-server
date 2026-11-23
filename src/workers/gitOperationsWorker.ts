@@ -1,9 +1,9 @@
-import { parentPort } from "worker_threads";
 import * as fsPromises from "fs/promises";
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
-import type { GitOperationData, GitProgressEvent } from "./gitWorkerTypes.js";
+import { parentPort } from "worker_threads";
 import { omitUndefined } from "../util/util.js";
+import type { GitOperationData, GitProgressEvent } from "./gitWorkerTypes.js";
 
 // Limit concurrent file writes to avoid EMFILE on large repos (100k+ files).
 // isomorphic-git checkout fans out all writes via Promise.allSettled with no

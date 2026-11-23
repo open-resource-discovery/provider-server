@@ -1,5 +1,5 @@
-import * as fs from "fs";
 import * as crypto from "crypto";
+import * as fs from "fs";
 import { getAllFiles } from "./files.js";
 import { log } from "./logger.js";
 

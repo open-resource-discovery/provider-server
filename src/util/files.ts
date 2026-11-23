@@ -1,7 +1,7 @@
 import fs from "fs";
-import { normalizePath, joinFilePaths } from "./pathUtils.js";
-import { log } from "./logger.js";
 import path from "path";
+import { log } from "./logger.js";
+import { joinFilePaths, normalizePath } from "./pathUtils.js";
 
 /**
  * Lists all files recursively from the given directory

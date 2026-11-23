@@ -1,7 +1,8 @@
 import { config } from "dotenv";
+
 config();
 
-import { pino, LoggerOptions } from "pino";
+import { type LoggerOptions, pino } from "pino";
 
 const VALID_LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
 

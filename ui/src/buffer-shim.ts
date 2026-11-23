@@ -141,7 +141,7 @@ const utilShim = {
 // install a CJS-compatible shim so that avsc's CJS require() calls resolve in the browser
 // bundle. The double cast via unknown is the standard pattern for assigning to an untyped
 // global property.
-(globalThis as unknown as Record<string, unknown>).require ??= function (id: string): unknown {
+(globalThis as unknown as Record<string, unknown>).require ??= (id: string): unknown => {
   if (id === "buffer") return { Buffer };
   if (id === "util") return utilShim;
   if (id === "events") return { EventEmitter };

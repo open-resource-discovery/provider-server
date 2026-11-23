@@ -1,38 +1,40 @@
+import { type Mock, vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-require-imports */
-import { getAllFiles, getPackageVersion } from "../files.js";
-import fs from "fs";
 
-jest.mock("../logger.js", () => ({
+import fs from "fs";
+import { getAllFiles, getPackageVersion } from "../files.js";
+
+vi.mock("../logger.js", () => ({
   log: {
-    error: jest.fn(),
+    error: vi.fn(),
   },
 }));
 
-jest.mock("fs", () => ({
+vi.mock("fs", () => ({
   default: {
     promises: {
-      access: jest.fn(),
-      readdir: jest.fn(),
-      stat: jest.fn(),
+      access: vi.fn(),
+      readdir: vi.fn(),
+      stat: vi.fn(),
     },
-    readFileSync: jest.fn(),
+    readFileSync: vi.fn(),
   },
   promises: {
-    access: jest.fn(),
-    readdir: jest.fn(),
-    stat: jest.fn(),
+    access: vi.fn(),
+    readdir: vi.fn(),
+    stat: vi.fn(),
   },
-  readFileSync: jest.fn(),
+  readFileSync: vi.fn(),
 }));
 
 describe("files", () => {
   describe("getAllFiles", () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it("should return empty array when directory does not exist", async () => {
-      (fs.promises.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
+      (fs.promises.access as Mock).mockRejectedValue(new Error("ENOENT"));
 
       const result = await getAllFiles("/nonexistent/path");
 
@@ -40,9 +42,9 @@ describe("files", () => {
     });
 
     it("should list all files in a flat directory", async () => {
-      (fs.promises.access as jest.Mock).mockResolvedValue(undefined);
-      (fs.promises.readdir as jest.Mock).mockResolvedValue(["file1.txt", "file2.json"]);
-      (fs.promises.stat as jest.Mock)
+      (fs.promises.access as Mock).mockResolvedValue(undefined);
+      (fs.promises.readdir as Mock).mockResolvedValue(["file1.txt", "file2.json"]);
+      (fs.promises.stat as Mock)
         .mockResolvedValueOnce({ isDirectory: () => false })
         .mockResolvedValueOnce({ isDirectory: () => false });
 
@@ -54,14 +56,14 @@ describe("files", () => {
     });
 
     it("should recursively list files in nested directories", async () => {
-      (fs.promises.access as jest.Mock).mockResolvedValue(undefined);
+      (fs.promises.access as Mock).mockResolvedValue(undefined);
 
       // First call - root directory
-      (fs.promises.readdir as jest.Mock)
+      (fs.promises.readdir as Mock)
         .mockResolvedValueOnce(["file1.txt", "subdir"])
         .mockResolvedValueOnce(["file2.json"]); // subdir contents
 
-      (fs.promises.stat as jest.Mock)
+      (fs.promises.stat as Mock)
         .mockResolvedValueOnce({ isDirectory: () => false }) // file1.txt
         .mockResolvedValueOnce({ isDirectory: () => true }) // subdir
         .mockResolvedValueOnce({ isDirectory: () => false }); // file2.json in subdir
@@ -74,8 +76,8 @@ describe("files", () => {
     });
 
     it("should handle empty directories", async () => {
-      (fs.promises.access as jest.Mock).mockResolvedValue(undefined);
-      (fs.promises.readdir as jest.Mock).mockResolvedValue([]);
+      (fs.promises.access as Mock).mockResolvedValue(undefined);
+      (fs.promises.readdir as Mock).mockResolvedValue([]);
 
       const result = await getAllFiles("/test/empty");
 
@@ -83,9 +85,9 @@ describe("files", () => {
     });
 
     it("should accumulate files in provided array", async () => {
-      (fs.promises.access as jest.Mock).mockResolvedValue(undefined);
-      (fs.promises.readdir as jest.Mock).mockResolvedValue(["file.txt"]);
-      (fs.promises.stat as jest.Mock).mockResolvedValue({ isDirectory: () => false });
+      (fs.promises.access as Mock).mockResolvedValue(undefined);
+      (fs.promises.readdir as Mock).mockResolvedValue(["file.txt"]);
+      (fs.promises.stat as Mock).mockResolvedValue({ isDirectory: () => false });
 
       const existingFiles = ["/existing/file.json"];
       const result = await getAllFiles("/test/dir", existingFiles);
@@ -97,12 +99,12 @@ describe("files", () => {
 
   describe("getPackageVersion", () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it("should return version from package.json", () => {
       const packageJson = { version: "1.2.3" };
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(packageJson));
+      (fs.readFileSync as Mock).mockReturnValue(JSON.stringify(packageJson));
 
       const result = getPackageVersion();
 
@@ -111,7 +113,7 @@ describe("files", () => {
 
     it("should return 'unknown' when version field is missing", () => {
       const packageJson = { name: "test-package" };
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(packageJson));
+      (fs.readFileSync as Mock).mockReturnValue(JSON.stringify(packageJson));
 
       const result = getPackageVersion();
 
@@ -119,7 +121,7 @@ describe("files", () => {
     });
 
     it("should return 'unknown' when package.json cannot be read", () => {
-      (fs.readFileSync as jest.Mock).mockImplementation(() => {
+      (fs.readFileSync as Mock).mockImplementation(() => {
         throw new Error("ENOENT: file not found");
       });
 
@@ -129,16 +131,16 @@ describe("files", () => {
     });
 
     it("should return 'unknown' when package.json is invalid JSON", () => {
-      (fs.readFileSync as jest.Mock).mockReturnValue("invalid json{");
+      (fs.readFileSync as Mock).mockReturnValue("invalid json{");
 
       const result = getPackageVersion();
 
       expect(result).toBe("unknown");
     });
 
-    it("should log error when package.json cannot be read", () => {
-      const { log } = require("../logger.js");
-      (fs.readFileSync as jest.Mock).mockImplementation(() => {
+    it("should log error when package.json cannot be read", async () => {
+      const { log } = await import("../logger.js");
+      (fs.readFileSync as Mock).mockImplementation(() => {
         throw new Error("ENOENT: file not found");
       });
 

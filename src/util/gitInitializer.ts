@@ -1,17 +1,17 @@
 import * as fsPromises from "fs/promises";
 import path from "path";
-import { ProviderServerOptions } from "src/model/server.js";
+import type { ProviderServerOptions } from "src/model/server.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
-import { log } from "./logger.js";
-import { GitCloneContentFetcher } from "../services/gitCloneContentFetcher.js";
-import { FileSystemManager } from "../services/fileSystemManager.js";
 import { buildGithubConfig } from "../model/github.js";
-import { createProgressHandler } from "./progressHandler.js";
-import { UpdateStateManager } from "../services/updateStateManager.js";
-import { validateGitContent } from "./validateGit.js";
-import { CacheService } from "../services/cacheService.js";
+import type { CacheService } from "../services/cacheService.js";
+import type { FileSystemManager } from "../services/fileSystemManager.js";
+import { GitCloneContentFetcher } from "../services/gitCloneContentFetcher.js";
+import type { UpdateStateManager } from "../services/updateStateManager.js";
 import { calculateDirectoryHash } from "./directoryHash.js";
+import { log } from "./logger.js";
+import { createProgressHandler } from "./progressHandler.js";
+import { validateGitContent } from "./validateGit.js";
 
 /**
  * Initializes git source by checking, cloning, and validating git repository content

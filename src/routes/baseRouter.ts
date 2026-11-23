@@ -1,8 +1,8 @@
-import { OrdConfiguration } from "@open-resource-discovery/specification";
+import type { OrdConfiguration } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "src/constant.js";
-import { OptAuthMethod } from "src/model/cli.js";
-import { FastifyInstanceType } from "src/model/fastify.js";
-import { Perspective } from "src/model/perspective.js";
+import type { OptAuthMethod } from "src/model/cli.js";
+import type { FastifyInstanceType } from "src/model/fastify.js";
+import type { Perspective } from "src/model/perspective.js";
 
 export interface RouterOptions {
   baseUrl: string;

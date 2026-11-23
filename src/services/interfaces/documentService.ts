@@ -1,6 +1,6 @@
-import { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
-import { FqnDocumentMap } from "../../util/fqnHelpers.js"; // Import FqnDocumentMap
-import { Perspective } from "../../model/perspective.js";
+import type { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
+import type { Perspective } from "../../model/perspective.js";
+import type { FqnDocumentMap } from "../../util/fqnHelpers.js"; // Import FqnDocumentMap
 
 export interface DocumentService {
   /**

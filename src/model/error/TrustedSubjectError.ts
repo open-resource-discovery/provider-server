@@ -1,4 +1,4 @@
-import { BackendError, DetailError } from "src/model/error/BackendError.js";
+import { BackendError, type DetailError } from "src/model/error/BackendError.js";
 
 export class TrustedSubjectError extends BackendError {
   public name = "TrustedSubjectError";

@@ -1,47 +1,50 @@
-import { StatusService } from "../statusService.js";
-import { UpdateScheduler } from "../updateScheduler.js";
-import { FileSystemManager } from "../fileSystemManager.js";
-import { LocalDocumentRepository } from "../../repositories/localDocumentRepository.js";
-import { VersionService } from "../versionService.js";
-import { Logger } from "pino";
-import { OptSourceType } from "../../model/cli.js";
-import { ProviderServerOptions } from "../../model/server.js";
 import { statfs } from "fs/promises";
+import type { Logger } from "pino";
+import { type Mock, type Mocked, type MockedFunction, vi } from "vitest";
+import { OptSourceType } from "../../model/cli.js";
+import type { ProviderServerOptions } from "../../model/server.js";
+import type { LocalDocumentRepository } from "../../repositories/localDocumentRepository.js";
 import * as files from "../../util/files.js";
+import type { FileSystemManager } from "../fileSystemManager.js";
+import { StatusService } from "../statusService.js";
+import type { UpdateScheduler } from "../updateScheduler.js";
+import { VersionService } from "../versionService.js";
 
-jest.mock("fs/promises");
-jest.mock("../../util/files.js");
-jest.mock("../versionService.js");
+vi.mock("fs/promises");
+vi.mock("../../util/files.js");
+vi.mock("../versionService.js");
 
 // Mock v8 module globally
-jest.mock("v8", () => ({
-  getHeapStatistics: jest.fn(() => ({
-    total_heap_size: 0,
-    total_heap_size_executable: 0,
-    total_physical_size: 0,
-    total_available_size: 0,
-    used_heap_size: 0,
-    heap_size_limit: 200000000,
-    malloced_memory: 0,
-    peak_malloced_memory: 0,
-    does_zap_garbage: 0,
-    number_of_native_contexts: 0,
-    number_of_detached_contexts: 0,
-    total_global_handles_size: 0,
-    used_global_handles_size: 0,
-    external_memory: 0,
-  })),
+vi.mock("v8", () => ({
+  getHeapStatistics: vi.fn(function () {
+    return {
+      total_heap_size: 0,
+      total_heap_size_executable: 0,
+      total_physical_size: 0,
+      total_available_size: 0,
+      used_heap_size: 0,
+      heap_size_limit: 200000000,
+      malloced_memory: 0,
+      peak_malloced_memory: 0,
+      does_zap_garbage: 0,
+      number_of_native_contexts: 0,
+      number_of_detached_contexts: 0,
+      total_global_handles_size: 0,
+      used_global_handles_size: 0,
+      external_memory: 0,
+    };
+  }),
 }));
 
 describe("StatusService", () => {
   let statusService: StatusService;
-  let mockUpdateScheduler: jest.Mocked<UpdateScheduler>;
-  let mockFileSystemManager: jest.Mocked<FileSystemManager>;
-  let mockLocalRepository: jest.Mocked<LocalDocumentRepository>;
-  let mockLogger: jest.Mocked<Logger>;
-  let mockVersionService: jest.Mocked<VersionService>;
-  const mockStatfs = statfs as jest.MockedFunction<typeof statfs>;
-  const mockGetPackageVersion = files.getPackageVersion as jest.MockedFunction<typeof files.getPackageVersion>;
+  let mockUpdateScheduler: Mocked<UpdateScheduler>;
+  let mockFileSystemManager: Mocked<FileSystemManager>;
+  let mockLocalRepository: Mocked<LocalDocumentRepository>;
+  let mockLogger: Mocked<Logger>;
+  let mockVersionService: Mocked<VersionService>;
+  const mockStatfs = statfs as MockedFunction<typeof statfs>;
+  const mockGetPackageVersion = files.getPackageVersion as MockedFunction<typeof files.getPackageVersion>;
 
   const defaultServerOptions = {
     sourceType: OptSourceType.Github,
@@ -58,38 +61,38 @@ describe("StatusService", () => {
   };
 
   beforeEach(() => {
-    jest.restoreAllMocks();
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
 
     mockUpdateScheduler = {
-      getStatus: jest.fn(),
-      getLastWebhookTime: jest.fn(),
-      getLastWebhookReceivedTime: jest.fn(),
-    } as unknown as jest.Mocked<UpdateScheduler>;
+      getStatus: vi.fn(),
+      getLastWebhookTime: vi.fn(),
+      getLastWebhookReceivedTime: vi.fn(),
+    } as unknown as Mocked<UpdateScheduler>;
 
     mockFileSystemManager = {
-      getCurrentVersion: jest.fn(),
-      getMetadata: jest.fn(),
-    } as unknown as jest.Mocked<FileSystemManager>;
+      getCurrentVersion: vi.fn(),
+      getMetadata: vi.fn(),
+    } as unknown as Mocked<FileSystemManager>;
 
     mockLocalRepository = {
-      getDirectoryHash: jest.fn(),
-    } as unknown as jest.Mocked<LocalDocumentRepository>;
+      getDirectoryHash: vi.fn(),
+    } as unknown as Mocked<LocalDocumentRepository>;
 
     mockLogger = {
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-    } as unknown as jest.Mocked<Logger>;
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    } as unknown as Mocked<Logger>;
 
     mockVersionService = {
-      getVersionInfo: jest.fn(),
-    } as unknown as jest.Mocked<VersionService>;
+      getVersionInfo: vi.fn(),
+    } as unknown as Mocked<VersionService>;
 
-    (VersionService.getInstance as jest.Mock) = jest.fn().mockReturnValue(mockVersionService);
+    (VersionService.getInstance as Mock) = vi.fn().mockReturnValue(mockVersionService);
     mockGetPackageVersion.mockReturnValue("1.0.0");
 
     // Mock system metrics
@@ -99,7 +102,7 @@ describe("StatusService", () => {
       bavail: 500000,
     } as unknown as Awaited<ReturnType<typeof statfs>>);
 
-    jest.spyOn(process, "memoryUsage").mockReturnValue({
+    vi.spyOn(process, "memoryUsage").mockReturnValue({
       rss: 100000000,
       heapTotal: 80000000,
       heapUsed: 60000000,
@@ -117,8 +120,8 @@ describe("StatusService", () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe("getStatus", () => {
@@ -381,7 +384,7 @@ describe("StatusService", () => {
         const statusPromise = statusService.getStatus();
 
         // Advance timers past the 2-second timeout
-        jest.advanceTimersByTime(2100);
+        vi.advanceTimersByTime(2100);
 
         const status = await statusPromise;
 

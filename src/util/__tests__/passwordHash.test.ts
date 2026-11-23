@@ -1,16 +1,20 @@
-import { isBcryptHash, comparePassword } from "../passwordHash.js";
 import bcrypt from "bcryptjs";
+import { type MockedFunction, vi } from "vitest";
+import { comparePassword, isBcryptHash } from "../passwordHash.js";
 
 // Mock bcryptjs
-jest.mock("bcryptjs", () => ({
-  compare: jest.fn(),
-}));
+vi.mock("bcryptjs", () => {
+  const mocked = {
+    compare: vi.fn(),
+  };
+  return { ...mocked, default: mocked };
+});
 
-const mockCompare = bcrypt.compare as jest.MockedFunction<(password: string, hash: string) => Promise<boolean>>;
+const mockCompare = bcrypt.compare as MockedFunction<(password: string, hash: string) => Promise<boolean>>;
 
 describe("passwordHash", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("isBcryptHash", () => {

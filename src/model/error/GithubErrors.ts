@@ -1,4 +1,4 @@
-import { BackendError, DetailError } from "./BackendError.js";
+import { BackendError, type DetailError } from "./BackendError.js";
 
 export class GitHubAccessError extends BackendError {
   public name = "GitHubAccessError";

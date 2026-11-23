@@ -1,5 +1,5 @@
 import { WILDCARD_DN } from "../../constant.js";
-import { tokenizeDn, dnTokensMatch, isWildcardDn } from "../certificateHelpers.js";
+import { dnTokensMatch, isWildcardDn, tokenizeDn } from "../certificateHelpers.js";
 
 describe("certificateHelpers", () => {
   describe("tokenizeDn", () => {

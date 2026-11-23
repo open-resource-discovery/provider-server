@@ -1,15 +1,19 @@
-import { ordConfigurationSchema, type OrdDocument } from "@open-resource-discovery/specification";
+import { type OrdDocument, ordConfigurationSchema } from "@open-resource-discovery/specification";
 import fs from "fs";
 import path from "path";
-import { CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
-import { buildProviderServerOptions, MtlsTrustedCertsConfig, ProviderServerOptions } from "src/model/server.js";
-import { joinFilePaths } from "../util/pathUtils.js";
+import { type CommandLineOptions, OptAuthMethod, OptSourceType } from "src/model/cli.js";
+import {
+  buildProviderServerOptions,
+  type MtlsTrustedCertsConfig,
+  type ProviderServerOptions,
+} from "src/model/server.js";
 import { LocalDirectoryError } from "../model/error/OrdDirectoryError.js";
 import { ValidationError } from "../model/error/ValidationError.js";
+import { joinFilePaths } from "../util/pathUtils.js";
 import { log } from "./logger.js";
-import { validateOrdDocument } from "./validateOrdDocument.js";
-import { isBcryptHash } from "./passwordHash.js";
 import { getBaseUrl } from "./ordConfig.js";
+import { isBcryptHash } from "./passwordHash.js";
+import { validateOrdDocument } from "./validateOrdDocument.js";
 
 export const ordBaseUrlPattern = new RegExp(ordConfigurationSchema.properties["baseUrl"]["pattern"]);
 

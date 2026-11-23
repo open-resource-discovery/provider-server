@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 import { config } from "dotenv";
+
 config({ override: true });
 
 import { Command, Option } from "commander";
-import packageJson from "../package.json" with { type: "json" };
-import { CommandLineOptions, OptAuthMethod, OptSourceType, parseAuthMethods, parseSourceType } from "src/model/cli.js";
+import {
+  type CommandLineOptions,
+  OptAuthMethod,
+  OptSourceType,
+  parseAuthMethods,
+  parseSourceType,
+} from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
 import { getBaseUrlFromVcapEnv } from "src/util/env.js";
 import { log } from "src/util/logger.js";
 import { validateOffline } from "src/util/validateOptions.js";
+import packageJson from "../package.json" with { type: "json" };
+import { PATH_CONSTANTS } from "./constant.js";
 import { ValidationError } from "./model/error/ValidationError.js";
 import { showCleanHelp } from "./util/cliHelp.js";
-import { PATH_CONSTANTS } from "./constant.js";
 
 const program = new Command();
 

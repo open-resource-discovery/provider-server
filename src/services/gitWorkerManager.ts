@@ -1,7 +1,7 @@
 import { createRequire } from "module";
 import { Worker } from "worker_threads";
-import { GitOperation, GitProgressEvent, WorkerMessage } from "../workers/gitWorkerTypes.js";
 import { omitUndefined } from "../util/util.js";
+import type { GitOperation, GitProgressEvent, WorkerMessage } from "../workers/gitWorkerTypes.js";
 
 const require = createRequire(import.meta.url);
 

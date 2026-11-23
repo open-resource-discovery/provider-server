@@ -1,5 +1,5 @@
-import { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
-import { FqnDocumentMap } from "../../util/fqnHelpers.js"; // Import FqnDocumentMap
+import type { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
+import type { FqnDocumentMap } from "../../util/fqnHelpers.js"; // Import FqnDocumentMap
 
 export interface CacheService {
   /**

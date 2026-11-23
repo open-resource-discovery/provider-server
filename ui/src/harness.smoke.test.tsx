@@ -1,6 +1,6 @@
-import type { ReactElement } from "react";
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { describe, expect, it } from "vitest";
 
 // Smoke test proving the full ui/ toolchain is wired: TSX transform (plugin-react),
 // the jsdom environment, and @testing-library rendering. The real hook tests land in

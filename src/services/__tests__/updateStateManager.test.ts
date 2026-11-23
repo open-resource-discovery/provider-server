@@ -1,5 +1,6 @@
-import { UpdateStateManager, UpdateStatus } from "../updateStateManager.js";
-import { Logger } from "pino";
+import type { Logger } from "pino";
+import { vi } from "vitest";
+import { UpdateStateManager, type UpdateStatus } from "../updateStateManager.js";
 
 describe("UpdateStateManager", () => {
   let stateManager: UpdateStateManager;
@@ -7,10 +8,10 @@ describe("UpdateStateManager", () => {
 
   beforeEach(() => {
     mockLogger = {
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
     } as unknown as Logger;
 
     stateManager = new UpdateStateManager(mockLogger);
@@ -35,7 +36,7 @@ describe("UpdateStateManager", () => {
 
   describe("state transitions", () => {
     it("should transition from idle to in_progress", () => {
-      const stateChangedSpy = jest.fn();
+      const stateChangedSpy = vi.fn();
       stateManager.on("state-changed", stateChangedSpy);
 
       stateManager.startUpdate("validation");
@@ -103,7 +104,7 @@ describe("UpdateStateManager", () => {
 
   describe("event emissions", () => {
     it("should emit update-started event", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       stateManager.on("update-started", spy);
 
       stateManager.startUpdate("validation");
@@ -112,7 +113,7 @@ describe("UpdateStateManager", () => {
     });
 
     it("should emit update-completed event", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       stateManager.on("update-completed", spy);
 
       stateManager.startUpdate("scheduler");
@@ -122,7 +123,7 @@ describe("UpdateStateManager", () => {
     });
 
     it("should emit update-failed event with error message", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       stateManager.on("update-failed", spy);
 
       stateManager.startUpdate("webhook");
@@ -132,7 +133,7 @@ describe("UpdateStateManager", () => {
     });
 
     it("should emit update-scheduled event with scheduled time", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const scheduledTime = new Date();
       stateManager.on("update-scheduled", spy);
 
@@ -142,7 +143,7 @@ describe("UpdateStateManager", () => {
     });
 
     it("should emit state-changed event with previous and current state", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       stateManager.on("state-changed", spy);
 
       stateManager.startUpdate("manual");
@@ -157,7 +158,7 @@ describe("UpdateStateManager", () => {
     });
 
     it("should emit update-progress event", () => {
-      const spy = jest.fn();
+      const spy = vi.fn();
       const progress = {
         totalFiles: 100,
         fetchedFiles: 50,
@@ -257,11 +258,11 @@ describe("UpdateStateManager", () => {
 
   describe("waitForReady", () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should resolve immediately when not in progress", async () => {
@@ -278,7 +279,7 @@ describe("UpdateStateManager", () => {
         stateManager.completeUpdate();
       }, 100);
 
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
 
       await expect(waitPromise).resolves.toBeUndefined();
     });
@@ -293,7 +294,7 @@ describe("UpdateStateManager", () => {
         stateManager.failUpdate("Test error");
       }, 100);
 
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
 
       // Should still resolve (not reject) on failure
       await expect(waitPromise).resolves.toBeUndefined();
@@ -305,7 +306,7 @@ describe("UpdateStateManager", () => {
       const waitPromise = stateManager.waitForReady(1000);
 
       // Advance past timeout
-      jest.advanceTimersByTime(1001);
+      vi.advanceTimersByTime(1001);
 
       await expect(waitPromise).rejects.toThrow("Timeout waiting for update to complete");
     });
@@ -326,7 +327,7 @@ describe("UpdateStateManager", () => {
       const customTimeout = 500;
       const waitPromise = stateManager.waitForReady(customTimeout);
 
-      jest.advanceTimersByTime(customTimeout + 1);
+      vi.advanceTimersByTime(customTimeout + 1);
 
       await expect(waitPromise).rejects.toThrow(`Timeout waiting for update to complete (${customTimeout}ms)`);
     });
@@ -340,7 +341,7 @@ describe("UpdateStateManager", () => {
         stateManager.completeUpdate();
       }, 100);
 
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
       await waitPromise;
 
       expect(stateManager.isUpdateInProgress()).toBe(false);
@@ -357,7 +358,7 @@ describe("UpdateStateManager", () => {
         stateManager.completeUpdate();
       }, 100);
 
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
 
       await expect(Promise.all([wait1, wait2, wait3])).resolves.toEqual([undefined, undefined, undefined]);
     });
@@ -383,7 +384,7 @@ describe("UpdateStateManager", () => {
 
   describe("cache warming", () => {
     it("should start cache warming", () => {
-      const stateChangedSpy = jest.fn();
+      const stateChangedSpy = vi.fn();
       stateManager.on("state-changed", stateChangedSpy);
 
       stateManager.startCacheWarming();
@@ -399,7 +400,7 @@ describe("UpdateStateManager", () => {
       stateManager.startCacheWarming();
       expect(stateManager.getState().status).toBe("cache_warming");
 
-      const stateChangedSpy = jest.fn();
+      const stateChangedSpy = vi.fn();
       stateManager.on("state-changed", stateChangedSpy);
 
       stateManager.completeCacheWarming();
@@ -420,7 +421,7 @@ describe("UpdateStateManager", () => {
     });
 
     it("should emit events during cache warming lifecycle", () => {
-      const eventSpy = jest.fn();
+      const eventSpy = vi.fn();
       stateManager.on("state-changed", eventSpy);
 
       // Start warming

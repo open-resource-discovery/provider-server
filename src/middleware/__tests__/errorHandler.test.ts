@@ -1,27 +1,28 @@
-import { FastifyReply, FastifyRequest } from "fastify";
-import { errorHandler } from "../errorHandler.js";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { type Mock, vi } from "vitest";
 import { InternalServerError } from "../../model/error/InternalServerError.js";
+import { NotFoundError } from "../../model/error/NotFoundError.js";
 import { UnauthorizedError } from "../../model/error/UnauthorizedError.js";
 import { ValidationError } from "../../model/error/ValidationError.js";
-import { NotFoundError } from "../../model/error/NotFoundError.js";
+import { errorHandler } from "../errorHandler.js";
 
 describe("errorHandler", () => {
   let mockRequest: Partial<FastifyRequest>;
   let mockReply: Partial<FastifyReply>;
-  let mockLog: { error: jest.Mock };
+  let mockLog: { error: Mock };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    mockLog = { error: jest.fn() };
+    mockLog = { error: vi.fn() };
     mockRequest = {
       log: mockLog as unknown as FastifyRequest["log"],
     };
 
     mockReply = {
-      code: jest.fn().mockReturnThis(),
-      header: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
+      code: vi.fn().mockReturnThis(),
+      header: vi.fn().mockReturnThis(),
+      send: vi.fn().mockReturnThis(),
     };
   });
 

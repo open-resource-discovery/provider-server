@@ -1,22 +1,25 @@
-import { LocalDocumentRepository } from "../localDocumentRepository.js";
 import fs from "fs";
+import { type Mock, type Mocked, vi } from "vitest";
 import { getAllFiles } from "../../util/files.js";
 import { log } from "../../util/logger.js";
+import { LocalDocumentRepository } from "../localDocumentRepository.js";
 
-jest.mock("fs");
-jest.mock("../../util/files.js");
-jest.mock("../../util/logger.js");
-jest.mock("../../util/validateOrdDocument.js");
+vi.mock("fs");
+vi.mock("../../util/files.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
+vi.mock("../../util/validateOrdDocument.js");
 
 describe("LocalDocumentRepository", () => {
   let repository: LocalDocumentRepository;
-  const mockFs = fs as jest.Mocked<typeof fs>;
+  const mockFs = fs as Mocked<typeof fs>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Default: directory exists
-    (mockFs.statSync as jest.Mock).mockReturnValue({ isDirectory: (): boolean => true });
+    (mockFs.statSync as Mock).mockReturnValue({ isDirectory: (): boolean => true });
   });
 
   describe("constructor and initialization", () => {
@@ -26,7 +29,7 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should handle non-existent directory", () => {
-      (mockFs.statSync as jest.Mock).mockImplementation(() => {
+      (mockFs.statSync as Mock).mockImplementation(() => {
         throw new Error("ENOENT");
       });
 
@@ -37,7 +40,7 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should handle path that is not a directory", () => {
-      (mockFs.statSync as jest.Mock).mockReturnValue({ isDirectory: (): boolean => false });
+      (mockFs.statSync as Mock).mockReturnValue({ isDirectory: (): boolean => false });
 
       repository = new LocalDocumentRepository("/file.txt");
 
@@ -65,8 +68,8 @@ describe("LocalDocumentRepository", () => {
         description: "Test document",
       };
 
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockDocument));
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockReturnValue(JSON.stringify(mockDocument));
 
       const result = await repository.getDocument("doc.json");
 
@@ -74,7 +77,7 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should return null for non-.json files", async () => {
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
+      (mockFs.existsSync as Mock).mockReturnValue(true);
 
       const result = await repository.getDocument("file.txt");
 
@@ -82,7 +85,7 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should return null when file does not exist", async () => {
-      (mockFs.existsSync as jest.Mock).mockReturnValue(false);
+      (mockFs.existsSync as Mock).mockReturnValue(false);
 
       const result = await repository.getDocument("missing.json");
 
@@ -92,8 +95,8 @@ describe("LocalDocumentRepository", () => {
     it("should warn and return null for invalid ORD document", async () => {
       const invalidDoc = { notOrd: "invalid" };
 
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(invalidDoc));
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockReturnValue(JSON.stringify(invalidDoc));
 
       const result = await repository.getDocument("invalid.json");
 
@@ -102,8 +105,8 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should handle file read errors", async () => {
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockImplementation(() => {
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockImplementation(() => {
         throw new Error("Permission denied");
       });
 
@@ -114,8 +117,8 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should handle JSON parse errors", async () => {
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockReturnValue("invalid json{");
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockReturnValue("invalid json{");
 
       const result = await repository.getDocument("doc.json");
 
@@ -133,9 +136,9 @@ describe("LocalDocumentRepository", () => {
       const mockDoc1 = { openResourceDiscovery: "1.9", description: "Doc 1" };
       const mockDoc2 = { openResourceDiscovery: "1.9", description: "Doc 2" };
 
-      (getAllFiles as jest.Mock).mockResolvedValue(["/test/dir/subdir/doc1.json", "/test/dir/subdir/doc2.json"]);
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock)
+      (getAllFiles as Mock).mockResolvedValue(["/test/dir/subdir/doc1.json", "/test/dir/subdir/doc2.json"]);
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock)
         .mockReturnValueOnce(JSON.stringify(mockDoc1))
         .mockReturnValueOnce(JSON.stringify(mockDoc2));
 
@@ -145,9 +148,9 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should skip non-JSON files", async () => {
-      (getAllFiles as jest.Mock).mockResolvedValue(["/test/dir/file.txt", "/test/dir/doc.json"]);
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9" }));
+      (getAllFiles as Mock).mockResolvedValue(["/test/dir/file.txt", "/test/dir/doc.json"]);
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9" }));
 
       const result = await repository.getDocuments(".");
 
@@ -155,7 +158,7 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should handle errors during document fetching", async () => {
-      (getAllFiles as jest.Mock).mockRejectedValue(new Error("File system error"));
+      (getAllFiles as Mock).mockRejectedValue(new Error("File system error"));
 
       const result = await repository.getDocuments("subdir");
 
@@ -166,7 +169,7 @@ describe("LocalDocumentRepository", () => {
 
   describe("getDirectoryHash", () => {
     it("should return 'no-content' when directory does not exist", async () => {
-      (mockFs.statSync as jest.Mock).mockImplementation(() => {
+      (mockFs.statSync as Mock).mockImplementation(() => {
         throw new Error("ENOENT");
       });
 
@@ -179,7 +182,7 @@ describe("LocalDocumentRepository", () => {
 
     it("should return null when subdirectory does not exist", async () => {
       repository = new LocalDocumentRepository("/test/dir");
-      (mockFs.existsSync as jest.Mock).mockReturnValue(false);
+      (mockFs.existsSync as Mock).mockReturnValue(false);
 
       const hash = await repository.getDirectoryHash("missing");
 
@@ -189,9 +192,9 @@ describe("LocalDocumentRepository", () => {
 
     it("should calculate hash based on file modification times", async () => {
       repository = new LocalDocumentRepository("/test/dir");
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockResolvedValue(["/test/dir/subdir/file1.json", "/test/dir/subdir/file2.json"]);
-      (mockFs.statSync as jest.Mock).mockReturnValue({ mtimeMs: 123456789 });
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockResolvedValue(["/test/dir/subdir/file1.json", "/test/dir/subdir/file2.json"]);
+      (mockFs.statSync as Mock).mockReturnValue({ mtimeMs: 123456789 });
 
       const hash = await repository.getDirectoryHash("subdir");
 
@@ -202,8 +205,8 @@ describe("LocalDocumentRepository", () => {
 
     it("should handle errors during hash calculation", async () => {
       repository = new LocalDocumentRepository("/test/dir");
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (getAllFiles as jest.Mock).mockRejectedValue(new Error("Cannot read directory"));
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (getAllFiles as Mock).mockRejectedValue(new Error("Cannot read directory"));
 
       const hash = await repository.getDirectoryHash("subdir");
 
@@ -214,7 +217,7 @@ describe("LocalDocumentRepository", () => {
 
   describe("listFiles", () => {
     it("should return empty array when directory does not exist", async () => {
-      (mockFs.statSync as jest.Mock).mockImplementation(() => {
+      (mockFs.statSync as Mock).mockImplementation(() => {
         throw new Error("ENOENT");
       });
 
@@ -227,7 +230,7 @@ describe("LocalDocumentRepository", () => {
 
     it("should list all files in directory", async () => {
       repository = new LocalDocumentRepository("/test/dir");
-      (getAllFiles as jest.Mock).mockResolvedValue(["/test/dir/subdir/file1.json", "/test/dir/subdir/file2.json"]);
+      (getAllFiles as Mock).mockResolvedValue(["/test/dir/subdir/file1.json", "/test/dir/subdir/file2.json"]);
 
       const files = await repository.listFiles("subdir");
 
@@ -236,7 +239,7 @@ describe("LocalDocumentRepository", () => {
 
     it("should handle errors during file listing", async () => {
       repository = new LocalDocumentRepository("/test/dir");
-      (getAllFiles as jest.Mock).mockRejectedValue(new Error("Permission denied"));
+      (getAllFiles as Mock).mockRejectedValue(new Error("Permission denied"));
 
       const files = await repository.listFiles("subdir");
 
@@ -252,8 +255,8 @@ describe("LocalDocumentRepository", () => {
 
     it("should return file content when file exists", async () => {
       const content = "test file content";
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockReturnValue(Buffer.from(content));
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockReturnValue(Buffer.from(content));
 
       const result = await repository.getFileContent("file.txt");
 
@@ -261,7 +264,7 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should return null when file does not exist", async () => {
-      (mockFs.existsSync as jest.Mock).mockReturnValue(false);
+      (mockFs.existsSync as Mock).mockReturnValue(false);
 
       const result = await repository.getFileContent("missing.txt");
 
@@ -269,8 +272,8 @@ describe("LocalDocumentRepository", () => {
     });
 
     it("should handle errors during file read", async () => {
-      (mockFs.existsSync as jest.Mock).mockReturnValue(true);
-      (mockFs.readFileSync as jest.Mock).mockImplementation(() => {
+      (mockFs.existsSync as Mock).mockReturnValue(true);
+      (mockFs.readFileSync as Mock).mockImplementation(() => {
         throw new Error("Read error");
       });
 

@@ -1,9 +1,12 @@
-import { VersionService } from "../versionService.js";
+import { type Mocked, type MockedFunction, vi } from "vitest";
 import { log } from "../../util/logger.js";
+import { VersionService } from "../versionService.js";
 
-jest.mock("../../util/logger.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
 
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 const mockResponse = (data: {
   ok: boolean;
@@ -20,21 +23,21 @@ const mockResponse = (data: {
 
 describe("VersionService", () => {
   let versionService: VersionService;
-  const mockLog = log as jest.Mocked<typeof log>;
-  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+  const mockLog = log as Mocked<typeof log>;
+  const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
     // Reset singleton instance
     (VersionService as unknown as { instance: null }).instance = null;
     versionService = VersionService.getInstance();
-    mockLog.warn = jest.fn();
-    mockLog.error = jest.fn();
+    mockLog.warn = vi.fn();
+    mockLog.error = vi.fn();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe("getInstance", () => {
@@ -129,7 +132,7 @@ describe("VersionService", () => {
       mockFetch.mockClear();
 
       // Second call within cache timeout
-      jest.advanceTimersByTime(30 * 60 * 1000); // 30 minutes
+      vi.advanceTimersByTime(30 * 60 * 1000); // 30 minutes
       const result = await versionService.getVersionInfo("0.1.0");
 
       expect(mockFetch).not.toHaveBeenCalled();
@@ -155,7 +158,7 @@ describe("VersionService", () => {
       mockFetch.mockClear();
 
       // Advance time past cache timeout
-      jest.advanceTimersByTime(61 * 60 * 1000); // 61 minutes
+      vi.advanceTimersByTime(61 * 60 * 1000); // 61 minutes
 
       mockFetch
         .mockResolvedValueOnce(

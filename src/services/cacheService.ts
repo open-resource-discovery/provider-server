@@ -1,18 +1,18 @@
+import type { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
-import { CacheService as CacheServiceInterface } from "./interfaces/cacheService.js";
-import { log } from "../util/logger.js";
-import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
-import { ProcessingContext } from "./interfaces/processingContext.js";
-import { Logger } from "pino";
-import { getAllFiles } from "../util/files.js";
-import { validateOrdDocument } from "../util/validateOrdDocument.js";
-import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../util/ordConfig.js";
-import { joinUrlPaths } from "../util/pathUtils.js";
+import type { Logger } from "pino";
 import { PATH_CONSTANTS } from "../constant.js";
 import { getDocumentPerspective } from "../model/perspective.js";
 import { processOrdDocument } from "../util/documentProcessing.js";
+import { getAllFiles } from "../util/files.js";
+import { type FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
+import { log } from "../util/logger.js";
+import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../util/ordConfig.js";
+import { joinUrlPaths } from "../util/pathUtils.js";
+import { validateOrdDocument } from "../util/validateOrdDocument.js";
+import type { CacheService as CacheServiceInterface } from "./interfaces/cacheService.js";
+import type { ProcessingContext } from "./interfaces/processingContext.js";
 
 export class CacheService implements CacheServiceInterface {
   // Cache for individual documents, keyed by their full path
@@ -307,7 +307,7 @@ export class CacheService implements CacheServiceInterface {
               perspective,
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
             ordConfig.openResourceDiscoveryV1.documents?.push(documentEntry as any);
           }
         } catch (_error) {

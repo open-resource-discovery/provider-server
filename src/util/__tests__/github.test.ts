@@ -1,25 +1,31 @@
-import { fetchGitHubFile, getGithubDirectoryContents, getDirectoryHash, GitHubContentItem } from "src/util/github.js";
-import { GitHubInstance } from "src/model/github.js";
+import { Buffer } from "buffer";
 import {
-  GitHubFileNotFoundError,
-  GitHubNetworkError,
   GitHubAccessError,
   GitHubDirectoryNotFoundError,
+  GitHubFileNotFoundError,
+  GitHubNetworkError,
 } from "src/model/error/GithubErrors.js";
-import { Buffer } from "buffer";
+import type { GitHubInstance } from "src/model/github.js";
+import {
+  fetchGitHubFile,
+  type GitHubContentItem,
+  getDirectoryHash,
+  getGithubDirectoryContents,
+} from "src/util/github.js";
+import { type MockedFunction, vi } from "vitest";
 
 describe("GitHub Util", () => {
   beforeAll(() => {
-    const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+    const mockFetch = vi.fn() as MockedFunction<typeof fetch>;
     global.fetch = mockFetch;
   });
 
   afterAll(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const mockInstance: GitHubInstance = {
@@ -49,10 +55,10 @@ describe("GitHub Util", () => {
     const mockFetchResponse: Partial<Response> = {
       ok: true,
       status: 200,
-      json: jest.fn().mockResolvedValue(mockMetadataResponse),
+      json: vi.fn().mockResolvedValue(mockMetadataResponse),
     };
 
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockFetchResponse as Response);
 
     const result = await fetchGitHubFile(mockInstance, filePath, mockToken);
@@ -82,15 +88,15 @@ describe("GitHub Util", () => {
     const mockFetchMetadataResponse: Partial<Response> = {
       ok: true,
       status: 200,
-      json: jest.fn().mockResolvedValue(mockMetadataResponse),
+      json: vi.fn().mockResolvedValue(mockMetadataResponse),
     };
     const mockFetchBlobResponse: Partial<Response> = {
       ok: true,
       status: 200,
-      json: jest.fn().mockResolvedValue(mockBlobResponseData),
+      json: vi.fn().mockResolvedValue(mockBlobResponseData),
     };
 
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch
       .mockResolvedValueOnce(mockFetchMetadataResponse as Response)
       .mockResolvedValueOnce(mockFetchBlobResponse as Response);
@@ -113,7 +119,7 @@ describe("GitHub Util", () => {
       status: 404,
       statusText: "Not Found",
     };
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
 
     await expect(fetchGitHubFile(mockInstance, "nonexistent.json", mockToken)).rejects.toThrow(GitHubFileNotFoundError);
@@ -125,7 +131,7 @@ describe("GitHub Util", () => {
   });
 
   it("should throw GitHubNetworkError on network errors during metadata fetch", async () => {
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
     await expect(fetchGitHubFile(mockInstance, filePath, mockToken)).rejects.toThrow(GitHubNetworkError);
@@ -138,9 +144,9 @@ describe("GitHub Util", () => {
       ok: true,
       status: 200,
       statusText: "OK",
-      json: jest.fn().mockRejectedValue(new SyntaxError("Invalid JSON")),
+      json: vi.fn().mockRejectedValue(new SyntaxError("Invalid JSON")),
     };
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
 
     await expect(fetchGitHubFile(mockInstance, filePath, mockToken)).rejects.toThrow(GitHubAccessError);
@@ -153,9 +159,9 @@ describe("GitHub Util", () => {
       ok: true,
       status: 200,
       statusText: "OK",
-      json: jest.fn().mockResolvedValue(null),
+      json: vi.fn().mockResolvedValue(null),
     };
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
 
     await expect(fetchGitHubFile(mockInstance, filePath, mockToken)).rejects.toThrow(GitHubAccessError);
@@ -169,7 +175,7 @@ describe("GitHub Util", () => {
       status: 401,
       statusText: "Unauthorized",
     };
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
 
     await expect(fetchGitHubFile(mockInstance, filePath, mockToken)).rejects.toThrow(GitHubAccessError);
@@ -183,7 +189,7 @@ describe("GitHub Util", () => {
       status: 401,
       statusText: "Unauthorized",
     };
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    const mockFetch = global.fetch as MockedFunction<typeof fetch>;
     mockFetch.mockResolvedValueOnce(mockResponse as Response);
 
     try {
@@ -246,20 +252,20 @@ describe("GitHub Util", () => {
     ];
 
     it("should fetch directory contents recursively by default", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       // Mock main directory response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockDirectoryContents),
+        json: vi.fn().mockResolvedValue(mockDirectoryContents),
       } as unknown as Response);
 
       // Mock subdirectory response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockSubdirectoryContents),
+        json: vi.fn().mockResolvedValue(mockSubdirectoryContents),
       } as unknown as Response);
 
       const result = await getGithubDirectoryContents(mockInstance, directoryPath, mockToken);
@@ -283,12 +289,12 @@ describe("GitHub Util", () => {
     });
 
     it("should fetch directory contents non-recursively when specified", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockDirectoryContents),
+        json: vi.fn().mockResolvedValue(mockDirectoryContents),
       } as unknown as Response);
 
       const result = await getGithubDirectoryContents(mockInstance, directoryPath, mockToken, false);
@@ -306,12 +312,12 @@ describe("GitHub Util", () => {
     });
 
     it("should work without authentication token", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockDirectoryContents.filter((item) => item.type === "file")),
+        json: vi.fn().mockResolvedValue(mockDirectoryContents.filter((item) => item.type === "file")),
       } as unknown as Response);
 
       const result = await getGithubDirectoryContents(mockInstance, directoryPath, undefined, false);
@@ -321,7 +327,7 @@ describe("GitHub Util", () => {
     });
 
     it("should throw GitHubDirectoryNotFoundError when directory is not found", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -335,7 +341,7 @@ describe("GitHub Util", () => {
     });
 
     it("should throw GitHubDirectoryNotFoundError when response is a file instead of directory", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const fileResponse: GitHubContentItem = {
         name: "file.txt",
@@ -348,7 +354,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(fileResponse),
+        json: vi.fn().mockResolvedValue(fileResponse),
       } as unknown as Response);
 
       await expect(getGithubDirectoryContents(mockInstance, "src/file.txt", mockToken)).rejects.toThrow(
@@ -357,12 +363,12 @@ describe("GitHub Util", () => {
     });
 
     it("should handle empty directory", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue([]),
+        json: vi.fn().mockResolvedValue([]),
       } as unknown as Response);
 
       const result = await getGithubDirectoryContents(mockInstance, directoryPath, mockToken);
@@ -371,7 +377,7 @@ describe("GitHub Util", () => {
     });
 
     it("should handle network errors during directory fetch", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
       mockFetch.mockRejectedValueOnce(new TypeError("Network error"));
 
       await expect(getGithubDirectoryContents(mockInstance, directoryPath, mockToken)).rejects.toThrow(
@@ -380,13 +386,13 @@ describe("GitHub Util", () => {
     });
 
     it("should handle subdirectory fetch errors during recursive fetch", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       // Mock successful main directory response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockDirectoryContents),
+        json: vi.fn().mockResolvedValue(mockDirectoryContents),
       } as unknown as Response);
 
       // Mock failed subdirectory response
@@ -406,7 +412,7 @@ describe("GitHub Util", () => {
     const directoryPath = "src/components";
 
     it("should get hash for regular directory", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const mockParentContents: GitHubContentItem[] = [
         {
@@ -428,7 +434,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockParentContents),
+        json: vi.fn().mockResolvedValue(mockParentContents),
       } as unknown as Response);
 
       const result = await getDirectoryHash(mockInstance, directoryPath, mockToken);
@@ -440,7 +446,7 @@ describe("GitHub Util", () => {
     });
 
     it("should return undefined for root directory (edge case)", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const mockRootContents: GitHubContentItem[] = [
         {
@@ -462,7 +468,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockRootContents),
+        json: vi.fn().mockResolvedValue(mockRootContents),
       } as unknown as Response);
 
       // Root path "/" has empty base name, so no match is found
@@ -475,7 +481,7 @@ describe("GitHub Util", () => {
     });
 
     it("should return undefined for empty directory path (edge case)", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const mockBranchContents: GitHubContentItem[] = [
         {
@@ -490,7 +496,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockBranchContents),
+        json: vi.fn().mockResolvedValue(mockBranchContents),
       } as unknown as Response);
 
       // Empty path "" has empty base name, so no match is found
@@ -503,7 +509,7 @@ describe("GitHub Util", () => {
     });
 
     it("should return undefined when directory is not found", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const mockContents: GitHubContentItem[] = [
         {
@@ -518,7 +524,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockContents),
+        json: vi.fn().mockResolvedValue(mockContents),
       } as unknown as Response);
 
       const result = await getDirectoryHash(mockInstance, "src/nonexistent", mockToken);
@@ -527,7 +533,7 @@ describe("GitHub Util", () => {
     });
 
     it("should work without authentication token", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const mockContents: GitHubContentItem[] = [
         {
@@ -542,7 +548,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockContents),
+        json: vi.fn().mockResolvedValue(mockContents),
       } as unknown as Response);
 
       const result = await getDirectoryHash(mockInstance, directoryPath);
@@ -552,7 +558,7 @@ describe("GitHub Util", () => {
     });
 
     it("should handle nested directory paths correctly", async () => {
-      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      const mockFetch = global.fetch as MockedFunction<typeof fetch>;
 
       const mockContents: GitHubContentItem[] = [
         {
@@ -567,7 +573,7 @@ describe("GitHub Util", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockContents),
+        json: vi.fn().mockResolvedValue(mockContents),
       } as unknown as Response);
 
       const result = await getDirectoryHash(mockInstance, "src/components/ui/deep", mockToken);

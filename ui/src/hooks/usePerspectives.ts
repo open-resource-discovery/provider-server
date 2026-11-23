@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import type { Perspective, PerspectivesState } from "@open-resource-discovery/explorer/components";
+import { useCallback, useEffect, useState } from "react";
 import { ORD_CONFIG_URL } from "../constants";
 
 const DEFAULT_PERSPECTIVE = "system-instance";

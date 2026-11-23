@@ -1,16 +1,16 @@
-import { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
-import { DocumentService as DocumentServiceInterface } from "./interfaces/documentService.js";
-import { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
-import { CacheService } from "./interfaces/cacheService.js";
-import { ProcessingContext } from "./interfaces/processingContext.js";
-import { NotFoundError } from "../model/error/NotFoundError.js";
-import { log } from "../util/logger.js";
-import { getOrdDocumentAccessStrategies, emptyOrdConfig } from "../util/ordConfig.js";
-import { joinUrlPaths } from "../util/pathUtils.js";
+import type { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "../constant.js";
-import { FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
-import { getDocumentPerspective, Perspective } from "../model/perspective.js";
+import { NotFoundError } from "../model/error/NotFoundError.js";
+import { getDocumentPerspective, type Perspective } from "../model/perspective.js";
+import type { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
 import { processOrdDocument } from "../util/documentProcessing.js";
+import { type FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../util/fqnHelpers.js";
+import { log } from "../util/logger.js";
+import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../util/ordConfig.js";
+import { joinUrlPaths } from "../util/pathUtils.js";
+import type { CacheService } from "./interfaces/cacheService.js";
+import type { DocumentService as DocumentServiceInterface } from "./interfaces/documentService.js";
+import type { ProcessingContext } from "./interfaces/processingContext.js";
 
 export class DocumentService implements DocumentServiceInterface {
   // Track in-progress loading operations to prevent duplicate cache builds
@@ -95,7 +95,7 @@ export class DocumentService implements DocumentServiceInterface {
               perspective,
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
             ordConfig.openResourceDiscoveryV1.documents?.push(documentEntry as any);
           } catch (error) {
             log.warn(`Error processing document ${relativePath}: ${error}`);

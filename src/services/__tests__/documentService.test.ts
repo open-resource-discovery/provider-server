@@ -1,33 +1,37 @@
+import { type Mock, type Mocked, vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DocumentService } from "../documentService.js";
-import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
-import { CacheService } from "../cacheService.js";
-import { OrdDocument, OrdConfiguration } from "@open-resource-discovery/specification";
-import { ProcessingContext } from "../interfaces/processingContext.js";
+
+import type { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
 import { OptAuthMethod } from "../../model/cli.js";
+import { getDocumentPerspective } from "../../model/perspective.js";
+import type { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
+import { processOrdDocument } from "../../util/documentProcessing.js";
+import { getFlattenedOrdFqnDocumentMap } from "../../util/fqnHelpers.js";
 import { log } from "../../util/logger.js";
 import { emptyOrdConfig, getOrdDocumentAccessStrategies } from "../../util/ordConfig.js";
-import { getFlattenedOrdFqnDocumentMap } from "../../util/fqnHelpers.js";
-import { getDocumentPerspective } from "../../model/perspective.js";
 import { joinUrlPaths } from "../../util/pathUtils.js";
-import { processOrdDocument } from "../../util/documentProcessing.js";
+import type { CacheService } from "../cacheService.js";
+import { DocumentService } from "../documentService.js";
+import type { ProcessingContext } from "../interfaces/processingContext.js";
 
-jest.mock("../../util/logger.js");
-jest.mock("../cacheService.js");
-jest.mock("../../util/ordConfig.js");
-jest.mock("../../util/fqnHelpers.js");
-jest.mock("../../model/perspective.js");
-jest.mock("../../util/pathUtils.js");
-jest.mock("../../util/documentProcessing.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
+vi.mock("../cacheService.js");
+vi.mock("../../util/ordConfig.js");
+vi.mock("../../util/fqnHelpers.js");
+vi.mock("../../model/perspective.js");
+vi.mock("../../util/pathUtils.js");
+vi.mock("../../util/documentProcessing.js");
 
 describe("DocumentService", () => {
   let documentService: DocumentService;
-  let mockRepository: jest.Mocked<DocumentRepository>;
-  let mockCacheService: jest.Mocked<CacheService>;
+  let mockRepository: Mocked<DocumentRepository>;
+  let mockCacheService: Mocked<CacheService>;
   let mockProcessingContext: ProcessingContext;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockProcessingContext = {
       baseUrl: "https://example.com",
@@ -36,33 +40,33 @@ describe("DocumentService", () => {
     };
 
     mockRepository = {
-      getDocument: jest.fn(),
-      getDocuments: jest.fn().mockResolvedValue(new Map()),
-      getDirectoryHash: jest.fn(),
-      listFiles: jest.fn(),
-      getFileContent: jest.fn(),
-      getOrdDirectory: jest.fn().mockReturnValue("/test/dir"),
+      getDocument: vi.fn(),
+      getDocuments: vi.fn().mockResolvedValue(new Map()),
+      getDirectoryHash: vi.fn(),
+      listFiles: vi.fn(),
+      getFileContent: vi.fn(),
+      getOrdDirectory: vi.fn().mockReturnValue("/test/dir"),
     } as any;
 
     mockCacheService = {
-      getCachedOrdConfig: jest.fn(),
-      getCachedFqnMap: jest.fn(),
-      getDocumentFromCache: jest.fn(),
-      cacheDocument: jest.fn(),
-      setCachedOrdConfig: jest.fn(),
-      setCachedFqnMap: jest.fn(),
-      setCachedDirectoryDocumentPaths: jest.fn(),
-      isWarming: jest.fn().mockReturnValue(false),
-      getCurrentHash: jest.fn().mockReturnValue(null),
-      waitForCompletion: jest.fn().mockResolvedValue(undefined),
+      getCachedOrdConfig: vi.fn(),
+      getCachedFqnMap: vi.fn(),
+      getDocumentFromCache: vi.fn(),
+      cacheDocument: vi.fn(),
+      setCachedOrdConfig: vi.fn(),
+      setCachedFqnMap: vi.fn(),
+      setCachedDirectoryDocumentPaths: vi.fn(),
+      isWarming: vi.fn().mockReturnValue(false),
+      getCurrentHash: vi.fn().mockReturnValue(null),
+      waitForCompletion: vi.fn().mockResolvedValue(undefined),
     } as any;
 
-    jest.mocked(emptyOrdConfig).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
-    jest.mocked(getOrdDocumentAccessStrategies).mockReturnValue([{ type: "open" }]);
-    jest.mocked(getFlattenedOrdFqnDocumentMap).mockReturnValue({});
-    jest.mocked(getDocumentPerspective).mockReturnValue("system-version");
-    jest.mocked(joinUrlPaths).mockImplementation((...args: string[]) => args.join("/"));
-    jest.mocked(processOrdDocument).mockImplementation((doc) => doc);
+    vi.mocked(emptyOrdConfig).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
+    vi.mocked(getOrdDocumentAccessStrategies).mockReturnValue([{ type: "open" }]);
+    vi.mocked(getFlattenedOrdFqnDocumentMap).mockReturnValue({});
+    vi.mocked(getDocumentPerspective).mockReturnValue("system-version");
+    vi.mocked(joinUrlPaths).mockImplementation((...args: string[]) => args.join("/"));
+    vi.mocked(processOrdDocument).mockImplementation((doc) => doc);
 
     documentService = new DocumentService(mockRepository, mockCacheService, mockProcessingContext, "documents");
   });
@@ -156,7 +160,7 @@ describe("DocumentService", () => {
       mockRepository.getDocuments.mockResolvedValue(documentsMap);
 
       // Make processOrdDocument throw for second document
-      (processOrdDocument as jest.Mock).mockReturnValueOnce(validDoc).mockImplementationOnce(() => {
+      (processOrdDocument as Mock).mockReturnValueOnce(validDoc).mockImplementationOnce(() => {
         throw new Error("Processing failed");
       });
 

@@ -222,6 +222,7 @@ This structure applies to both source types:
    - Resources referenced in the ORD Documents can be placed anywhere within the `-d` directory
    - The URLs in the ORD Document's `resourceDefinitions` must match the relative paths from the `-d` directory
    - Example resource definition in an ORD Document:
+
      ```json
      {
        "resourceDefinitions": [
@@ -233,6 +234,7 @@ This structure applies to both source types:
        ]
      }
      ```
+
    - The server will resolve `/apis/api-one/openapi.json` relative to the `-d` directory
    - The access strategies of the `resourceDefinitions` will be overwritten by the configured access strategies (derived from the authentication method, or from `accessStrategies` in `CF_MTLS_TRUSTED_CERTS` when using `cf-mtls`)
 

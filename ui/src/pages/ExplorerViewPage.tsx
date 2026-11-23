@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
-import { useParams } from "@tanstack/react-router";
 import { ExplorerPage } from "@open-resource-discovery/explorer/components";
+import { useParams } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { ORD_CONFIG_URL } from "../constants";
 
 export function ExplorerViewPage(): ReactNode {

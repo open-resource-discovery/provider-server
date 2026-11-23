@@ -1,26 +1,27 @@
-import {
+import type {
   ApiResource,
   OrdConfiguration,
   OrdDocument,
   OrdV1DocumentAccessStrategy,
-  type Package,
+  Package,
 } from "@open-resource-discovery/specification";
 import { OptAuthMethod } from "src/model/cli.js";
-import { ProcessingContext } from "src/services/interfaces/processingContext.js";
+import type { ProcessingContext } from "src/services/interfaces/processingContext.js";
+import { type Mocked, vi } from "vitest";
 import { PATH_CONSTANTS } from "../../constant.js";
-import { DocumentService } from "../documentService.js";
-import { CacheService } from "../cacheService.js";
-import { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
 import { NotFoundError } from "../../model/error/NotFoundError.js";
-import { FqnDocumentMap } from "../../util/fqnHelpers.js";
+import type { DocumentRepository } from "../../repositories/interfaces/documentRepository.js";
+import type { FqnDocumentMap } from "../../util/fqnHelpers.js";
+import { CacheService } from "../cacheService.js";
+import { DocumentService } from "../documentService.js";
 
-const mockRepository: jest.Mocked<DocumentRepository> = {
-  getDocument: jest.fn(),
-  getDocuments: jest.fn(),
-  getDirectoryHash: jest.fn(),
-  listFiles: jest.fn(),
-  getFileContent: jest.fn(),
-  getOrdDirectory: jest.fn(() => "/mock/ord/dir"),
+const mockRepository: Mocked<DocumentRepository> = {
+  getDocument: vi.fn(),
+  getDocuments: vi.fn(),
+  getDirectoryHash: vi.fn(),
+  listFiles: vi.fn(),
+  getFileContent: vi.fn(),
+  getOrdDirectory: vi.fn(() => "/mock/ord/dir"),
 };
 
 let cacheService: CacheService;
@@ -77,7 +78,7 @@ const mockDocument: OrdDocument = {
 
 describe("DocumentService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     Object.values(mockRepository).forEach((mockFn) => mockFn.mockReset());
     mockRepository.getOrdDirectory.mockReturnValue("/mock/ord/dir");
     cacheService = new CacheService();

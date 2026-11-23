@@ -1,10 +1,10 @@
 import {
-  OptSourceType,
-  parseSourceType,
-  OptAuthMethod,
-  OrdAccessStrategy,
   mapOptAuthToOrdAccessStrategy,
+  OptAuthMethod,
+  OptSourceType,
+  OrdAccessStrategy,
   parseAuthMethods,
+  parseSourceType,
 } from "../cli.js";
 
 describe("cli", () => {

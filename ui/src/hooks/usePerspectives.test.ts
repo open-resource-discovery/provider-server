@@ -1,7 +1,7 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
-import { useProviderPerspectives } from "./usePerspectives";
 import { ORD_CONFIG_URL } from "../constants";
+import { useProviderPerspectives } from "./usePerspectives";
 
 // A real Response: the hook reads .ok, .status and .json(), all derived from status here.
 function jsonResponse(body: unknown, init?: { status?: number }): Response {

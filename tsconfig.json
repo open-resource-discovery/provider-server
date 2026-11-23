@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": ["esnext"],
     "module": "NodeNext",
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
     "moduleResolution": "NodeNext",
     "sourceMap": true,
     "rootDir": "src",

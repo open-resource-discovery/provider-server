@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { useStatusWebSocket } from "./useStatusWebSocket";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WS_PATH } from "../constants";
+import { useStatusWebSocket } from "./useStatusWebSocket";
 
 // A minimal stand-in for the browser WebSocket. The hook only assigns the three
 // handlers and calls close(); this records constructed instances and lets a test

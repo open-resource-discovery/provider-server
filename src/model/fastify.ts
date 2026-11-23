@@ -1,6 +1,6 @@
-import { FastifyInstance as BaseFastifyInstance, RawServerDefault, FastifyTypeProviderDefault } from "fastify";
-import { IncomingMessage, ServerResponse } from "http";
-import { Logger } from "pino";
+import type { FastifyInstance as BaseFastifyInstance, FastifyTypeProviderDefault, RawServerDefault } from "fastify";
+import type { IncomingMessage, ServerResponse } from "http";
+import type { Logger } from "pino";
 
 export type FastifyInstanceType = BaseFastifyInstance<
   RawServerDefault,

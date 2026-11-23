@@ -1,17 +1,19 @@
+import { vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { validateOffline, validateLocalDirectory } from "../validateOptions.js";
-import { CommandLineOptions, OptAuthMethod, OptSourceType } from "../../model/cli.js";
-import { ValidationError } from "../../model/error/ValidationError.js";
-import { LocalDirectoryError } from "../../model/error/OrdDirectoryError.js";
-import * as fs from "fs";
 
-jest.mock("fs");
-jest.mock("../logger.js", () => ({
+import * as fs from "fs";
+import { type CommandLineOptions, OptAuthMethod, OptSourceType } from "../../model/cli.js";
+import { LocalDirectoryError } from "../../model/error/OrdDirectoryError.js";
+import { ValidationError } from "../../model/error/ValidationError.js";
+import { validateLocalDirectory, validateOffline } from "../validateOptions.js";
+
+vi.mock("fs");
+vi.mock("../logger.js", () => ({
   log: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -19,7 +21,7 @@ describe("validateOptions", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.BASIC_AUTH;
     delete process.env.CF_MTLS_TRUSTED_CERTS;
@@ -32,9 +34,9 @@ describe("validateOptions", () => {
 
   describe("validateOffline", () => {
     it("should validate local source type successfully", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
 
@@ -137,9 +139,9 @@ describe("validateOptions", () => {
     it("should validate basic auth with valid BASIC_AUTH env var", () => {
       process.env.BASIC_AUTH = '{"user1":"$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"}';
 
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
 
@@ -246,9 +248,9 @@ describe("validateOptions", () => {
     });
 
     it("should allow omitting certs when configEndpoints is provided for cf-mtls auth", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc1.json"] as any);
@@ -298,9 +300,9 @@ describe("validateOptions", () => {
     });
 
     it("should throw ValidationError when certs is empty array and no configEndpoints provided", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc1.json"] as any);
@@ -329,9 +331,9 @@ describe("validateOptions", () => {
     });
 
     it("should throw ValidationError when certs is empty array even with configEndpoints", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc1.json"] as any);
@@ -379,11 +381,11 @@ describe("validateOptions", () => {
       });
 
       function withFsMocks(fn: () => void): void {
-        const mockStatSync = jest
+        const mockStatSync = vi
           .spyOn(fs, "statSync")
           .mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
-        const mockReaddirSync = jest.spyOn(fs, "readdirSync").mockReturnValue(["doc1.json"] as any);
-        const mockReadFileSync = jest
+        const mockReaddirSync = vi.spyOn(fs, "readdirSync").mockReturnValue(["doc1.json"] as any);
+        const mockReadFileSync = vi
           .spyOn(fs, "readFileSync")
           .mockReturnValue(JSON.stringify({ openResourceDiscovery: "1.9", $schema: "test" }));
         try {
@@ -504,9 +506,9 @@ describe("validateOptions", () => {
     });
 
     it("should throw ValidationError when BASIC_AUTH is not an object", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc1.json"] as any);
@@ -531,9 +533,9 @@ describe("validateOptions", () => {
     });
 
     it("should throw ValidationError when BASIC_AUTH is an array", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc1.json"] as any);
@@ -560,9 +562,9 @@ describe("validateOptions", () => {
 
   describe("validateLocalDirectory", () => {
     it("should validate directory with valid ORD documents", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc1.json", "doc2.json"] as any);
@@ -581,7 +583,7 @@ describe("validateOptions", () => {
     });
 
     it("should throw LocalDirectoryError when directory does not exist", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
       mockStatSync.mockImplementation(() => {
         const error: any = new Error("ENOENT");
         error.code = "ENOENT";
@@ -595,7 +597,7 @@ describe("validateOptions", () => {
     });
 
     it("should throw LocalDirectoryError when path is not a directory", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => false } as any);
 
@@ -606,7 +608,7 @@ describe("validateOptions", () => {
     });
 
     it("should throw LocalDirectoryError when documents subdirectory not found", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
       mockStatSync.mockImplementation((path) => {
         if (path.toString().includes("documents")) {
           const error: any = new Error("ENOENT");
@@ -623,7 +625,7 @@ describe("validateOptions", () => {
     });
 
     it("should throw LocalDirectoryError when documents folder is not a directory", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
       mockStatSync.mockImplementation((path) => {
         if (path.toString().includes("documents")) {
           return { isDirectory: () => false } as any;
@@ -638,8 +640,8 @@ describe("validateOptions", () => {
     });
 
     it("should throw LocalDirectoryError when documents folder is empty", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => false } as any);
       mockReaddirSync.mockReturnValue([] as any);
@@ -652,9 +654,9 @@ describe("validateOptions", () => {
     });
 
     it("should throw LocalDirectoryError when no valid ORD document found", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["invalid.json"] as any);
@@ -669,9 +671,9 @@ describe("validateOptions", () => {
     });
 
     it("should use custom documents subdirectory", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["doc.json"] as any);
@@ -690,9 +692,9 @@ describe("validateOptions", () => {
     });
 
     it("should skip non-JSON files", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["file.txt", "doc.json"] as any);
@@ -711,7 +713,7 @@ describe("validateOptions", () => {
     });
 
     it("should handle unexpected errors", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
       mockStatSync.mockImplementation(() => {
         throw new Error("Unexpected file system error");
       });
@@ -723,9 +725,9 @@ describe("validateOptions", () => {
     });
 
     it("should skip files that cannot be read", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockStatSync.mockReturnValue({ isDirectory: () => true, isFile: () => true } as any);
       mockReaddirSync.mockReturnValue(["bad.json", "good.json"] as any);
@@ -748,9 +750,9 @@ describe("validateOptions", () => {
     });
 
     it("should skip files when statSync throws an error", () => {
-      const mockStatSync = jest.spyOn(fs, "statSync");
-      const mockReaddirSync = jest.spyOn(fs, "readdirSync");
-      const mockReadFileSync = jest.spyOn(fs, "readFileSync");
+      const mockStatSync = vi.spyOn(fs, "statSync");
+      const mockReaddirSync = vi.spyOn(fs, "readdirSync");
+      const mockReadFileSync = vi.spyOn(fs, "readFileSync");
 
       mockReaddirSync.mockReturnValue(["accessible.json", "inaccessible.json"] as any);
 

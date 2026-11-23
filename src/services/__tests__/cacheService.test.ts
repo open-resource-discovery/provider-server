@@ -1,20 +1,24 @@
+import { type Mock, vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-require-imports */
-import { CacheService } from "../cacheService.js";
-import { OrdDocument, OrdConfiguration } from "@open-resource-discovery/specification";
-import { FqnDocumentMap } from "../../util/fqnHelpers.js";
-import { log } from "../../util/logger.js";
+
+import type { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
 import { OptAuthMethod } from "../../model/cli.js";
 import { processOrdDocument } from "../../util/documentProcessing.js";
+import type { FqnDocumentMap } from "../../util/fqnHelpers.js";
+import { log } from "../../util/logger.js";
+import { CacheService } from "../cacheService.js";
 
-jest.mock("../../util/logger.js");
-jest.mock("fs/promises");
-jest.mock("../../util/files.js");
-jest.mock("../../util/validateOrdDocument.js");
-jest.mock("../../util/ordConfig.js");
-jest.mock("../../util/pathUtils.js");
-jest.mock("../../util/documentProcessing.js");
-jest.mock("../../model/perspective.js");
-jest.mock("../../util/fqnHelpers.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
+vi.mock("fs/promises");
+vi.mock("../../util/files.js");
+vi.mock("../../util/validateOrdDocument.js");
+vi.mock("../../util/ordConfig.js");
+vi.mock("../../util/pathUtils.js");
+vi.mock("../../util/documentProcessing.js");
+vi.mock("../../model/perspective.js");
+vi.mock("../../util/fqnHelpers.js");
 
 describe("CacheService", () => {
   let cacheService: CacheService;
@@ -23,7 +27,7 @@ describe("CacheService", () => {
   let mockFqnMap: FqnDocumentMap;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     cacheService = new CacheService();
 
     mockDocument = {
@@ -350,7 +354,7 @@ describe("CacheService", () => {
 
     beforeEach(() => {
       cacheService = new CacheService(mockProcessingContext, log);
-      (processOrdDocument as jest.Mock).mockImplementation((doc) => doc);
+      (processOrdDocument as Mock).mockImplementation((doc) => doc);
     });
 
     it("should not warm cache in local mode (no processing context)", async () => {
@@ -373,22 +377,22 @@ describe("CacheService", () => {
       const dirHash = "warmingHash";
       const documentsPath = "/test/documents";
 
-      const fs = require("fs/promises");
-      const { getAllFiles } = require("../../util/files.js");
-      const { validateOrdDocument } = require("../../util/validateOrdDocument.js");
-      const { emptyOrdConfig, getOrdDocumentAccessStrategies } = require("../../util/ordConfig.js");
-      const { joinUrlPaths } = require("../../util/pathUtils.js");
-      const { getDocumentPerspective } = require("../../model/perspective.js");
-      const { getFlattenedOrdFqnDocumentMap } = require("../../util/fqnHelpers.js");
+      const fs = await import("fs/promises");
+      const { getAllFiles } = await import("../../util/files.js");
+      const { validateOrdDocument } = await import("../../util/validateOrdDocument.js");
+      const { emptyOrdConfig, getOrdDocumentAccessStrategies } = await import("../../util/ordConfig.js");
+      const { joinUrlPaths } = await import("../../util/pathUtils.js");
+      const { getDocumentPerspective } = await import("../../model/perspective.js");
+      const { getFlattenedOrdFqnDocumentMap } = await import("../../util/fqnHelpers.js");
 
-      (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify(mockDocument));
-      (getAllFiles as jest.Mock).mockResolvedValue([`${documentsPath}/doc1.json`]);
-      (validateOrdDocument as jest.Mock).mockImplementation(() => {});
-      (emptyOrdConfig as jest.Mock).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
-      (getOrdDocumentAccessStrategies as jest.Mock).mockReturnValue([{ type: "open" }]);
-      (joinUrlPaths as jest.Mock).mockImplementation((...args: string[]) => args.join("/"));
-      (getDocumentPerspective as jest.Mock).mockReturnValue("system-version");
-      (getFlattenedOrdFqnDocumentMap as jest.Mock).mockReturnValue({});
+      (fs.readFile as Mock).mockResolvedValue(JSON.stringify(mockDocument));
+      (getAllFiles as Mock).mockResolvedValue([`${documentsPath}/doc1.json`]);
+      (validateOrdDocument as Mock).mockImplementation(() => {});
+      (emptyOrdConfig as Mock).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
+      (getOrdDocumentAccessStrategies as Mock).mockReturnValue([{ type: "open" }]);
+      (joinUrlPaths as Mock).mockImplementation((...args: string[]) => args.join("/"));
+      (getDocumentPerspective as Mock).mockReturnValue("system-version");
+      (getFlattenedOrdFqnDocumentMap as Mock).mockReturnValue({});
 
       // Start first warming (don't await)
       const promise1 = cacheService.warmCache(documentsPath, dirHash);
@@ -412,20 +416,20 @@ describe("CacheService", () => {
       const hash2 = "hash2";
       const documentsPath = "/test/documents";
 
-      const { getAllFiles } = require("../../util/files.js");
-      const { validateOrdDocument } = require("../../util/validateOrdDocument.js");
-      const { emptyOrdConfig, getOrdDocumentAccessStrategies } = require("../../util/ordConfig.js");
-      const { joinUrlPaths } = require("../../util/pathUtils.js");
-      const { getDocumentPerspective } = require("../../model/perspective.js");
-      const { getFlattenedOrdFqnDocumentMap } = require("../../util/fqnHelpers.js");
+      const { getAllFiles } = await import("../../util/files.js");
+      const { validateOrdDocument } = await import("../../util/validateOrdDocument.js");
+      const { emptyOrdConfig, getOrdDocumentAccessStrategies } = await import("../../util/ordConfig.js");
+      const { joinUrlPaths } = await import("../../util/pathUtils.js");
+      const { getDocumentPerspective } = await import("../../model/perspective.js");
+      const { getFlattenedOrdFqnDocumentMap } = await import("../../util/fqnHelpers.js");
 
-      (getAllFiles as jest.Mock).mockResolvedValue([]);
-      (validateOrdDocument as jest.Mock).mockImplementation(() => {});
-      (emptyOrdConfig as jest.Mock).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
-      (getOrdDocumentAccessStrategies as jest.Mock).mockReturnValue([{ type: "open" }]);
-      (joinUrlPaths as jest.Mock).mockImplementation((...args: string[]) => args.join("/"));
-      (getDocumentPerspective as jest.Mock).mockReturnValue("system-version");
-      (getFlattenedOrdFqnDocumentMap as jest.Mock).mockReturnValue({});
+      (getAllFiles as Mock).mockResolvedValue([]);
+      (validateOrdDocument as Mock).mockImplementation(() => {});
+      (emptyOrdConfig as Mock).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
+      (getOrdDocumentAccessStrategies as Mock).mockReturnValue([{ type: "open" }]);
+      (joinUrlPaths as Mock).mockImplementation((...args: string[]) => args.join("/"));
+      (getDocumentPerspective as Mock).mockReturnValue("system-version");
+      (getFlattenedOrdFqnDocumentMap as Mock).mockReturnValue({});
 
       // Start first warming
       const promise1 = cacheService.warmCache(documentsPath, hash1);
@@ -448,10 +452,10 @@ describe("CacheService", () => {
       const dirHash = "cancelHash";
       const documentsPath = "/test/documents";
 
-      const { getAllFiles } = require("../../util/files.js");
-      const { validateOrdDocument } = require("../../util/validateOrdDocument.js");
-      const { emptyOrdConfig, getOrdDocumentAccessStrategies } = require("../../util/ordConfig.js");
-      const { getFlattenedOrdFqnDocumentMap } = require("../../util/fqnHelpers.js");
+      const { getAllFiles } = await import("../../util/files.js");
+      const { validateOrdDocument } = await import("../../util/validateOrdDocument.js");
+      const { emptyOrdConfig, getOrdDocumentAccessStrategies } = await import("../../util/ordConfig.js");
+      const { getFlattenedOrdFqnDocumentMap } = await import("../../util/fqnHelpers.js");
 
       // Create a promise that will be pending for a while
       let resolveGetAllFiles: () => void;
@@ -459,11 +463,11 @@ describe("CacheService", () => {
         resolveGetAllFiles = (): void => resolve([]);
       });
 
-      (getAllFiles as jest.Mock).mockReturnValue(getAllFilesPromise);
-      (validateOrdDocument as jest.Mock).mockImplementation(() => {});
-      (emptyOrdConfig as jest.Mock).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
-      (getOrdDocumentAccessStrategies as jest.Mock).mockReturnValue([{ type: "open" }]);
-      (getFlattenedOrdFqnDocumentMap as jest.Mock).mockReturnValue({});
+      (getAllFiles as Mock).mockReturnValue(getAllFilesPromise);
+      (validateOrdDocument as Mock).mockImplementation(() => {});
+      (emptyOrdConfig as Mock).mockReturnValue({ openResourceDiscoveryV1: { documents: [] } });
+      (getOrdDocumentAccessStrategies as Mock).mockReturnValue([{ type: "open" }]);
+      (getFlattenedOrdFqnDocumentMap as Mock).mockReturnValue({});
 
       // Ensure cache is not already warm for this hash
       cacheService.invalidateCacheForDirectory(dirHash);

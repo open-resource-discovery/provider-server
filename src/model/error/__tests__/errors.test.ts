@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import { InternalServerError } from "src/model/error/InternalServerError.js";
-import { NotFoundError } from "src/model/error/NotFoundError.js";
-import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
+
 import {
   GitHubAccessError,
+  GitHubBranchNotFoundError,
+  GitHubDirectoryInvalidError,
+  GitHubDirectoryNotFoundError,
   GitHubFileNotFoundError,
   GitHubNetworkError,
-  GitHubDirectoryNotFoundError,
-  GitHubDirectoryInvalidError,
   GitHubRepositoryNotFoundError,
-  GitHubBranchNotFoundError,
 } from "src/model/error/GithubErrors.js";
+import { InternalServerError } from "src/model/error/InternalServerError.js";
+import { NotFoundError } from "src/model/error/NotFoundError.js";
 import { DiskSpaceError, MemoryError, TimeoutError } from "src/model/error/SystemErrors.js";
+import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
 
 describe("Error Classes", () => {
   describe("BackendError", () => {

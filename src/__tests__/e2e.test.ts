@@ -1,18 +1,22 @@
-import { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
-import path from "path";
+import type { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
 import * as fs from "fs/promises";
+import path from "path";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
 import { startProviderServer } from "src/server.js";
+import { vi } from "vitest";
 import { PATH_CONSTANTS } from "../constant.js";
 
 // Mock bcrypt to avoid native module issues in tests
-jest.mock("bcryptjs", () => ({
-  compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
-  hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
-}));
+vi.mock("bcryptjs", () => {
+  const mocked = {
+    compare: vi.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
+    hash: vi.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+  };
+  return { ...mocked, default: mocked };
+});
 
 // Mock p-limit to avoid ESM issues in tests
-jest.mock("p-limit", () => ({
+vi.mock("p-limit", () => ({
   default:
     () =>
     (fn: () => unknown): unknown =>

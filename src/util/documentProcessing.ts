@@ -1,11 +1,11 @@
+import type { ApiResource, EventResource, OrdDocument, Package } from "@open-resource-discovery/specification";
 import path from "path";
-import { ApiResource, EventResource, OrdDocument, Package } from "@open-resource-discovery/specification";
-import { isRemoteUrl, joinUrlPaths, ordIdToPathSegment } from "./pathUtils.js";
 import { PATH_CONSTANTS } from "../constant.js";
-import { getOrdDocumentAccessStrategies } from "./ordConfig.js";
-import { OptAuthMethod } from "../model/cli.js";
+import type { OptAuthMethod } from "../model/cli.js";
 import { getDocumentPerspective } from "../model/perspective.js";
-import { ProcessingContext } from "../services/interfaces/processingContext.js";
+import type { ProcessingContext } from "../services/interfaces/processingContext.js";
+import { getOrdDocumentAccessStrategies } from "./ordConfig.js";
+import { isRemoteUrl, joinUrlPaths, ordIdToPathSegment } from "./pathUtils.js";
 import { omitUndefined } from "./util.js";
 
 export function fixResourceDefinitionUrl(url: string, ordId: string): string {

@@ -1,16 +1,17 @@
-import statusRouter from "../statusRouter.js";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { StatusService } from "../../services/statusService.js";
+import { type Mocked, vi } from "vitest";
 import type { FileSystemManager } from "../../services/fileSystemManager.js";
+import type { StatusService } from "../../services/statusService.js";
 import type { UpdateScheduler } from "../../services/updateScheduler.js";
+import statusRouter from "../statusRouter.js";
 
 describe("statusRouter", () => {
-  let mockFastify: jest.Mocked<FastifyInstance>;
-  let mockStatusService: jest.Mocked<StatusService>;
-  let mockFileSystemManager: jest.Mocked<FileSystemManager> | null;
-  let mockUpdateScheduler: jest.Mocked<UpdateScheduler> | null;
+  let mockFastify: Mocked<FastifyInstance>;
+  let mockStatusService: Mocked<StatusService>;
+  let mockFileSystemManager: Mocked<FileSystemManager> | null;
+  let mockUpdateScheduler: Mocked<UpdateScheduler> | null;
   let mockRequest: Partial<FastifyRequest>;
-  let mockReply: jest.Mocked<FastifyReply>;
+  let mockReply: Mocked<FastifyReply>;
   let routerOptions: {
     statusService: StatusService;
     fileSystemManager: FileSystemManager | null;
@@ -19,32 +20,32 @@ describe("statusRouter", () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockStatusService = {
-      getStatus: jest.fn().mockResolvedValue({
+      getStatus: vi.fn().mockResolvedValue({
         version: "1.0.0",
         settings: { sourceType: "github" },
         systemMetrics: { memory: { used: 100, total: 200 } },
       }),
-    } as unknown as jest.Mocked<StatusService>;
+    } as unknown as Mocked<StatusService>;
 
     mockFileSystemManager = null;
     mockUpdateScheduler = null;
 
     mockRequest = {};
     mockReply = {
-      type: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-      code: jest.fn().mockReturnThis(),
-      redirect: jest.fn().mockReturnThis(),
-      sendFile: jest.fn().mockReturnThis(),
-    } as unknown as jest.Mocked<FastifyReply>;
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn().mockReturnThis(),
+      code: vi.fn().mockReturnThis(),
+      redirect: vi.fn().mockReturnThis(),
+      sendFile: vi.fn().mockReturnThis(),
+    } as unknown as Mocked<FastifyReply>;
 
     mockFastify = {
-      get: jest.fn(),
-      register: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<FastifyInstance>;
+      get: vi.fn(),
+      register: vi.fn().mockResolvedValue(undefined),
+    } as unknown as Mocked<FastifyInstance>;
 
     routerOptions = {
       statusService: mockStatusService,

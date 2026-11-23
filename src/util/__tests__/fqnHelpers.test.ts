@@ -1,12 +1,13 @@
-import { type OrdDocument } from "@open-resource-discovery/specification";
+import type { OrdDocument } from "@open-resource-discovery/specification";
+import { vi } from "vitest";
 import { type FqnDocumentMap, getFlattenedOrdFqnDocumentMap } from "../fqnHelpers.js";
 
-jest.mock("fs", () => ({
-  statSync: jest.fn(),
-  readdirSync: jest.fn(),
-  existsSync: jest.fn(),
+vi.mock("fs", () => ({
+  statSync: vi.fn(),
+  readdirSync: vi.fn(),
+  existsSync: vi.fn(),
   // needed for @open-resource-discovery/specification
-  readFileSync: jest.fn().mockReturnValue(
+  readFileSync: vi.fn().mockReturnValue(
     JSON.stringify({
       properties: {
         baseUrl: {

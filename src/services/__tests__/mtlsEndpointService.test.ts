@@ -1,11 +1,16 @@
-import { fetchMtlsTrustedCertsFromEndpoints, mergeTrustedCerts, MtlsTrustedCerts } from "../mtlsEndpointService.js";
+import { vi } from "vitest";
+import {
+  fetchMtlsTrustedCertsFromEndpoints,
+  type MtlsTrustedCerts,
+  mergeTrustedCerts,
+} from "../mtlsEndpointService.js";
 
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("mtlsEndpointService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("fetchMtlsTrustedCertsFromEndpoints", () => {

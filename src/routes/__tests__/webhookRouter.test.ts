@@ -1,17 +1,18 @@
-import { FastifyRequest, FastifyReply } from "fastify";
-import { WebhookRouter } from "../webhookRouter.js";
-import { UpdateScheduler } from "../../services/updateScheduler.js";
-import { Logger } from "pino";
 import { createHmac } from "crypto";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { Logger } from "pino";
+import { type Mock, type Mocked, vi } from "vitest";
+import type { UpdateScheduler } from "../../services/updateScheduler.js";
+import { WebhookRouter } from "../webhookRouter.js";
 
-jest.mock("../../services/updateScheduler.js");
+vi.mock("../../services/updateScheduler.js");
 
 describe("WebhookRouter", () => {
   let webhookRouter: WebhookRouter;
-  let mockUpdateScheduler: jest.Mocked<UpdateScheduler>;
-  let mockLogger: jest.Mocked<Logger>;
+  let mockUpdateScheduler: Mocked<UpdateScheduler>;
+  let mockLogger: Mocked<Logger>;
   interface MockFastify {
-    post: jest.Mock;
+    post: Mock;
   }
   let mockFastify: MockFastify;
   let mockRequest: Partial<FastifyRequest>;
@@ -24,23 +25,23 @@ describe("WebhookRouter", () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockUpdateScheduler = {
-      scheduleImmediateUpdate: jest.fn().mockResolvedValue(undefined),
-      recordWebhookReceived: jest.fn(),
-    } as unknown as jest.Mocked<UpdateScheduler>;
+      scheduleImmediateUpdate: vi.fn().mockResolvedValue(undefined),
+      recordWebhookReceived: vi.fn(),
+    } as unknown as Mocked<UpdateScheduler>;
 
     mockLogger = {
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-    } as unknown as jest.Mocked<Logger>;
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+    } as unknown as Mocked<Logger>;
 
     mockReply = {
-      code: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
+      code: vi.fn().mockReturnThis(),
+      send: vi.fn().mockReturnThis(),
     };
 
     mockRequest = {
@@ -50,7 +51,7 @@ describe("WebhookRouter", () => {
     };
 
     mockFastify = {
-      post: jest.fn(),
+      post: vi.fn(),
     };
 
     webhookRouter = new WebhookRouter(mockUpdateScheduler, defaultConfig, mockLogger);
@@ -80,7 +81,8 @@ describe("WebhookRouter", () => {
       preHandler = postCall.preHandler;
     });
 
-    it("should verify valid webhook signature", (done) => {
+    it("should verify valid webhook signature", () => {
+      const done = vi.fn();
       const payload = JSON.stringify({ test: "data" });
       const hmac = createHmac("sha256", "test-secret");
       hmac.update(payload);
@@ -94,13 +96,14 @@ describe("WebhookRouter", () => {
         expect(mockReply.send).not.toHaveBeenCalled();
         done();
       });
+      expect(done).toHaveBeenCalledOnce();
     });
 
     it("should reject invalid signature", () => {
       mockRequest.headers = { "x-hub-signature-256": "sha256=invalid" };
       mockRequest.rawBody = JSON.stringify({ test: "data" });
 
-      preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, jest.fn());
+      preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, vi.fn());
 
       expect(mockReply.code).toHaveBeenCalledWith(401);
       expect(mockReply.send).toHaveBeenCalledWith({ error: "Invalid signature" });
@@ -110,7 +113,7 @@ describe("WebhookRouter", () => {
       mockRequest.headers = {};
       mockRequest.rawBody = JSON.stringify({ test: "data" });
 
-      preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, jest.fn());
+      preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, vi.fn());
 
       expect(mockReply.code).toHaveBeenCalledWith(401);
       expect(mockReply.send).toHaveBeenCalledWith({ error: "Missing signature" });
@@ -120,13 +123,14 @@ describe("WebhookRouter", () => {
       mockRequest.headers = { "x-hub-signature-256": "sha256=test" };
       mockRequest.rawBody = "";
 
-      preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, jest.fn());
+      preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, vi.fn());
 
       expect(mockReply.code).toHaveBeenCalledWith(400);
       expect(mockReply.send).toHaveBeenCalledWith({ error: "Missing request body" });
     });
 
-    it("should skip verification for manual triggers", (done) => {
+    it("should skip verification for manual triggers", () => {
+      const done = vi.fn();
       mockRequest.headers = { "x-manual-trigger": "true" };
 
       preHandler(mockRequest as FastifyRequest, mockReply as FastifyReply, () => {
@@ -134,9 +138,11 @@ describe("WebhookRouter", () => {
         expect(mockReply.code).not.toHaveBeenCalled();
         done();
       });
+      expect(done).toHaveBeenCalledOnce();
     });
 
-    it("should skip verification when no secret configured", (done) => {
+    it("should skip verification when no secret configured", () => {
+      const done = vi.fn();
       const routerNoSecret = new WebhookRouter(
         mockUpdateScheduler,
         { branch: defaultConfig.branch, repository: defaultConfig.repository },
@@ -149,6 +155,7 @@ describe("WebhookRouter", () => {
         expect(mockReply.code).not.toHaveBeenCalled();
         done();
       });
+      expect(done).toHaveBeenCalledOnce();
     });
   });
 

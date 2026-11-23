@@ -1,11 +1,11 @@
+import path from "node:path";
+import fastifyStatic from "@fastify/static";
 import type { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
-import fastifyStatic from "@fastify/static";
-import path from "node:path";
-import { FileSystemManager } from "../services/fileSystemManager.js";
-import { UpdateScheduler } from "../services/updateScheduler.js";
 import { PATH_CONSTANTS } from "../constant.js";
-import { StatusService } from "../services/statusService.js";
+import type { FileSystemManager } from "../services/fileSystemManager.js";
+import type { StatusService } from "../services/statusService.js";
+import type { UpdateScheduler } from "../services/updateScheduler.js";
 
 interface StatusRouterOptions extends FastifyPluginOptions {
   statusService: StatusService;

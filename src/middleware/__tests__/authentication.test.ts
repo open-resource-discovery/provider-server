@@ -2,12 +2,17 @@ import fastify from "fastify";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptAuthMethod } from "src/model/cli.js";
-import { FastifyInstanceType } from "src/model/fastify.js";
+import type { FastifyInstanceType } from "src/model/fastify.js";
+import { vi } from "vitest";
+
 // Mock bcrypt to avoid native module issues in tests
-jest.mock("bcryptjs", () => ({
-  compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
-  hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
-}));
+vi.mock("bcryptjs", () => {
+  const mocked = {
+    compare: vi.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
+    hash: vi.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+  };
+  return { ...mocked, default: mocked };
+});
 
 describe("Authentication", () => {
   let server: FastifyInstanceType;
@@ -21,7 +26,7 @@ describe("Authentication", () => {
 
   afterAll(() => {
     delete process.env.BASIC_AUTH;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe("Open - without authentication", () => {

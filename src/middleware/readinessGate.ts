@@ -1,8 +1,8 @@
-import { FastifyRequest, FastifyReply } from "fastify";
-import { UpdateStateManager } from "../services/updateStateManager.js";
-import { log } from "../util/logger.js";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { PATH_CONSTANTS } from "../constant.js";
 import { TimeoutError } from "../model/error/SystemErrors.js";
+import type { UpdateStateManager } from "../services/updateStateManager.js";
+import { log } from "../util/logger.js";
 
 /**
  * Readiness gate middleware that holds requests during git clone/pull operations

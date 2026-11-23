@@ -1,4 +1,4 @@
-import { OrdDocument } from "@open-resource-discovery/specification";
+import type { OrdDocument } from "@open-resource-discovery/specification";
 
 export interface DocumentRepository {
   /**

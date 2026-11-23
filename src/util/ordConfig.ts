@@ -1,9 +1,9 @@
-import { OrdConfiguration, OrdV1DocumentAccessStrategy } from "@open-resource-discovery/specification";
+import type { OrdConfiguration, OrdV1DocumentAccessStrategy } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "src/constant.js";
-import { joinFilePaths, normalizePath } from "src/util/pathUtils.js";
 import { mapOptAuthToOrdAccessStrategy, OptAuthMethod, OrdAccessStrategy } from "src/model/cli.js";
-import { GithubOpts } from "src/model/github.js";
+import type { GithubOpts } from "src/model/github.js";
 import { getGithubDirectoryContents } from "src/util/github.js";
+import { joinFilePaths, normalizePath } from "src/util/pathUtils.js";
 
 export async function listGithubOrdDirectory(githubOpts: GithubOpts, ordSubDirectory: string): Promise<string[]> {
   const pathSegments = normalizePath(githubOpts.customDirectory || PATH_CONSTANTS.GITHUB_DEFAULT_ROOT);
@@ -35,9 +35,11 @@ export function getOrdDocumentAccessStrategies(
 
   return authOpts.flatMap((ao) => {
     if (ao === OptAuthMethod.CfMtls) {
-      return (cfMtlsAccessStrategies ?? [OrdAccessStrategy.CfMtls]).map((type): OrdV1DocumentAccessStrategy => ({
-        type,
-      }));
+      return (cfMtlsAccessStrategies ?? [OrdAccessStrategy.CfMtls]).map(
+        (type): OrdV1DocumentAccessStrategy => ({
+          type,
+        }),
+      );
     }
     return [{ type: mapOptAuthToOrdAccessStrategy(ao) } satisfies OrdV1DocumentAccessStrategy];
   }) as [OrdV1DocumentAccessStrategy, ...OrdV1DocumentAccessStrategy[]];

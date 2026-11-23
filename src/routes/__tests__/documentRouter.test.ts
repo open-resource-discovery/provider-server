@@ -1,22 +1,25 @@
-import { DocumentRouter } from "../documentRouter.js";
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { DocumentService } from "../../services/interfaces/documentService.js";
-import { OrdDocument, OrdConfiguration } from "@open-resource-discovery/specification";
-import { FqnDocumentMap } from "../../util/fqnHelpers.js";
+import type { OrdConfiguration, OrdDocument } from "@open-resource-discovery/specification";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { type Mocked, vi } from "vitest";
 import { OptAuthMethod } from "../../model/cli.js";
-import { NotFoundError } from "../../model/error/NotFoundError.js";
 import { InternalServerError } from "../../model/error/InternalServerError.js";
+import { NotFoundError } from "../../model/error/NotFoundError.js";
+import type { FastifyInstanceType } from "../../model/fastify.js";
+import type { DocumentService } from "../../services/interfaces/documentService.js";
+import type { FqnDocumentMap } from "../../util/fqnHelpers.js";
 import { log } from "../../util/logger.js";
-import { FastifyInstanceType } from "../../model/fastify.js";
+import { DocumentRouter } from "../documentRouter.js";
 
-jest.mock("../../util/logger.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
 
 describe("DocumentRouter", () => {
   let documentRouter: DocumentRouter;
-  let mockDocumentService: jest.Mocked<DocumentService>;
-  let mockFastify: jest.Mocked<FastifyInstance>;
+  let mockDocumentService: Mocked<DocumentService>;
+  let mockFastify: Mocked<FastifyInstance>;
   let mockRequest: Partial<FastifyRequest>;
-  let mockReply: jest.Mocked<FastifyReply>;
+  let mockReply: Mocked<FastifyReply>;
   let mockFqnMap: FqnDocumentMap;
 
   const mockOrdConfig: OrdConfiguration = {
@@ -37,7 +40,7 @@ describe("DocumentRouter", () => {
   } as unknown as OrdDocument;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockFqnMap = {
       "sap.test:apiResource:TestAPI:v1": [
@@ -55,25 +58,25 @@ describe("DocumentRouter", () => {
     };
 
     mockDocumentService = {
-      getOrdConfiguration: jest.fn().mockResolvedValue(mockOrdConfig),
-      getProcessedDocument: jest.fn().mockResolvedValue(mockOrdDocument),
-      getFileContent: jest.fn().mockResolvedValue(Buffer.from("file content")),
-    } as unknown as jest.Mocked<DocumentService>;
+      getOrdConfiguration: vi.fn().mockResolvedValue(mockOrdConfig),
+      getProcessedDocument: vi.fn().mockResolvedValue(mockOrdDocument),
+      getFileContent: vi.fn().mockResolvedValue(Buffer.from("file content")),
+    } as unknown as Mocked<DocumentService>;
 
     mockFastify = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<FastifyInstance>;
+      get: vi.fn(),
+    } as unknown as Mocked<FastifyInstance>;
 
     mockRequest = {
       params: {},
     };
 
     mockReply = {
-      send: jest.fn().mockReturnThis(),
-      type: jest.fn().mockReturnThis(),
-      code: jest.fn().mockReturnThis(),
-      callNotFound: jest.fn().mockReturnThis(),
-    } as unknown as jest.Mocked<FastifyReply>;
+      send: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      code: vi.fn().mockReturnThis(),
+      callNotFound: vi.fn().mockReturnThis(),
+    } as unknown as Mocked<FastifyReply>;
 
     documentRouter = new DocumentRouter(mockDocumentService, {
       baseUrl: "http://localhost:3000",
@@ -335,7 +338,7 @@ describe("DocumentRouter", () => {
       const yamlContent = "openapi: 3.0.0";
       mockDocumentService.getFileContent.mockResolvedValue(Buffer.from(yamlContent));
       mockRequest.params = {
-        "ordId": "sap.test:apiResource:TestAPI:v1",
+        ordId: "sap.test:apiResource:TestAPI:v1",
         "*": "api-v1.yaml",
       };
 
@@ -348,7 +351,7 @@ describe("DocumentRouter", () => {
     it("should handle ordId in path instead of params", async () => {
       mockDocumentService.getFileContent.mockResolvedValue(Buffer.from("content"));
       mockRequest.params = {
-        "ordId": "some",
+        ordId: "some",
         "*": "path/sap.test:apiResource:TestAPI:v1/api-v1.yaml",
       };
 
@@ -360,7 +363,7 @@ describe("DocumentRouter", () => {
     it("should handle file not in FQN map with valid ordId", async () => {
       mockDocumentService.getFileContent.mockResolvedValue(Buffer.from("content"));
       mockRequest.params = {
-        "ordId": "sap.test:apiResource:Unknown:v1",
+        ordId: "sap.test:apiResource:Unknown:v1",
         "*": "some/file.yaml",
       };
 
@@ -373,7 +376,7 @@ describe("DocumentRouter", () => {
     it("should handle non-ordId paths", async () => {
       mockDocumentService.getFileContent.mockResolvedValue(Buffer.from("content"));
       mockRequest.params = {
-        "ordId": "regular",
+        ordId: "regular",
         "*": "path/to/file.txt",
       };
 
@@ -386,7 +389,7 @@ describe("DocumentRouter", () => {
       const jsonData = { api: "definition" };
       mockDocumentService.getFileContent.mockResolvedValue(JSON.stringify(jsonData));
       mockRequest.params = {
-        "ordId": "sap.test:package:TestPackage:v1",
+        ordId: "sap.test:package:TestPackage:v1",
         "*": "package.json",
       };
 
@@ -400,7 +403,7 @@ describe("DocumentRouter", () => {
     it("should handle leading slash in fileName", async () => {
       mockDocumentService.getFileContent.mockResolvedValue(Buffer.from("content"));
       mockRequest.params = {
-        "ordId": "sap.test:apiResource:TestAPI:v1",
+        ordId: "sap.test:apiResource:TestAPI:v1",
         "*": "/api-v1.yaml",
       };
 
@@ -411,7 +414,7 @@ describe("DocumentRouter", () => {
 
     it("should skip documents subdirectory", async () => {
       mockRequest.params = {
-        "ordId": "documents",
+        ordId: "documents",
         "*": "test.json",
       };
 
@@ -425,7 +428,7 @@ describe("DocumentRouter", () => {
       const error = new Error("File read error");
       mockDocumentService.getFileContent.mockRejectedValue(error);
       mockRequest.params = {
-        "ordId": "sap.test:apiResource:TestAPI:v1",
+        ordId: "sap.test:apiResource:TestAPI:v1",
         "*": "api-v1.yaml",
       };
 
@@ -437,7 +440,7 @@ describe("DocumentRouter", () => {
       const malformedJson = "{ malformed: json }";
       mockDocumentService.getFileContent.mockResolvedValue(malformedJson);
       mockRequest.params = {
-        "ordId": "test",
+        ordId: "test",
         "*": "config.json",
       };
 

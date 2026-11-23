@@ -1,8 +1,8 @@
-import { FastifyRequest, FastifyReply } from "fastify";
-import { UpdateScheduler } from "../services/updateScheduler.js";
-import { Logger } from "pino";
 import { createHmac, timingSafeEqual } from "crypto";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { Logger } from "pino";
 import { PATH_CONSTANTS } from "../constant.js";
+import type { UpdateScheduler } from "../services/updateScheduler.js";
 
 interface WebhookConfig {
   secret?: string;
@@ -63,7 +63,7 @@ export class WebhookRouter {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
   public register(fastify: any): void {
     fastify.post(PATH_CONSTANTS.WEBHOOK_ENDPOINT, {
       config: {

@@ -1,28 +1,29 @@
-import { createProgressHandler } from "../progressHandler.js";
 import { EventEmitter } from "events";
-import { ContentFetchProgress } from "../../services/interfaces/contentFetcher.js";
+import { vi } from "vitest";
+import type { ContentFetchProgress } from "../../services/interfaces/contentFetcher.js";
+import { createProgressHandler } from "../progressHandler.js";
 
-jest.mock("../logger.js", () => ({
+vi.mock("../logger.js", () => ({
   log: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 describe("progressHandler", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
   let mockLogger: any;
   let mockEmitter: EventEmitter;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockLogger = {
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
     };
     mockEmitter = new EventEmitter();
   });
@@ -34,7 +35,7 @@ describe("progressHandler", () => {
     });
 
     it("should emit events when emitter is provided", () => {
-      const emitSpy = jest.spyOn(mockEmitter, "emit");
+      const emitSpy = vi.spyOn(mockEmitter, "emit");
       const handler = createProgressHandler({
         emitter: mockEmitter,
         emitEvent: "test-progress",
@@ -53,9 +54,9 @@ describe("progressHandler", () => {
     });
 
     it("should log progress at specified intervals", () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const now = Date.now();
-      jest.setSystemTime(now);
+      vi.setSystemTime(now);
 
       const handler = createProgressHandler({
         logInterval: 1000,
@@ -71,7 +72,7 @@ describe("progressHandler", () => {
       };
 
       // Advance time to trigger logging
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
 
       // First call - should log
       handler(progress);
@@ -83,13 +84,13 @@ describe("progressHandler", () => {
       expect(mockLogger.info).not.toHaveBeenCalled();
 
       // Advance time past the interval
-      jest.advanceTimersByTime(1500);
+      vi.advanceTimersByTime(1500);
 
       // Third call - should log again
       handler({ ...progress, fetchedFiles: 150 });
       expect(mockLogger.info).toHaveBeenCalledWith("Downloading: 75% (150/200 git objects)");
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should not log when totalFiles is 0", () => {
@@ -107,9 +108,9 @@ describe("progressHandler", () => {
     });
 
     it("should cap percentage at 99%", () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const now = Date.now();
-      jest.setSystemTime(now);
+      vi.setSystemTime(now);
 
       const handler = createProgressHandler({ logger: mockLogger, logInterval: 1000 });
 
@@ -121,17 +122,17 @@ describe("progressHandler", () => {
         phase: "Processing",
       };
 
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       handler(progress);
       expect(mockLogger.info).toHaveBeenCalledWith("Processing: 99% (150/100 git objects)");
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should use default phase when not provided", () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const now = Date.now();
-      jest.setSystemTime(now);
+      vi.setSystemTime(now);
 
       const handler = createProgressHandler({ logger: mockLogger, logInterval: 1000 });
 
@@ -142,17 +143,17 @@ describe("progressHandler", () => {
         errors: [],
       };
 
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       handler(progress);
       expect(mockLogger.info).toHaveBeenCalledWith("Syncing: 50% (50/100 git objects)");
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should use custom log interval", () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const now = Date.now();
-      jest.setSystemTime(now);
+      vi.setSystemTime(now);
 
       const handler = createProgressHandler({
         logInterval: 5000,
@@ -168,28 +169,28 @@ describe("progressHandler", () => {
       };
 
       // Advance time to trigger first log
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
       handler(progress);
       expect(mockLogger.info).toHaveBeenCalled();
 
       mockLogger.info.mockClear();
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
       handler({ ...progress, fetchedFiles: 20 });
       expect(mockLogger.info).not.toHaveBeenCalled();
 
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
       handler({ ...progress, fetchedFiles: 30 });
       expect(mockLogger.info).toHaveBeenCalled();
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should handle both emit and log together", () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const now = Date.now();
-      jest.setSystemTime(now);
+      vi.setSystemTime(now);
 
-      const emitSpy = jest.spyOn(mockEmitter, "emit");
+      const emitSpy = vi.spyOn(mockEmitter, "emit");
       const handler = createProgressHandler({
         emitter: mockEmitter,
         emitEvent: "progress",
@@ -206,13 +207,13 @@ describe("progressHandler", () => {
       };
 
       // Advance time to trigger logging
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       handler(progress);
 
       expect(emitSpy).toHaveBeenCalledWith("progress", progress);
       expect(mockLogger.info).toHaveBeenCalledWith("Fetching: 50% (50/100 git objects)");
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 });

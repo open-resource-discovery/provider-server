@@ -1,12 +1,12 @@
-import { OrdDocument } from "@open-resource-discovery/specification";
-import { DocumentRepository } from "./interfaces/documentRepository.js";
+import type { OrdDocument } from "@open-resource-discovery/specification";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
 import { getAllFiles } from "../util/files.js";
 import { log } from "../util/logger.js";
-import { validateOrdDocument } from "../util/validateOrdDocument.js";
 import { joinFilePaths, normalizePath } from "../util/pathUtils.js";
+import { validateOrdDocument } from "../util/validateOrdDocument.js";
+import type { DocumentRepository } from "./interfaces/documentRepository.js";
 
 export class LocalDocumentRepository implements DocumentRepository {
   private readonly ordDirectory: string;

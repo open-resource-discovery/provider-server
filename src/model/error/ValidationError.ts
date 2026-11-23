@@ -1,4 +1,4 @@
-import { BackendError, DetailError } from "./BackendError.js";
+import { BackendError, type DetailError } from "./BackendError.js";
 
 export class ValidationError extends BackendError {
   public name = "ValidationError";

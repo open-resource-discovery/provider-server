@@ -1,8 +1,9 @@
 import fastify from "fastify";
-import { createReadinessGate } from "../readinessGate.js";
-import { UpdateStateManager } from "../../services/updateStateManager.js";
+import type { Logger } from "pino";
+import { vi } from "vitest";
 import { PATH_CONSTANTS } from "../../constant.js";
-import { Logger } from "pino";
+import { UpdateStateManager } from "../../services/updateStateManager.js";
+import { createReadinessGate } from "../readinessGate.js";
 
 describe("ReadinessGate Middleware", () => {
   let server: ReturnType<typeof fastify>;
@@ -11,10 +12,10 @@ describe("ReadinessGate Middleware", () => {
 
   beforeEach(() => {
     mockLogger = {
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
     } as unknown as Logger;
 
     stateManager = new UpdateStateManager(mockLogger);
@@ -144,11 +145,11 @@ describe("ReadinessGate Middleware", () => {
       server.addHook("onRequest", createReadinessGate(stateManager));
       server.get(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT, () => ({ status: "ready" }));
       await server.ready();
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should wait and succeed when update completes", async () => {
@@ -163,8 +164,8 @@ describe("ReadinessGate Middleware", () => {
         stateManager.completeUpdate();
       }, 100);
 
-      jest.advanceTimersByTime(100);
-      await jest.runAllTimersAsync();
+      vi.advanceTimersByTime(100);
+      await vi.runAllTimersAsync();
 
       const response = await responsePromise;
       expect(response.statusCode).toBe(200);
@@ -183,8 +184,8 @@ describe("ReadinessGate Middleware", () => {
         stateManager.failUpdate("Test error");
       }, 100);
 
-      jest.advanceTimersByTime(100);
-      await jest.runAllTimersAsync();
+      vi.advanceTimersByTime(100);
+      await vi.runAllTimersAsync();
 
       const response = await responsePromise;
       expect(response.statusCode).toBe(200);
@@ -196,11 +197,11 @@ describe("ReadinessGate Middleware", () => {
       server.addHook("onRequest", createReadinessGate(stateManager));
       server.get(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT, () => ({ status: "ready" }));
       await server.ready();
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should return 503 on timeout", async () => {
@@ -212,8 +213,8 @@ describe("ReadinessGate Middleware", () => {
       });
 
       // Advance past default timeout (5 minutes)
-      jest.advanceTimersByTime(5 * 60 * 1000 + 1);
-      await jest.runAllTimersAsync();
+      vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+      await vi.runAllTimersAsync();
 
       const response = await responsePromise;
       expect(response.statusCode).toBe(503);
@@ -239,8 +240,8 @@ describe("ReadinessGate Middleware", () => {
         url: PATH_CONSTANTS.WELL_KNOWN_ENDPOINT,
       });
 
-      jest.advanceTimersByTime(5 * 60 * 1000 + 1);
-      await jest.runAllTimersAsync();
+      vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+      await vi.runAllTimersAsync();
 
       const response = await responsePromise;
 
@@ -253,11 +254,11 @@ describe("ReadinessGate Middleware", () => {
       server.addHook("onRequest", createReadinessGate(stateManager));
       server.get(PATH_CONSTANTS.WELL_KNOWN_ENDPOINT, () => ({ status: "ready" }));
       await server.ready();
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it("should handle multiple concurrent requests waiting on same update", async () => {
@@ -282,8 +283,8 @@ describe("ReadinessGate Middleware", () => {
         stateManager.completeUpdate();
       }, 100);
 
-      jest.advanceTimersByTime(100);
-      await jest.runAllTimersAsync();
+      vi.advanceTimersByTime(100);
+      await vi.runAllTimersAsync();
 
       const [response1, response2, response3] = await Promise.all([request1, request2, request3]);
 

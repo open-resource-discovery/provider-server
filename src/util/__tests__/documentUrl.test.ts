@@ -1,5 +1,5 @@
-import { getOrdDocumentPath, getEncodedFilePath } from "../documentUrl.js";
 import { PATH_CONSTANTS } from "../../constant.js";
+import { getEncodedFilePath, getOrdDocumentPath } from "../documentUrl.js";
 
 describe("Document URL Utilities", () => {
   describe("getEncodedFilePath", () => {

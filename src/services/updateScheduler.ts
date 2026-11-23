@@ -1,13 +1,13 @@
 import { EventEmitter } from "events";
-import { ContentFetcher } from "./interfaces/contentFetcher.js";
-import { FileSystemManager } from "./fileSystemManager.js";
-import { CacheService } from "./interfaces/cacheService.js";
-import { Logger } from "pino";
-import { BackendError, StatusError, toStatusError } from "../model/error/BackendError.js";
-import { createProgressHandler } from "../util/progressHandler.js";
-import { UpdateStateManager } from "./updateStateManager.js";
-import { calculateDirectoryHash } from "../util/directoryHash.js";
 import path from "path";
+import type { Logger } from "pino";
+import { BackendError, type StatusError, toStatusError } from "../model/error/BackendError.js";
+import { calculateDirectoryHash } from "../util/directoryHash.js";
+import { createProgressHandler } from "../util/progressHandler.js";
+import type { FileSystemManager } from "./fileSystemManager.js";
+import type { CacheService } from "./interfaces/cacheService.js";
+import type { ContentFetcher } from "./interfaces/contentFetcher.js";
+import type { UpdateStateManager } from "./updateStateManager.js";
 
 export interface UpdateSchedulerConfig {
   updateDelay: number; // milliseconds - also used as webhook cooldown

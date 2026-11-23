@@ -1,14 +1,14 @@
-import { FastifyInstanceType } from "../model/fastify.js";
-import { DocumentService } from "../services/interfaces/documentService.js";
 import { PATH_CONSTANTS } from "../constant.js";
-import { log } from "../util/logger.js";
-import { BaseRouter } from "./baseRouter.js";
-import { FqnDocumentMap, isOrdId } from "../util/fqnHelpers.js";
-import { joinFilePaths, ordIdToPathSegment } from "../util/pathUtils.js";
-import { OptAuthMethod } from "../model/cli.js";
+import type { OptAuthMethod } from "../model/cli.js";
 import { BackendError } from "../model/error/BackendError.js";
 import { InternalServerError } from "../model/error/InternalServerError.js";
 import { NotFoundError } from "../model/error/NotFoundError.js";
+import type { FastifyInstanceType } from "../model/fastify.js";
+import type { DocumentService } from "../services/interfaces/documentService.js";
+import { type FqnDocumentMap, isOrdId } from "../util/fqnHelpers.js";
+import { log } from "../util/logger.js";
+import { joinFilePaths, ordIdToPathSegment } from "../util/pathUtils.js";
+import { BaseRouter } from "./baseRouter.js";
 
 interface DocumentRouterOptions {
   baseUrl: string;

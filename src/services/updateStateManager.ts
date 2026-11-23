@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
-import { ContentFetchProgress } from "./interfaces/contentFetcher.js";
-import { Logger } from "pino";
+import type { Logger } from "pino";
 import { log as defaultLogger } from "../util/logger.js";
+import type { ContentFetchProgress } from "./interfaces/contentFetcher.js";
 
 export type UpdateStatus = "idle" | "in_progress" | "scheduled" | "failed" | "cache_warming";
 export type UpdateSource = "validation" | "scheduler" | "webhook" | "manual";

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { StatusResponse } from "@open-resource-discovery/explorer/components";
+import { useEffect, useState } from "react";
 import { WS_PATH } from "../constants";
 
 interface WsMessage {
@@ -71,13 +71,13 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
             if (isStatusResponse(data)) {
               setStatus(data);
             } else {
-              // eslint-disable-next-line no-console
+              // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
               console.warn("[ws] unexpected status shape from /api/v1/status", data);
             }
           }
         })
         .catch((err: unknown): void => {
-          // eslint-disable-next-line no-console
+          // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
           console.warn("[ws] initial fetch failed", err);
         });
 
@@ -98,14 +98,14 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
                 return incoming;
               });
             } else {
-              // eslint-disable-next-line no-console
+              // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
               console.warn("[ws] unexpected status message payload", incoming);
             }
           } else if (raw.type === "update-progress" && raw.data !== undefined) {
             if (isUpdateProgress(raw.data)) {
               setUpdateProgress(raw.data);
             } else {
-              // eslint-disable-next-line no-console
+              // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
               console.warn("[ws] unexpected update-progress payload", raw.data);
             }
           }
@@ -115,7 +115,7 @@ export function useStatusWebSocket(): UseStatusWebSocketResult {
       };
 
       ws.onerror = (event: Event): void => {
-        // eslint-disable-next-line no-console
+        // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
         console.warn("[ws] error", event);
       };
 

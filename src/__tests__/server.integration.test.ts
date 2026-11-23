@@ -1,37 +1,43 @@
-import { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
-import path from "path";
+import type { OrdConfiguration, OrdDocument, OrdV1DocumentDescription } from "@open-resource-discovery/specification";
 import * as fs from "fs/promises";
+import path from "path";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { OptAuthMethod, OptSourceType } from "src/model/cli.js";
-import { ProviderServerOptions, startProviderServer } from "src/server.js";
+import { type ProviderServerOptions, startProviderServer } from "src/server.js";
+import { type Mock, vi } from "vitest";
 import { StatusService } from "../services/statusService.js";
 
 // Mock bcrypt to avoid native module issues in tests
-jest.mock("bcryptjs", () => ({
-  compare: jest.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
-  hash: jest.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
-}));
+vi.mock("bcryptjs", () => {
+  const mocked = {
+    compare: vi.fn().mockImplementation((password) => Promise.resolve(password === "secret")),
+    hash: vi.fn().mockImplementation(() => Promise.resolve("$2b$10$hashedPassword")),
+  };
+  return { ...mocked, default: mocked };
+});
 
 // Mock p-limit to avoid ESM issues in tests
-jest.mock("p-limit", () => ({
+vi.mock("p-limit", () => ({
   default:
     () =>
     (fn: () => unknown): unknown =>
       fn(),
 }));
 
-jest.mock("../util/gitInitializer.js", () => ({
-  initializeGitSource: jest.fn(),
+vi.mock("../util/gitInitializer.js", () => ({
+  initializeGitSource: vi.fn(),
 }));
 
-jest.mock("../services/gitCloneContentFetcher.js", () => ({
-  GitCloneContentFetcher: jest.fn().mockImplementation(() => ({
-    fetchAllContent: jest.fn(),
-    getWorkerCount: jest.fn().mockReturnValue(1),
-  })),
+vi.mock("../services/gitCloneContentFetcher.js", () => ({
+  GitCloneContentFetcher: vi.fn().mockImplementation(function () {
+    return {
+      fetchAllContent: vi.fn(),
+      getWorkerCount: vi.fn().mockReturnValue(1),
+    };
+  }),
 }));
 
-const statusServiceGetStatus = jest.spyOn(StatusService.prototype, "getStatus");
+const statusServiceGetStatus = vi.spyOn(StatusService.prototype, "getStatus");
 
 describe("Server Integration", () => {
   const TEST_PORT = 8081;
@@ -529,12 +535,12 @@ describe("GitHub Source Type Integration", () => {
   const GITHUB_SERVER_URL = `http://${GITHUB_HOST}:${GITHUB_PORT}`;
 
   let shutdownGithubServer: () => Promise<void>;
-  let initializeGitSourceMock: jest.Mock;
+  let initializeGitSourceMock: Mock;
 
   beforeAll(async () => {
     // Get the mocked function
     const { initializeGitSource } = await import("../util/gitInitializer.js");
-    initializeGitSourceMock = initializeGitSource as jest.Mock;
+    initializeGitSourceMock = initializeGitSource as Mock;
 
     // Mock successful validation
     initializeGitSourceMock.mockResolvedValue({
@@ -795,14 +801,14 @@ describe("GitHub Source Type - Error Handling", () => {
   const GITHUB_ERROR_SERVER_URL = `http://${GITHUB_ERROR_HOST}:${GITHUB_ERROR_PORT}`;
 
   let shutdownErrorServer: () => Promise<void>;
-  let initializeGitSourceMock: jest.Mock;
+  let initializeGitSourceMock: Mock;
 
   beforeAll(async () => {
     // Get the mocked function
     const { initializeGitSource } = await import("../util/gitInitializer.js");
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { GitHubRepositoryNotFoundError } = await import("../model/error/GithubErrors.js");
-    initializeGitSourceMock = initializeGitSource as jest.Mock;
+    initializeGitSourceMock = initializeGitSource as Mock;
 
     // Mock repository not found error
     initializeGitSourceMock.mockRejectedValue(
@@ -845,7 +851,7 @@ describe("GitHub Source Type - Error Handling", () => {
     }
   });
 
-  afterEach(() => jest.clearAllMocks());
+  afterEach(() => vi.clearAllMocks());
 
   describe("Online Validation Error Handling", () => {
     it("should handle GitHub repository not found error gracefully", () => {

@@ -1,14 +1,14 @@
-import { FastifyRequest, HookHandlerDoneFunction } from "fastify";
+import type { FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";
-import { tokenizeDn, dnTokensMatch, isWildcardDn } from "src/util/certificateHelpers.js";
+import { dnTokensMatch, isWildcardDn, tokenizeDn } from "src/util/certificateHelpers.js";
 import { log } from "src/util/logger.js";
 import {
-  CERT_ISSUER_DN_HEADER,
-  CERT_SUBJECT_DN_HEADER,
-  CERT_ROOT_CA_DN_HEADER,
-  CERT_XFCC_HEADER,
   CERT_CLIENT_HEADER,
   CERT_CLIENT_VERIFY_HEADER,
+  CERT_ISSUER_DN_HEADER,
+  CERT_ROOT_CA_DN_HEADER,
+  CERT_SUBJECT_DN_HEADER,
+  CERT_XFCC_HEADER,
 } from "../constant.js";
 
 export interface MtlsValidationOptions {

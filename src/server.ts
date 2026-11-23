@@ -1,36 +1,36 @@
+import cors from "@fastify/cors";
 import fastifyETag from "@fastify/etag";
 import fastifyWebsocket from "@fastify/websocket";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
-import statusRouter from "./routes/statusRouter.js";
 import { PATH_CONSTANTS } from "src/constant.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
 import { OptSourceType } from "src/model/cli.js";
-import { type FastifyInstanceType } from "src/model/fastify.js";
-import { type ProviderServerOptions } from "src/model/server.js";
+import type { FastifyInstanceType } from "src/model/fastify.js";
+import type { ProviderServerOptions } from "src/model/server.js";
 import { log } from "src/util/logger.js";
-import { RouterFactory } from "./factories/routerFactory.js";
-import { FileSystemManager } from "./services/fileSystemManager.js";
-import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
-import { UpdateScheduler } from "./services/updateScheduler.js";
-import { WebhookRouter } from "./routes/webhookRouter.js";
-import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
-import { StatusResponse, StatusService } from "./services/statusService.js";
-import { buildGithubConfig } from "./model/github.js";
 import { omitUndefined } from "src/util/util.js";
-import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
-import { getPackageVersion } from "./util/files.js";
-import { initializeGitSource } from "./util/gitInitializer.js";
-import cors from "@fastify/cors";
-import { UpdateStateManager } from "./services/updateStateManager.js";
+import { RouterFactory } from "./factories/routerFactory.js";
 import { createReadinessGate } from "./middleware/readinessGate.js";
 import { GitHubBranchNotFoundError, GitHubRepositoryNotFoundError } from "./model/error/GithubErrors.js";
-import { CacheService } from "./services/cacheService.js";
+import { buildGithubConfig } from "./model/github.js";
+import { LocalDocumentRepository } from "./repositories/localDocumentRepository.js";
+import statusRouter from "./routes/statusRouter.js";
+import { WebhookRouter } from "./routes/webhookRouter.js";
+import type { CacheService } from "./services/cacheService.js";
+import { FileSystemManager } from "./services/fileSystemManager.js";
+import { GitCloneContentFetcher } from "./services/gitCloneContentFetcher.js";
+import { type StatusResponse, StatusService } from "./services/statusService.js";
+import { UpdateScheduler } from "./services/updateScheduler.js";
+import { UpdateStateManager } from "./services/updateStateManager.js";
+import { getPackageVersion } from "./util/files.js";
+import { initializeGitSource } from "./util/gitInitializer.js";
+import { StatusWebSocketHandler } from "./websocket/statusWebSocketHandler.js";
 
 const version = getPackageVersion();
 
-export { ProviderServerOptions }; // Re-export the type
+export type { ProviderServerOptions }; // Re-export the type
 
 type ShutdownFunction = () => Promise<void>;
 

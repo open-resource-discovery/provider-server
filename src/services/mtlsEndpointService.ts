@@ -1,5 +1,5 @@
+import { dnTokensMatch, tokenizeDn } from "../util/certificateHelpers.js";
 import { log } from "../util/logger.js";
-import { tokenizeDn, dnTokensMatch } from "../util/certificateHelpers.js";
 
 export interface MtlsCertInfo {
   certIssuer: string;

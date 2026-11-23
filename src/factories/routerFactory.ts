@@ -1,14 +1,14 @@
-import { GithubOpts } from "../model/github.js";
-import { OptAuthMethod, OptSourceType } from "../model/cli.js";
-import { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
+import { PATH_CONSTANTS } from "../constant.js";
+import { type OptAuthMethod, OptSourceType } from "../model/cli.js";
+import type { GithubOpts } from "../model/github.js";
+import type { DocumentRepository } from "../repositories/interfaces/documentRepository.js";
 import { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
+import { DocumentRouter } from "../routes/documentRouter.js";
 import { CacheService } from "../services/cacheService.js";
 import { DocumentService } from "../services/documentService.js";
-import { DocumentRouter } from "../routes/documentRouter.js";
-import { FqnDocumentMap } from "../util/fqnHelpers.js";
-import { ProcessingContext } from "../services/interfaces/processingContext.js";
-import { PATH_CONSTANTS } from "../constant.js";
-import { FileSystemManager } from "../services/fileSystemManager.js";
+import type { FileSystemManager } from "../services/fileSystemManager.js";
+import type { ProcessingContext } from "../services/interfaces/processingContext.js";
+import type { FqnDocumentMap } from "../util/fqnHelpers.js";
 import { log } from "../util/logger.js";
 import { omitUndefined } from "../util/util.js";
 

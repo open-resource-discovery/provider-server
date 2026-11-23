@@ -1,60 +1,62 @@
+import { type Mock, type Mocked, vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports */
-import { initializeGitSource } from "../gitInitializer.js";
-import { ProviderServerOptions } from "../../model/server.js";
-import { FileSystemManager } from "../../services/fileSystemManager.js";
-import { GitCloneContentFetcher } from "../../services/gitCloneContentFetcher.js";
-import { CacheService } from "../../services/cacheService.js";
-import { UpdateStateManager } from "../../services/updateStateManager.js";
-import { ValidationError } from "../../model/error/ValidationError.js";
-import { InternalServerError } from "../../model/error/InternalServerError.js";
+
 import * as fsPromises from "fs/promises";
 import { OptSourceType } from "../../model/cli.js";
+import { InternalServerError } from "../../model/error/InternalServerError.js";
+import { ValidationError } from "../../model/error/ValidationError.js";
+import type { ProviderServerOptions } from "../../model/server.js";
+import type { CacheService } from "../../services/cacheService.js";
+import type { FileSystemManager } from "../../services/fileSystemManager.js";
+import { GitCloneContentFetcher } from "../../services/gitCloneContentFetcher.js";
+import type { UpdateStateManager } from "../../services/updateStateManager.js";
+import { initializeGitSource } from "../gitInitializer.js";
 
-jest.mock("../../services/gitCloneContentFetcher.js");
-jest.mock("../../services/fileSystemManager.js");
-jest.mock("../../services/cacheService.js");
-jest.mock("../../services/updateStateManager.js");
-jest.mock("fs/promises");
-jest.mock("../validateGit.js");
-jest.mock("../directoryHash.js");
-jest.mock("../logger.js", () => ({
+vi.mock("../../services/gitCloneContentFetcher.js");
+vi.mock("../../services/fileSystemManager.js");
+vi.mock("../../services/cacheService.js");
+vi.mock("../../services/updateStateManager.js");
+vi.mock("fs/promises");
+vi.mock("../validateGit.js");
+vi.mock("../directoryHash.js");
+vi.mock("../logger.js", () => ({
   log: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 describe("gitInitializer", () => {
-  let mockFileSystemManager: jest.Mocked<FileSystemManager>;
-  let mockCacheService: jest.Mocked<CacheService>;
-  let mockStateManager: jest.Mocked<UpdateStateManager>;
+  let mockFileSystemManager: Mocked<FileSystemManager>;
+  let mockCacheService: Mocked<CacheService>;
+  let mockStateManager: Mocked<UpdateStateManager>;
   let mockOptions: ProviderServerOptions;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockFileSystemManager = {
-      getCurrentVersion: jest.fn(),
-      getCurrentPath: jest.fn(),
-      getMetadata: jest.fn(),
-      cleanupTempDirectory: jest.fn(),
-      getTempDirectory: jest.fn(),
-      prepareTempDirectoryWithGit: jest.fn().mockResolvedValue("/data/temp"),
-      swapDirectories: jest.fn(),
-      saveMetadata: jest.fn(),
+      getCurrentVersion: vi.fn(),
+      getCurrentPath: vi.fn(),
+      getMetadata: vi.fn(),
+      cleanupTempDirectory: vi.fn(),
+      getTempDirectory: vi.fn(),
+      prepareTempDirectoryWithGit: vi.fn().mockResolvedValue("/data/temp"),
+      swapDirectories: vi.fn(),
+      saveMetadata: vi.fn(),
     } as any;
 
     mockCacheService = {
-      warmCache: jest.fn(),
+      warmCache: vi.fn(),
     } as any;
 
     mockStateManager = {
-      startCacheWarming: jest.fn(),
-      completeCacheWarming: jest.fn(),
-      completeUpdate: jest.fn(),
-      failUpdate: jest.fn(),
+      startCacheWarming: vi.fn(),
+      completeCacheWarming: vi.fn(),
+      completeUpdate: vi.fn(),
+      failUpdate: vi.fn(),
     } as any;
 
     mockOptions = {
@@ -85,13 +87,15 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue(mockMetadata),
-        destroy: jest.fn(),
+        fetchAllContent: vi.fn().mockResolvedValue(mockMetadata),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
       await initializeGitSource(mockOptions, mockFileSystemManager);
@@ -114,13 +118,15 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getMetadata.mockResolvedValue(existingMetadata as any);
 
       const mockFetcher = {
-        getLatestCommitSha: jest.fn().mockResolvedValue("abc123"),
-        destroy: jest.fn(),
+        getLatestCommitSha: vi.fn().mockResolvedValue("abc123"),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
       const result = await initializeGitSource(mockOptions, mockFileSystemManager, mockStateManager);
@@ -152,14 +158,16 @@ describe("gitInitializer", () => {
       mockFileSystemManager.prepareTempDirectoryWithGit.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        getLatestCommitSha: jest.fn().mockResolvedValue("def456"),
-        fetchAllContent: jest.fn().mockResolvedValue(newMetadata),
-        destroy: jest.fn(),
+        getLatestCommitSha: vi.fn().mockResolvedValue("def456"),
+        fetchAllContent: vi.fn().mockResolvedValue(newMetadata),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
       await initializeGitSource(mockOptions, mockFileSystemManager);
@@ -182,21 +190,23 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue({
+        fetchAllContent: vi.fn().mockResolvedValue({
           commitHash: "newcommit",
           branch: "main",
           repository: "owner/repo",
         }),
-        destroy: jest.fn(),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
-      (fsPromises.rm as jest.Mock).mockResolvedValue(undefined);
-      (fsPromises.mkdir as jest.Mock).mockResolvedValue(undefined);
+      (fsPromises.rm as Mock).mockResolvedValue(undefined);
+      (fsPromises.mkdir as Mock).mockResolvedValue(undefined);
 
       await initializeGitSource(mockOptions, mockFileSystemManager);
 
@@ -218,21 +228,23 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue({
+        fetchAllContent: vi.fn().mockResolvedValue({
           commitHash: "newcommit",
           branch: "main",
           repository: "owner/repo",
         }),
-        destroy: jest.fn(),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
-      (fsPromises.rm as jest.Mock).mockResolvedValue(undefined);
-      (fsPromises.mkdir as jest.Mock).mockResolvedValue(undefined);
+      (fsPromises.rm as Mock).mockResolvedValue(undefined);
+      (fsPromises.mkdir as Mock).mockResolvedValue(undefined);
 
       await initializeGitSource(mockOptions, mockFileSystemManager);
 
@@ -253,16 +265,18 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue(mockMetadata),
-        destroy: jest.fn(),
+        fetchAllContent: vi.fn().mockResolvedValue(mockMetadata),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
-      const { calculateDirectoryHash } = require("../directoryHash.js");
+      const { calculateDirectoryHash } = await import("../directoryHash.js");
       calculateDirectoryHash.mockResolvedValue("hash123");
 
       mockCacheService.warmCache.mockResolvedValue(undefined);
@@ -287,16 +301,18 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue(mockMetadata),
-        destroy: jest.fn(),
+        fetchAllContent: vi.fn().mockResolvedValue(mockMetadata),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
-      const { calculateDirectoryHash } = require("../directoryHash.js");
+      const { calculateDirectoryHash } = await import("../directoryHash.js");
       calculateDirectoryHash.mockResolvedValue("hash123");
 
       mockCacheService.warmCache.mockRejectedValue(new Error("Cache warming failed"));
@@ -313,13 +329,15 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue({ commitHash: "abc123" }),
-        destroy: jest.fn(),
+        fetchAllContent: vi.fn().mockResolvedValue({ commitHash: "abc123" }),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {
         throw new Error("Validation failed");
       });
@@ -355,13 +373,15 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getMetadata.mockResolvedValue(existingMetadata as any);
 
       const mockFetcher = {
-        getLatestCommitSha: jest.fn().mockResolvedValue("abc123"),
-        destroy: jest.fn(),
+        getLatestCommitSha: vi.fn().mockResolvedValue("abc123"),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
       await initializeGitSource(mockOptions, mockFileSystemManager);
@@ -382,14 +402,16 @@ describe("gitInitializer", () => {
       mockFileSystemManager.prepareTempDirectoryWithGit.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        getLatestCommitSha: jest.fn().mockResolvedValue("abc123"),
-        fetchAllContent: jest.fn().mockResolvedValue(existingMetadata),
-        destroy: jest.fn(),
+        getLatestCommitSha: vi.fn().mockResolvedValue("abc123"),
+        fetchAllContent: vi.fn().mockResolvedValue(existingMetadata),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent
         .mockImplementationOnce(() => {
           throw new Error("Validation failed");
@@ -414,16 +436,18 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue(mockMetadata),
-        destroy: jest.fn(),
+        fetchAllContent: vi.fn().mockResolvedValue(mockMetadata),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
-      const { calculateDirectoryHash } = require("../directoryHash.js");
+      const { calculateDirectoryHash } = await import("../directoryHash.js");
       calculateDirectoryHash.mockResolvedValue(null);
 
       await initializeGitSource(mockOptions, mockFileSystemManager, mockStateManager, mockCacheService);
@@ -443,16 +467,18 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getMetadata.mockResolvedValue(existingMetadata as any);
 
       const mockFetcher = {
-        getLatestCommitSha: jest.fn().mockResolvedValue("abc123"),
-        destroy: jest.fn(),
+        getLatestCommitSha: vi.fn().mockResolvedValue("abc123"),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
-      const { calculateDirectoryHash } = require("../directoryHash.js");
+      const { calculateDirectoryHash } = await import("../directoryHash.js");
       calculateDirectoryHash.mockResolvedValue("hash123");
 
       mockCacheService.warmCache.mockResolvedValue(undefined);
@@ -471,17 +497,19 @@ describe("gitInitializer", () => {
       mockFileSystemManager.getTempDirectory.mockResolvedValue("/data/temp");
 
       const mockFetcher = {
-        fetchAllContent: jest.fn().mockResolvedValue({
+        fetchAllContent: vi.fn().mockResolvedValue({
           commitHash: "abc123",
           branch: "main",
           repository: "owner/repo",
         }),
-        destroy: jest.fn(),
+        destroy: vi.fn(),
       };
 
-      (GitCloneContentFetcher as jest.Mock).mockImplementation(() => mockFetcher);
+      (GitCloneContentFetcher as Mock).mockImplementation(function () {
+        return mockFetcher;
+      });
 
-      const { validateGitContent } = require("../validateGit.js");
+      const { validateGitContent } = await import("../validateGit.js");
       validateGitContent.mockImplementation(() => {});
 
       await initializeGitSource(mockOptions, mockFileSystemManager);

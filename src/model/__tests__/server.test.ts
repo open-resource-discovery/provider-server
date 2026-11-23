@@ -1,11 +1,12 @@
+import { vi } from "vitest";
+import { type CommandLineOptions, OptAuthMethod, OptSourceType } from "../cli.js";
 import { buildProviderServerOptions } from "../server.js";
-import { OptSourceType, OptAuthMethod, CommandLineOptions } from "../cli.js";
 
-jest.mock("../../util/logger.js", () => ({
+vi.mock("../../util/logger.js", () => ({
   log: {
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -13,7 +14,7 @@ describe("Server Model", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     process.env = { ...originalEnv };
     delete process.env.ORD_DIRECTORY;
     delete process.env.BASIC_AUTH;

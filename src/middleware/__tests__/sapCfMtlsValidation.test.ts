@@ -1,16 +1,17 @@
 import fastify from "fastify";
-import { createSapCfMtlsValidator } from "src/middleware/sapCfMtlsValidation.js";
 import { setupAuthentication } from "src/middleware/authenticationSetup.js";
 import { errorHandler } from "src/middleware/errorHandler.js";
-import { FastifyInstanceType } from "src/model/fastify.js";
+import { createSapCfMtlsValidator } from "src/middleware/sapCfMtlsValidation.js";
 import { OptAuthMethod } from "src/model/cli.js";
+import type { FastifyInstanceType } from "src/model/fastify.js";
+import { vi } from "vitest";
 import {
-  CERT_ISSUER_DN_HEADER,
-  CERT_SUBJECT_DN_HEADER,
-  CERT_ROOT_CA_DN_HEADER,
-  CERT_XFCC_HEADER,
   CERT_CLIENT_HEADER,
   CERT_CLIENT_VERIFY_HEADER,
+  CERT_ISSUER_DN_HEADER,
+  CERT_ROOT_CA_DN_HEADER,
+  CERT_SUBJECT_DN_HEADER,
+  CERT_XFCC_HEADER,
 } from "../../constant.js";
 
 const encodeBase64 = (value: string): string => Buffer.from(value).toString("base64");
@@ -297,7 +298,7 @@ describe("sapCfMtlsValidation", () => {
   });
 
   describe("with config endpoints", () => {
-    const mockFetch = jest.fn();
+    const mockFetch = vi.fn();
     const originalFetch = global.fetch;
 
     beforeEach(() => {

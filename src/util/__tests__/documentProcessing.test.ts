@@ -1,12 +1,13 @@
-import { OrdDocument } from "@open-resource-discovery/specification";
+import type { OrdDocument } from "@open-resource-discovery/specification";
+import { type Mock, vi } from "vitest";
 import { OptAuthMethod } from "../../model/cli.js";
-import { ProcessingContext } from "../../services/interfaces/processingContext.js";
+import { getDocumentPerspective } from "../../model/perspective.js";
+import type { ProcessingContext } from "../../services/interfaces/processingContext.js";
 import { processOrdDocument } from "../documentProcessing.js";
 import { getOrdDocumentAccessStrategies } from "../ordConfig.js";
-import { getDocumentPerspective } from "../../model/perspective.js";
 
-jest.mock("../ordConfig.js");
-jest.mock("../../model/perspective.js");
+vi.mock("../ordConfig.js");
+vi.mock("../../model/perspective.js");
 
 const mockDoc = {
   openResourceDiscovery: "1.9",
@@ -20,8 +21,8 @@ const context: ProcessingContext = {
 
 describe("processOrdDocument", () => {
   beforeEach(() => {
-    (getOrdDocumentAccessStrategies as jest.Mock).mockReturnValue([{ type: "open" }]);
-    (getDocumentPerspective as jest.Mock).mockReturnValue("system-instance");
+    (getOrdDocumentAccessStrategies as Mock).mockReturnValue([{ type: "open" }]);
+    (getDocumentPerspective as Mock).mockReturnValue("system-instance");
   });
 
   it("injects baseUrl into describedSystemInstance", () => {
@@ -39,7 +40,7 @@ describe("processOrdDocument", () => {
   });
 
   it("defaults describedSystemVersion from directory hash for system-version perspective", () => {
-    (getDocumentPerspective as jest.Mock).mockReturnValue("system-version");
+    (getDocumentPerspective as Mock).mockReturnValue("system-version");
 
     const result = processOrdDocument(mockDoc, context, "abcdef1234567890");
 

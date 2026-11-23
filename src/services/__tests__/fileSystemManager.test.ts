@@ -1,10 +1,13 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { FileSystemManager } from "../fileSystemManager.js";
-import { ContentMetadata } from "../interfaces/contentFetcher.js";
+import { vi } from "vitest";
 import { log } from "../../util/logger.js";
+import { FileSystemManager } from "../fileSystemManager.js";
+import type { ContentMetadata } from "../interfaces/contentFetcher.js";
 
-jest.mock("../../util/logger.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
 
 describe("FileSystemManager", () => {
   let fsManager: FileSystemManager;
@@ -357,8 +360,8 @@ describe("FileSystemManager", () => {
       await fs.writeFile(path.join(tempDir, "new.txt"), "new content");
 
       // Mock copyDirectory to fail on the FileSystemManager instance
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const copyDirectorySpy = jest.spyOn(winFsManager as any, "copyDirectory");
+      // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
+      const copyDirectorySpy = vi.spyOn(winFsManager as any, "copyDirectory");
       let copyCallCount = 0;
       copyDirectorySpy.mockImplementation(() => {
         copyCallCount++;
@@ -598,8 +601,8 @@ describe("FileSystemManager", () => {
       await fs.mkdir(tempPath, { recursive: true });
 
       // Mock copyDirectory to always fail
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      jest.spyOn(winFsManager as any, "copyDirectory").mockRejectedValue(new Error("All copies fail"));
+      // biome-ignore lint/suspicious/noExplicitAny: Existing exception retained during tooling migration.
+      vi.spyOn(winFsManager as any, "copyDirectory").mockRejectedValue(new Error("All copies fail"));
 
       // Should throw error and log restore failure
       await expect(winFsManager.swapDirectories(tempPath)).rejects.toThrow("All copies fail");

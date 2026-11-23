@@ -1,4 +1,4 @@
-import { BackendError, DetailError } from "./BackendError.js";
+import { BackendError, type DetailError } from "./BackendError.js";
 
 /**
  * Error thrown when the system runs out of disk space

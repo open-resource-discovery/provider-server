@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { BackendError } from "src/model/error/BackendError.js";
 import { InternalServerError } from "src/model/error/InternalServerError.js";
 import { UnauthorizedError } from "src/model/error/UnauthorizedError.js";

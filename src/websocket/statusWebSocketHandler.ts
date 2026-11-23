@@ -1,11 +1,11 @@
 import type { FastifyInstance } from "fastify";
+import type { Logger } from "pino";
 import type { WebSocket } from "ws";
-import { Logger } from "pino";
-import { StatusService } from "../services/statusService.js";
+import type { StatusService } from "../services/statusService.js";
+import type { UpdateScheduler } from "../services/updateScheduler.js";
+import type { UpdateStateManager } from "../services/updateStateManager.js";
 import { VersionService } from "../services/versionService.js";
-import { UpdateScheduler } from "../services/updateScheduler.js";
 import { getPackageVersion } from "../util/files.js";
-import { UpdateStateManager } from "../services/updateStateManager.js";
 
 interface WebSocketMessage {
   type: string;

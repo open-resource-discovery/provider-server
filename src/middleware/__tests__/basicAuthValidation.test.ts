@@ -1,23 +1,26 @@
-import { FastifyReply, FastifyRequest } from "fastify";
-import { createBasicAuthValidator } from "../basicAuthValidation.js";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { type Mocked, type MockedFunction, vi } from "vitest";
 import { UnauthorizedError } from "../../model/error/UnauthorizedError.js";
-import { comparePassword } from "../../util/passwordHash.js";
 import { log } from "../../util/logger.js";
+import { comparePassword } from "../../util/passwordHash.js";
+import { createBasicAuthValidator } from "../basicAuthValidation.js";
 
-jest.mock("../../util/passwordHash.js");
-jest.mock("../../util/logger.js");
+vi.mock("../../util/passwordHash.js");
+vi.mock("../../util/logger.js", () => ({
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn(), fatal: vi.fn(), child: vi.fn() },
+}));
 
 describe("basicAuthValidation", () => {
   let mockRequest: Partial<FastifyRequest>;
   let mockReply: Partial<FastifyReply>;
-  const mockComparePassword = comparePassword as jest.MockedFunction<typeof comparePassword>;
-  const mockLog = log as jest.Mocked<typeof log>;
+  const mockComparePassword = comparePassword as MockedFunction<typeof comparePassword>;
+  const mockLog = log as Mocked<typeof log>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequest = {};
     mockReply = {};
-    mockLog.error = jest.fn();
+    mockLog.error = vi.fn();
   });
 
   describe("createBasicAuthValidator", () => {

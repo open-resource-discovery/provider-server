@@ -1,4 +1,4 @@
-import { OptAuthMethod } from "../../model/cli.js";
+import type { OptAuthMethod } from "../../model/cli.js";
 
 export interface ProcessingContext {
   baseUrl: string;

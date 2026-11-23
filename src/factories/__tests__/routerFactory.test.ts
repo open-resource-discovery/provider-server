@@ -1,34 +1,35 @@
-import { RouterFactory } from "../routerFactory.js";
-import { OptSourceType, OptAuthMethod } from "../../model/cli.js";
-import { FileSystemManager } from "../../services/fileSystemManager.js";
+import { type Mocked, vi } from "vitest";
+import { OptAuthMethod, OptSourceType } from "../../model/cli.js";
 import { DocumentRouter } from "../../routes/documentRouter.js";
 import { CacheService } from "../../services/cacheService.js";
+import type { FileSystemManager } from "../../services/fileSystemManager.js";
 import { log } from "../../util/logger.js";
+import { RouterFactory } from "../routerFactory.js";
 
-jest.mock("../../repositories/localDocumentRepository.js");
-jest.mock("../../services/cacheService.js");
-jest.mock("../../services/documentService.js");
-jest.mock("../../routes/documentRouter.js");
-jest.mock("../../util/logger.js", () => ({
+vi.mock("../../repositories/localDocumentRepository.js");
+vi.mock("../../services/cacheService.js");
+vi.mock("../../services/documentService.js");
+vi.mock("../../routes/documentRouter.js");
+vi.mock("../../util/logger.js", () => ({
   log: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 describe("RouterFactory", () => {
-  let mockFileSystemManager: jest.Mocked<FileSystemManager>;
+  let mockFileSystemManager: Mocked<FileSystemManager>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const partialMock: Partial<FileSystemManager> = {
-      getCurrentPath: jest.fn(),
-      getMetadata: jest.fn(),
+      getCurrentPath: vi.fn(),
+      getMetadata: vi.fn(),
     };
-    mockFileSystemManager = partialMock as jest.Mocked<FileSystemManager>;
+    mockFileSystemManager = partialMock as Mocked<FileSystemManager>;
   });
 
   describe("createRouter", () => {

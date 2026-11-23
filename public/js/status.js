@@ -72,7 +72,7 @@ class StatusClient {
         this.updateStatus(data);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
       console.error("Failed to fetch initial status:", error);
     }
   }
@@ -197,7 +197,7 @@ class StatusClient {
       this.ws.onerror = (error) => this.handleError(error);
       this.ws.onclose = () => this.handleClose();
     } catch (error) {
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
       console.error("Failed to create WebSocket:", error);
       this.scheduleReconnect();
     }
@@ -674,7 +674,7 @@ class StatusClient {
     // Ensure we don't go out of bounds
     const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
 
-    const value = bytes / Math.pow(k, i);
+    const value = bytes / k ** i;
 
     const decimals = 0;
 
@@ -758,7 +758,7 @@ class StatusClient {
             }, 300);
           }
         } catch (err) {
-          // eslint-disable-next-line no-console
+          // biome-ignore lint/suspicious/noConsole: Existing exception retained during tooling migration.
           console.error("Failed to copy text:", err);
         }
       }

@@ -1,39 +1,47 @@
+import { vi } from "vitest";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { GitCloneContentFetcher } from "../gitCloneContentFetcher.js";
-import { GithubConfig } from "../../model/github.js";
+
 import { GitHubBranchNotFoundError } from "../../model/error/GithubErrors.js";
+import type { GithubConfig } from "../../model/github.js";
+import { GitCloneContentFetcher } from "../gitCloneContentFetcher.js";
 
 // Mock gitWorkerManager at the module level (already mocked in testSetup.ts)
-jest.mock("../gitWorkerManager.js");
+vi.mock("../gitWorkerManager.js");
 
 // Mock logger
-jest.mock("../../util/logger.js", () => ({
+vi.mock("../../util/logger.js", () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // Mock isomorphic-git
-jest.mock("isomorphic-git", () => ({
-  resolveRef: jest.fn(),
-  listFiles: jest.fn(),
-  getRemoteInfo: jest.fn(),
-  statusMatrix: jest.fn(),
-}));
+vi.mock("isomorphic-git", () => {
+  const mocked = {
+    resolveRef: vi.fn(),
+    listFiles: vi.fn(),
+    getRemoteInfo: vi.fn(),
+    statusMatrix: vi.fn(),
+  };
+  return { ...mocked, default: mocked };
+});
 
-jest.mock("isomorphic-git/http/node", () => ({}));
+vi.mock("isomorphic-git/http/node", () => {
+  const mocked = {};
+  return { ...mocked, default: mocked };
+});
 
 // Mock fs.promises
-jest.mock("fs/promises", () => ({
-  access: jest.fn(),
-  mkdir: jest.fn(),
-  readdir: jest.fn(),
-  cp: jest.fn(),
-  rm: jest.fn(),
-  rename: jest.fn(),
+vi.mock("fs/promises", () => ({
+  access: vi.fn(),
+  mkdir: vi.fn(),
+  readdir: vi.fn(),
+  cp: vi.fn(),
+  rm: vi.fn(),
+  rename: vi.fn(),
 }));
 
 describe("GitCloneContentFetcher", () => {
@@ -44,7 +52,7 @@ describe("GitCloneContentFetcher", () => {
 
   let mockFs: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     config = {
       apiUrl: "https://api.github.com",
       owner: "test-owner",
@@ -56,12 +64,12 @@ describe("GitCloneContentFetcher", () => {
 
     // Get mocked modules
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    mockGit = require("isomorphic-git");
+    mockGit = await import("isomorphic-git");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    mockFs = require("fs/promises");
+    mockFs = await import("fs/promises");
 
     // Reset and setup default mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockGit.resolveRef.mockResolvedValue("abc123def456");
     mockGit.listFiles.mockResolvedValue(["file1.txt", "file2.json"]);
@@ -81,11 +89,11 @@ describe("GitCloneContentFetcher", () => {
 
     // Set up git worker mocks after fetcher creation
     const mockWorker = (fetcher as any).gitWorker;
-    mockWorker.clone = jest.fn().mockResolvedValue(undefined);
-    mockWorker.pull = jest.fn().mockResolvedValue(undefined);
-    mockWorker.resetIndex = jest.fn().mockResolvedValue(undefined);
-    mockWorker.checkout = jest.fn().mockResolvedValue(undefined);
-    mockWorker.abort = jest.fn();
+    mockWorker.clone = vi.fn().mockResolvedValue(undefined);
+    mockWorker.pull = vi.fn().mockResolvedValue(undefined);
+    mockWorker.resetIndex = vi.fn().mockResolvedValue(undefined);
+    mockWorker.checkout = vi.fn().mockResolvedValue(undefined);
+    mockWorker.abort = vi.fn();
   });
 
   afterEach(() => {
@@ -216,7 +224,7 @@ describe("GitCloneContentFetcher", () => {
 
     it("should call progress callback during operation", async () => {
       const targetDir = "/test/target";
-      const onProgress = jest.fn();
+      const onProgress = vi.fn();
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT")); // fresh clone
       mockFs.access.mockResolvedValue(undefined);
@@ -433,7 +441,7 @@ describe("GitCloneContentFetcher", () => {
         totalFiles: 10,
       };
 
-      const fetchAllContentSpy = jest.spyOn(fetcher as any, "fetchAllContent");
+      const fetchAllContentSpy = vi.spyOn(fetcher as any, "fetchAllContent");
       fetchAllContentSpy.mockResolvedValue(mockMetadata);
 
       const result = await fetcher.fetchLatestChanges(targetDir);
@@ -448,7 +456,7 @@ describe("GitCloneContentFetcher", () => {
   describe("abortFetch", () => {
     it("should abort ongoing fetch operation", () => {
       const mockAbortController = {
-        abort: jest.fn(),
+        abort: vi.fn(),
       };
 
       (fetcher as any).abortController = mockAbortController;
@@ -578,11 +586,11 @@ describe("GitCloneContentFetcher", () => {
       const fetcherWithSubdir = new GitCloneContentFetcher(configWithSubdir);
       // Set up worker mocks for new fetcher
       const mockWorker = (fetcherWithSubdir as any).gitWorker;
-      mockWorker.clone = jest.fn().mockResolvedValue(undefined);
-      mockWorker.pull = jest.fn().mockResolvedValue(undefined);
-      mockWorker.resetIndex = jest.fn().mockResolvedValue(undefined);
-      mockWorker.checkout = jest.fn().mockResolvedValue(undefined);
-      mockWorker.abort = jest.fn();
+      mockWorker.clone = vi.fn().mockResolvedValue(undefined);
+      mockWorker.pull = vi.fn().mockResolvedValue(undefined);
+      mockWorker.resetIndex = vi.fn().mockResolvedValue(undefined);
+      mockWorker.checkout = vi.fn().mockResolvedValue(undefined);
+      mockWorker.abort = vi.fn();
 
       const targetDir = "/test/target";
       const sourcePath = "/test/target/docs";
@@ -631,11 +639,11 @@ describe("GitCloneContentFetcher", () => {
       const fetcherWithSubdir = new GitCloneContentFetcher(configWithSubdir);
       // Set up worker mocks
       const mockWorker = (fetcherWithSubdir as any).gitWorker;
-      mockWorker.clone = jest.fn().mockResolvedValue(undefined);
-      mockWorker.pull = jest.fn().mockResolvedValue(undefined);
-      mockWorker.resetIndex = jest.fn().mockResolvedValue(undefined);
-      mockWorker.checkout = jest.fn().mockResolvedValue(undefined);
-      mockWorker.abort = jest.fn();
+      mockWorker.clone = vi.fn().mockResolvedValue(undefined);
+      mockWorker.pull = vi.fn().mockResolvedValue(undefined);
+      mockWorker.resetIndex = vi.fn().mockResolvedValue(undefined);
+      mockWorker.checkout = vi.fn().mockResolvedValue(undefined);
+      mockWorker.abort = vi.fn();
 
       const targetDir = "/test/target";
       const stagingDir = "/test/target_staging";
@@ -661,11 +669,11 @@ describe("GitCloneContentFetcher", () => {
       const fetcherWithSubdir = new GitCloneContentFetcher(configWithSubdir);
       // Set up worker mocks
       const mockWorker = (fetcherWithSubdir as any).gitWorker;
-      mockWorker.clone = jest.fn().mockResolvedValue(undefined);
-      mockWorker.pull = jest.fn().mockResolvedValue(undefined);
-      mockWorker.resetIndex = jest.fn().mockResolvedValue(undefined);
-      mockWorker.checkout = jest.fn().mockResolvedValue(undefined);
-      mockWorker.abort = jest.fn();
+      mockWorker.clone = vi.fn().mockResolvedValue(undefined);
+      mockWorker.pull = vi.fn().mockResolvedValue(undefined);
+      mockWorker.resetIndex = vi.fn().mockResolvedValue(undefined);
+      mockWorker.checkout = vi.fn().mockResolvedValue(undefined);
+      mockWorker.abort = vi.fn();
 
       const targetDir = "/test/target";
 
@@ -716,11 +724,11 @@ describe("GitCloneContentFetcher", () => {
       const fetcherWithSubdir = new GitCloneContentFetcher(configWithSubdir);
       const targetDir = "/test/target";
       const mockWorker = (fetcherWithSubdir as any).gitWorker;
-      mockWorker.clone = jest.fn().mockResolvedValue(undefined);
-      mockWorker.pull = jest.fn().mockResolvedValue(undefined);
-      mockWorker.resetIndex = jest.fn().mockResolvedValue(undefined);
-      mockWorker.checkout = jest.fn().mockResolvedValue(undefined);
-      mockWorker.abort = jest.fn();
+      mockWorker.clone = vi.fn().mockResolvedValue(undefined);
+      mockWorker.pull = vi.fn().mockResolvedValue(undefined);
+      mockWorker.resetIndex = vi.fn().mockResolvedValue(undefined);
+      mockWorker.checkout = vi.fn().mockResolvedValue(undefined);
+      mockWorker.abort = vi.fn();
 
       mockFs.access.mockResolvedValue(undefined);
       mockGit.resolveRef.mockResolvedValue("commit123");
@@ -728,7 +736,7 @@ describe("GitCloneContentFetcher", () => {
       mockGit.statusMatrix.mockResolvedValue([]);
       mockFs.readdir.mockResolvedValue([] as any);
 
-      const extractSpy = jest.spyOn(fetcherWithSubdir as any, "extractRootDirectory");
+      const extractSpy = vi.spyOn(fetcherWithSubdir as any, "extractRootDirectory");
 
       await fetcherWithSubdir.fetchAllContent(targetDir);
 
@@ -749,11 +757,11 @@ describe("GitCloneContentFetcher", () => {
       const fetcherWithSubdir = new GitCloneContentFetcher(configWithSubdir);
       const targetDir = "/test/target";
       const mockWorker = (fetcherWithSubdir as any).gitWorker;
-      mockWorker.clone = jest.fn().mockResolvedValue(undefined);
-      mockWorker.pull = jest.fn().mockResolvedValue(undefined);
-      mockWorker.resetIndex = jest.fn().mockResolvedValue(undefined);
-      mockWorker.checkout = jest.fn().mockResolvedValue(undefined);
-      mockWorker.abort = jest.fn();
+      mockWorker.clone = vi.fn().mockResolvedValue(undefined);
+      mockWorker.pull = vi.fn().mockResolvedValue(undefined);
+      mockWorker.resetIndex = vi.fn().mockResolvedValue(undefined);
+      mockWorker.checkout = vi.fn().mockResolvedValue(undefined);
+      mockWorker.abort = vi.fn();
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT")); // no .git
       mockFs.access.mockResolvedValue(undefined);
@@ -762,7 +770,7 @@ describe("GitCloneContentFetcher", () => {
       mockGit.statusMatrix.mockResolvedValue([]);
       mockFs.readdir.mockResolvedValue([] as any);
 
-      const extractSpy = jest.spyOn(fetcherWithSubdir as any, "extractRootDirectory");
+      const extractSpy = vi.spyOn(fetcherWithSubdir as any, "extractRootDirectory");
 
       await fetcherWithSubdir.fetchAllContent(targetDir);
 
@@ -775,7 +783,7 @@ describe("GitCloneContentFetcher", () => {
 
     it("should report clone progress through callback", async () => {
       const targetDir = "/test/target";
-      const onProgress = jest.fn();
+      const onProgress = vi.fn();
       const mockWorker = (fetcher as any).gitWorker;
 
       mockFs.access.mockRejectedValueOnce(new Error("ENOENT"));

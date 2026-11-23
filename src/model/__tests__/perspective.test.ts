@@ -1,5 +1,5 @@
-import { getDocumentPerspective, hasPerspecive, DEFAULT_PERSPECTIVE } from "../perspective.js";
-import { OrdDocument } from "@open-resource-discovery/specification";
+import type { OrdDocument } from "@open-resource-discovery/specification";
+import { DEFAULT_PERSPECTIVE, getDocumentPerspective, hasPerspecive } from "../perspective.js";
 
 describe("Perspective Model", () => {
   describe("DEFAULT_PERSPECTIVE", () => {

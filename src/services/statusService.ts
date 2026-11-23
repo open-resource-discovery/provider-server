@@ -1,17 +1,17 @@
-import { Logger } from "pino";
 import { statfs } from "fs/promises";
+import type { Logger } from "pino";
 import * as v8 from "v8";
-import { UpdateScheduler } from "./updateScheduler.js";
-import { FileSystemManager } from "./fileSystemManager.js";
-import { ProviderServerOptions } from "../model/server.js";
-import { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
 import { OptSourceType } from "../model/cli.js";
-import { VersionService } from "./versionService.js";
+import { type StatusError, toStatusError } from "../model/error/BackendError.js";
+import type { ProviderServerOptions } from "../model/server.js";
+import type { LocalDocumentRepository } from "../repositories/localDocumentRepository.js";
 import { getPackageVersion } from "../util/files.js";
-import { UpdateStateManager } from "./updateStateManager.js";
-import { CacheService } from "./interfaces/cacheService.js";
-import { StatusError, toStatusError } from "../model/error/BackendError.js";
 import { omitUndefined } from "../util/util.js";
+import type { FileSystemManager } from "./fileSystemManager.js";
+import type { CacheService } from "./interfaces/cacheService.js";
+import type { UpdateScheduler } from "./updateScheduler.js";
+import type { UpdateStateManager } from "./updateStateManager.js";
+import { VersionService } from "./versionService.js";
 
 export interface StatusResponse {
   version: string;

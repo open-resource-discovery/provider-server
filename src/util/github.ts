@@ -1,13 +1,13 @@
-import { GitHubInstance } from "src/model/github.js";
+import { Buffer } from "buffer";
+import path from "path";
+import type { GitHubInstance } from "src/model/github.js";
+import { BackendError } from "../model/error/BackendError.js";
 import {
   GitHubAccessError,
-  GitHubFileNotFoundError,
   GitHubDirectoryNotFoundError,
+  GitHubFileNotFoundError,
   GitHubNetworkError,
 } from "../model/error/GithubErrors.js";
-import { BackendError } from "../model/error/BackendError.js";
-import path from "path";
-import { Buffer } from "buffer";
 import { joinFilePaths, normalizePath } from "./pathUtils.js";
 
 export interface GitHubContentItem {

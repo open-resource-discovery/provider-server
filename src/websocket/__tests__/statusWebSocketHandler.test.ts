@@ -1,65 +1,66 @@
-import { StatusWebSocketHandler } from "../statusWebSocketHandler.js";
-import { StatusService } from "../../services/statusService.js";
-import { UpdateScheduler } from "../../services/updateScheduler.js";
-import { VersionService } from "../../services/versionService.js";
-import { Logger } from "pino";
 import { EventEmitter } from "events";
-import { FastifyInstance } from "fastify";
-import { WebSocket } from "ws";
+import type { FastifyInstance } from "fastify";
+import type { Logger } from "pino";
+import { type Mock, type Mocked, vi } from "vitest";
+import type { WebSocket } from "ws";
+import type { StatusService } from "../../services/statusService.js";
+import type { UpdateScheduler } from "../../services/updateScheduler.js";
+import { VersionService } from "../../services/versionService.js";
+import { StatusWebSocketHandler } from "../statusWebSocketHandler.js";
 
-jest.mock("../../services/versionService.js");
-jest.mock("../../util/files.js", () => ({
-  getPackageVersion: jest.fn().mockReturnValue("1.0.0"),
+vi.mock("../../services/versionService.js");
+vi.mock("../../util/files.js", () => ({
+  getPackageVersion: vi.fn().mockReturnValue("1.0.0"),
 }));
 
 describe("StatusWebSocketHandler", () => {
   let handler: StatusWebSocketHandler;
-  let mockStatusService: jest.Mocked<StatusService>;
-  let mockUpdateScheduler: jest.Mocked<UpdateScheduler> & EventEmitter;
-  let mockLogger: jest.Mocked<Logger>;
-  let mockFastify: jest.Mocked<FastifyInstance>;
-  let mockSocket: jest.Mocked<WebSocket>;
+  let mockStatusService: Mocked<StatusService>;
+  let mockUpdateScheduler: Mocked<UpdateScheduler> & EventEmitter;
+  let mockLogger: Mocked<Logger>;
+  let mockFastify: Mocked<FastifyInstance>;
+  let mockSocket: Mocked<WebSocket>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create mock UpdateScheduler with EventEmitter capabilities
     mockUpdateScheduler = Object.assign(new EventEmitter(), {
-      getStatus: jest.fn(),
-      getLastWebhookTime: jest.fn(),
-      getLastWebhookReceivedTime: jest.fn(),
-      recordWebhookReceived: jest.fn(),
-      scheduleImmediateUpdate: jest.fn(),
-    }) as unknown as jest.Mocked<UpdateScheduler> & EventEmitter;
+      getStatus: vi.fn(),
+      getLastWebhookTime: vi.fn(),
+      getLastWebhookReceivedTime: vi.fn(),
+      recordWebhookReceived: vi.fn(),
+      scheduleImmediateUpdate: vi.fn(),
+    }) as unknown as Mocked<UpdateScheduler> & EventEmitter;
 
     mockStatusService = {
-      getStatus: jest.fn().mockResolvedValue({
+      getStatus: vi.fn().mockResolvedValue({
         version: "1.0.0",
         settings: { sourceType: "github" },
       }),
-      getSystemMetrics: jest.fn().mockResolvedValue({
+      getSystemMetrics: vi.fn().mockResolvedValue({
         memory: { used: 100, total: 200 },
         disk: { used: 500, total: 1000 },
       }),
-    } as unknown as jest.Mocked<StatusService>;
+    } as unknown as Mocked<StatusService>;
 
     mockLogger = {
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-    } as unknown as jest.Mocked<Logger>;
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+    } as unknown as Mocked<Logger>;
 
     mockSocket = {
-      send: jest.fn(),
-      on: jest.fn(),
+      send: vi.fn(),
+      on: vi.fn(),
       readyState: 1, // OPEN state
       OPEN: 1,
-    } as unknown as jest.Mocked<WebSocket>;
+    } as unknown as Mocked<WebSocket>;
 
     mockFastify = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<FastifyInstance>;
+      get: vi.fn(),
+    } as unknown as Mocked<FastifyInstance>;
 
     handler = new StatusWebSocketHandler(mockStatusService, mockUpdateScheduler, mockLogger);
   });
@@ -101,9 +102,9 @@ describe("StatusWebSocketHandler", () => {
     });
 
     it("should handle new connection and send initial status", async () => {
-      const messageHandler = jest.fn();
-      const closeHandler = jest.fn();
-      const errorHandler = jest.fn();
+      const messageHandler = vi.fn();
+      const closeHandler = vi.fn();
+      const errorHandler = vi.fn();
 
       mockSocket.on.mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
         if (event === "message") messageHandler.mockImplementation(handler);
@@ -134,7 +135,7 @@ describe("StatusWebSocketHandler", () => {
     });
 
     it("should handle message parsing errors", async () => {
-      const messageHandler = jest.fn();
+      const messageHandler = vi.fn();
 
       mockSocket.on.mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
         if (event === "message") messageHandler.mockImplementation(handler);
@@ -157,7 +158,7 @@ describe("StatusWebSocketHandler", () => {
     });
 
     it("should handle status message request", async () => {
-      const messageHandler = jest.fn();
+      const messageHandler = vi.fn();
 
       mockSocket.on.mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
         if (event === "message") messageHandler.mockImplementation(handler);
@@ -174,7 +175,7 @@ describe("StatusWebSocketHandler", () => {
     });
 
     it("should handle health message request", async () => {
-      const messageHandler = jest.fn();
+      const messageHandler = vi.fn();
 
       mockSocket.on.mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
         if (event === "message") messageHandler.mockImplementation(handler);
@@ -190,7 +191,7 @@ describe("StatusWebSocketHandler", () => {
     });
 
     it("should handle unknown message type", async () => {
-      const messageHandler = jest.fn();
+      const messageHandler = vi.fn();
 
       mockSocket.on.mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
         if (event === "message") messageHandler.mockImplementation(handler);
@@ -240,19 +241,19 @@ describe("StatusWebSocketHandler", () => {
   });
 
   describe("Update scheduler events", () => {
-    let mockClient: jest.Mocked<WebSocket>;
+    let mockClient: Mocked<WebSocket>;
 
     beforeEach(() => {
       mockClient = {
-        send: jest.fn(),
+        send: vi.fn(),
         readyState: 1,
         OPEN: 1,
-      } as unknown as jest.Mocked<WebSocket>;
+      } as unknown as Mocked<WebSocket>;
 
       // Add a client to the handler
       const connectionHandler = mockFastify.get.mock.calls?.[0]?.[2] as (socket: WebSocket, req: unknown) => void;
       if (connectionHandler) {
-        mockClient.on = jest.fn().mockReturnValue(mockClient);
+        mockClient.on = vi.fn().mockReturnValue(mockClient);
         connectionHandler(mockClient, {});
       }
     });
@@ -260,7 +261,7 @@ describe("StatusWebSocketHandler", () => {
     it("should broadcast update-started event", () => {
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
-      mockClient.on = jest.fn().mockReturnValue(mockClient);
+      mockClient.on = vi.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
       mockUpdateScheduler.emit("update-started");
@@ -271,7 +272,7 @@ describe("StatusWebSocketHandler", () => {
     it("should broadcast update-completed event and refresh status", async () => {
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
-      mockClient.on = jest.fn().mockReturnValue(mockClient);
+      mockClient.on = vi.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
       mockUpdateScheduler.emit("update-completed");
@@ -285,7 +286,7 @@ describe("StatusWebSocketHandler", () => {
     it("should broadcast update-failed event with error", () => {
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
-      mockClient.on = jest.fn().mockReturnValue(mockClient);
+      mockClient.on = vi.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
       const error = new Error("Update failed");
@@ -302,7 +303,7 @@ describe("StatusWebSocketHandler", () => {
     it("should broadcast update-scheduled event with time", () => {
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
-      mockClient.on = jest.fn().mockReturnValue(mockClient);
+      mockClient.on = vi.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
       const scheduledTime = new Date("2024-01-01T12:00:00Z");
@@ -319,7 +320,7 @@ describe("StatusWebSocketHandler", () => {
     it("should broadcast update-progress event", () => {
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
-      mockClient.on = jest.fn().mockReturnValue(mockClient);
+      mockClient.on = vi.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
       const progress = { fetched: 10, total: 100 };
@@ -336,7 +337,7 @@ describe("StatusWebSocketHandler", () => {
     it("should not send to closed sockets", () => {
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
-      mockClient.on = jest.fn().mockReturnValue(mockClient);
+      mockClient.on = vi.fn().mockReturnValue(mockClient);
       connectionHandler(mockClient, {});
 
       // Close the socket
@@ -361,8 +362,8 @@ describe("StatusWebSocketHandler", () => {
       const openSocket = {
         readyState: 1,
         OPEN: 1,
-        on: jest.fn(),
-        send: jest.fn(),
+        on: vi.fn(),
+        send: vi.fn(),
       } as unknown as WebSocket;
 
       connectionHandler(openSocket, {});
@@ -379,8 +380,8 @@ describe("StatusWebSocketHandler", () => {
       const closedSocket = {
         readyState: 3,
         OPEN: 1,
-        on: jest.fn(),
-        send: jest.fn(),
+        on: vi.fn(),
+        send: vi.fn(),
       } as unknown as WebSocket;
 
       connectionHandler(closedSocket, {});
@@ -395,9 +396,9 @@ describe("StatusWebSocketHandler", () => {
     it("should broadcast status when state manager emits state-changed event", async () => {
       // Create mock state manager with EventEmitter capabilities
       const mockStateManager = Object.assign(new EventEmitter(), {
-        getState: jest.fn(),
-        setState: jest.fn(),
-      }) as unknown as jest.Mocked<import("../../services/updateStateManager.js").UpdateStateManager>;
+        getState: vi.fn(),
+        setState: vi.fn(),
+      }) as unknown as Mocked<import("../../services/updateStateManager.js").UpdateStateManager>;
 
       // Create handler with state manager
       const handlerWithState = new StatusWebSocketHandler(
@@ -414,14 +415,14 @@ describe("StatusWebSocketHandler", () => {
       const testSocket = {
         readyState: 1,
         OPEN: 1,
-        on: jest.fn(),
-        send: jest.fn(),
+        on: vi.fn(),
+        send: vi.fn(),
       } as unknown as WebSocket;
 
       connectionHandler(testSocket, {});
 
       // Clear any previous sends
-      (testSocket.send as jest.Mock).mockClear();
+      (testSocket.send as Mock).mockClear();
 
       // Emit state-changed event
       mockStateManager.emit("state-changed");
@@ -436,24 +437,24 @@ describe("StatusWebSocketHandler", () => {
 
   describe("delayed full status", () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     // TODO: These tests hang due to complex async/timer interactions - needs investigation
     it.skip("should send delayed full status with version info after connection", async () => {
       // Mock VersionService
-      const mockGetInstance = jest.fn().mockReturnValue({
-        getVersionInfo: jest.fn().mockResolvedValue({
+      const mockGetInstance = vi.fn().mockReturnValue({
+        getVersionInfo: vi.fn().mockResolvedValue({
           current: "1.0.0",
           latest: "1.1.0",
           isOutdated: true,
         }),
       });
-      jest.mocked(VersionService).getInstance = mockGetInstance;
+      vi.mocked(VersionService).getInstance = mockGetInstance;
 
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
@@ -461,10 +462,10 @@ describe("StatusWebSocketHandler", () => {
       connectionHandler(mockSocket, {});
 
       // Clear initial sends
-      (mockSocket.send as jest.Mock).mockClear();
+      (mockSocket.send as Mock).mockClear();
 
       // Fast-forward time to trigger delayed status
-      jest.advanceTimersByTime(150);
+      vi.advanceTimersByTime(150);
       await Promise.resolve(); // Let promises resolve
 
       // Wait for async operations
@@ -476,10 +477,10 @@ describe("StatusWebSocketHandler", () => {
 
     it.skip("should handle errors in delayed full status gracefully", async () => {
       // Mock VersionService to throw error
-      const mockGetInstance = jest.fn().mockReturnValue({
-        getVersionInfo: jest.fn().mockRejectedValue(new Error("Version fetch failed")),
+      const mockGetInstance = vi.fn().mockReturnValue({
+        getVersionInfo: vi.fn().mockRejectedValue(new Error("Version fetch failed")),
       });
-      jest.mocked(VersionService).getInstance = mockGetInstance;
+      vi.mocked(VersionService).getInstance = mockGetInstance;
 
       handler.register(mockFastify);
       const connectionHandler = mockFastify.get.mock.calls[0]![2] as (socket: WebSocket, req: unknown) => void;
@@ -487,7 +488,7 @@ describe("StatusWebSocketHandler", () => {
       connectionHandler(mockSocket, {});
 
       // Fast-forward time to trigger delayed status
-      jest.advanceTimersByTime(150);
+      vi.advanceTimersByTime(150);
       await Promise.resolve();
       await new Promise((resolve) => setImmediate(resolve));
 
@@ -499,8 +500,8 @@ describe("StatusWebSocketHandler", () => {
       const closedSocket = {
         readyState: 3,
         OPEN: 1,
-        on: jest.fn(),
-        send: jest.fn(),
+        on: vi.fn(),
+        send: vi.fn(),
       } as unknown as WebSocket;
 
       handler.register(mockFastify);
@@ -509,10 +510,10 @@ describe("StatusWebSocketHandler", () => {
       connectionHandler(closedSocket, {});
 
       // Clear initial sends
-      (closedSocket.send as jest.Mock).mockClear();
+      (closedSocket.send as Mock).mockClear();
 
       // Fast-forward time
-      jest.advanceTimersByTime(150);
+      vi.advanceTimersByTime(150);
       await Promise.resolve();
       await new Promise((resolve) => setImmediate(resolve));
 

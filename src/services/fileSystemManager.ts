@@ -1,8 +1,8 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { ContentMetadata } from "./interfaces/contentFetcher.js";
 import { log } from "../util/logger.js";
 import { validateLocalDirectory } from "../util/validateOptions.js";
+import type { ContentMetadata } from "./interfaces/contentFetcher.js";
 
 export interface FileSystemManagerConfig {
   dataDir: string;

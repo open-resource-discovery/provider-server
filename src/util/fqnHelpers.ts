@@ -1,4 +1,4 @@
-import { ordDocumentSchema, type OrdDocument } from "@open-resource-discovery/specification";
+import { type OrdDocument, ordDocumentSchema } from "@open-resource-discovery/specification";
 import { PATH_CONSTANTS } from "../constant.js";
 import { ordIdToPathSegment } from "./pathUtils.js";
 

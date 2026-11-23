@@ -1,5 +1,5 @@
-import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 // Dedicated Vitest config, deliberately separate from vite.config.ts:
 // vite.config.ts is the production bundler config (root: "ui", base: "/status-ui/",

@@ -1,17 +1,17 @@
 import * as fs from "fs/promises";
-import * as path from "path";
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
-import { ContentFetcher, ContentFetchProgress, ContentMetadata } from "./interfaces/contentFetcher.js";
-import { GithubConfig } from "../model/github.js";
-import { log } from "../util/logger.js";
+import * as path from "path";
 import {
-  GitHubNetworkError,
   GitHubBranchNotFoundError,
+  GitHubNetworkError,
   GitHubRepositoryNotFoundError,
 } from "../model/error/GithubErrors.js";
 import { DiskSpaceError } from "../model/error/SystemErrors.js";
+import type { GithubConfig } from "../model/github.js";
+import { log } from "../util/logger.js";
 import { GitWorkerManager } from "./gitWorkerManager.js";
+import type { ContentFetcher, ContentFetchProgress, ContentMetadata } from "./interfaces/contentFetcher.js";
 
 export class GitCloneContentFetcher implements ContentFetcher {
   private readonly config: GithubConfig;

@@ -1,6 +1,6 @@
-import { EventEmitter } from "events";
-import { ContentFetchProgress } from "../services/interfaces/contentFetcher.js";
-import { Logger } from "pino";
+import type { EventEmitter } from "events";
+import type { Logger } from "pino";
+import type { ContentFetchProgress } from "../services/interfaces/contentFetcher.js";
 import { log as defaultLogger } from "./logger.js";
 
 export interface ProgressHandlerOptions {

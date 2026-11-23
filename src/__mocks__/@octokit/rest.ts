@@ -1,25 +1,26 @@
-export const OCTOKIT = jest.fn().mockImplementation(() => ({
+import { vi } from "vitest";
+export const OCTOKIT = vi.fn().mockImplementation(() => ({
   rest: {
     repos: {
-      getContent: jest.fn().mockResolvedValue({
+      getContent: vi.fn().mockResolvedValue({
         data: {
           type: "dir",
           content: [],
         },
       }),
-      get: jest.fn().mockResolvedValue({
+      get: vi.fn().mockResolvedValue({
         data: {
           default_branch: "main",
         },
       }),
     },
     git: {
-      getTree: jest.fn().mockResolvedValue({
+      getTree: vi.fn().mockResolvedValue({
         data: {
           tree: [],
         },
       }),
     },
   },
-  request: jest.fn(),
+  request: vi.fn(),
 }));
