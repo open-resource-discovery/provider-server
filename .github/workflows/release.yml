@@ -57,8 +57,6 @@ jobs:
         run: npm publish
 
   docker:
-    permissions:
-      contents: read
     if: |-
       github.ref == 'refs/heads/main' && (
       inputs.docker
@@ -118,9 +116,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: write
-      checks: write
-      statuses: write
     needs: [npm, docker]
     if: |-
       github.ref == 'refs/heads/main' && (
@@ -139,3 +134,5 @@ jobs:
           persist-credentials: true # Needed by the release/push step
       - name: Create GitHub Release
         uses: open-resource-discovery/github-release@2d8817b7382966b490d5c78125d97da14ee918bc # main @ 2026-11-14; main
+        with:
+          ci-workflows: none
