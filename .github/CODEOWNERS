@@ -3,3 +3,6 @@
 /renovate.json @open-resource-discovery/provider-server-admin
 /package.json @open-resource-discovery/provider-server-admin
 /package-lock.json @open-resource-discovery/provider-server-admin
+/scripts/ @open-resource-discovery/provider-server-admin
+/Dockerfile @open-resource-discovery/provider-server-admin
+/internal/ @open-resource-discovery/provider-server-admin

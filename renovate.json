@@ -4,7 +4,8 @@
     "config:recommended",
     "docker:enableMajor",
     ":pinAllExceptPeerDependencies",
-    "helpers:pinGitHubActionDigests"
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
   ],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile", "github-actions"],
