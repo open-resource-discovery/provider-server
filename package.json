@@ -3,7 +3,7 @@
   "version": "1.3.1",
   "description": "A CLI application or server that takes multiple ORD documents and other metadata files and exposes them as a ORD Provider implementation (ORD Document API)",
   "engines": {
-    "node": ">=26.13",
+    "node": ">=26.13.1",
     "npm": ">=11.6"
   },
   "type": "module",
@@ -44,7 +44,7 @@
     "@fastify/basic-auth": "6.3.1",
     "@fastify/cors": "11.4.3",
     "@fastify/etag": "6.2.2",
-    "@fastify/static": "10.1.11",
+    "@fastify/static": "10.1.12",
     "@fastify/websocket": "11.3.7",
     "@octokit/rest": "22.0.1",
     "@open-resource-discovery/explorer": "0.2.1",
@@ -55,7 +55,7 @@
     "fastify": "5.12.8",
     "fastify-plugin": "6.0.1",
     "fastify-raw-body": "6.0.3",
-    "isomorphic-git": "1.44.14",
+    "isomorphic-git": "1.44.18",
     "p-limit": "7.3.3",
     "pino": "10.4.0",
     "pino-pretty": "13.2.0"
@@ -82,7 +82,7 @@
     "jest-junit": "17.0.0",
     "jest-watch-typeahead": "3.0.1",
     "jsdom": "31.0.1",
-    "lint-staged": "17.6.1",
+    "lint-staged": "17.6.2",
     "prettier": "3.10.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
@@ -92,7 +92,7 @@
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vite": "8.3.8",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   },
   "lint-staged": {
     "./**/*.{js,ts}": [
@@ -104,12 +104,28 @@
   },
   "overrides": {
     "content-disposition": "3.0.0",
-    "test-exclude": "8.0.0",
-    "glob": "14.0.2",
+    "test-exclude": {
+      ".": "8.0.0",
+      "minimatch": "11.0.8"
+    },
+    "glob": "14.0.6",
     "js-yaml": "5.5.0",
     "esbuild": "0.28.2",
-    "brace-expansion": "5.0.12",
+    "brace-expansion": "5.0.13",
     "fast-uri": "4.2.3",
-    "find-my-way": "9.10.0"
+    "find-my-way": "9.10.1",
+    "hono": "4.13.16",
+    "fast-xml-parser": "5.12.0",
+    "seroval": "1.6.11",
+    "undici": "8.12.4",
+    "@scalar/json-magic": {
+      "undici": "7.30.1"
+    },
+    "isomorphic-dompurify": {
+      "undici": "7.30.1"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.8"
+    }
   }
 }

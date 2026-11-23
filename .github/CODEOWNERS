@@ -1,0 +1,5 @@
+# Review owners for CI and build configuration.
+/.github/ @open-resource-discovery/provider-server-admin
+/renovate.json @open-resource-discovery/provider-server-admin
+/package.json @open-resource-discovery/provider-server-admin
+/package-lock.json @open-resource-discovery/provider-server-admin
