@@ -127,5 +127,21 @@
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.8"
     }
+  },
+  "packageManager": "npm@11.20.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11.20.0",
+      "onFail": "error"
+    }
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": false,
+    "@scarf/scarf@1.4.0": false,
+    "esbuild@0.28.2": false,
+    "fsevents@2.3.3": false,
+    "unrs-resolver@1.12.2": false,
+    "vue-demi@0.14.10": false
   }
 }

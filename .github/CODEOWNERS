@@ -6,3 +6,5 @@
 /scripts/ @open-resource-discovery/provider-server-admin @jurijat
 /Dockerfile @open-resource-discovery/provider-server-admin @jurijat
 /internal/ @open-resource-discovery/provider-server-admin @jurijat
+/npmrc @open-resource-discovery/provider-server-admin @jurijat
+/SECURITY_INSTALL.md @open-resource-discovery/provider-server-admin @jurijat
