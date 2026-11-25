@@ -1,0 +1,8 @@
+# Review owners for CI and build configuration.
+/.github/ @open-resource-discovery/provider-server-admin @jurijat
+/renovate.json @open-resource-discovery/provider-server-admin @jurijat
+/package.json @open-resource-discovery/provider-server-admin @jurijat
+/package-lock.json @open-resource-discovery/provider-server-admin @jurijat
+/scripts/ @open-resource-discovery/provider-server-admin @jurijat
+/Dockerfile @open-resource-discovery/provider-server-admin @jurijat
+/internal/ @open-resource-discovery/provider-server-admin @jurijat
