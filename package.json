@@ -12,8 +12,7 @@
     "dist/"
   ],
   "scripts": {
-    "prebuild": "rimraf ./dist",
-    "build": "tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
+    "build": "rimraf ./dist && tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
     "build:ui": "vite build",
     "build:all": "npm run build && npm run build:ui",
     "prepublishOnly": "npm run build:all",
@@ -31,7 +30,9 @@
     "test:ui": "vitest run",
     "test:ui:watch": "vitest",
     "coverage": "jest --coverage --maxWorkers=1",
-    "prepare": "[ ! -z \"$CF_INSTANCE_IP\" ] || is-ci || husky"
+    "prepare": "[ ! -z \"$CF_INSTANCE_IP\" ] || is-ci || husky",
+    "setup:hooks": "[ ! -z \"$CF_INSTANCE_IP\" ] || is-ci || husky",
+    "publish:package": "npm run build:all && npm publish"
   },
   "repository": {
     "type": "git",

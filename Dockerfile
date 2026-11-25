@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY package*.json tsconfig*.json .npmrc ./
 
-RUN npm install --global --ignore-scripts npm@11.20.0 && npm ci
+RUN npm install --global --ignore-scripts npm@11.20.0 && npm ci --ignore-scripts
 
 COPY ./src ./src
 COPY ./public ./public
