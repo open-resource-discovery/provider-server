@@ -7,3 +7,6 @@
 /Dockerfile @open-resource-discovery/provider-server-admin @jurijat
 /internal/ @open-resource-discovery/provider-server-admin @jurijat
 /npmrc @open-resource-discovery/provider-server-admin @jurijat
+
+# Review the installer policy with the corresponding package owners.
+/.npmrc @open-resource-discovery/provider-server-admin @jurijat
