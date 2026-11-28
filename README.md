@@ -110,12 +110,13 @@ When running the Provider Server via Docker you can integrate Dynatrace for moni
 
 Some configuration options are only available as environment variables for security reasons:
 
-| Environment Variable           | Description                                                                                                             |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `WEBHOOK_SECRET`               | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)                           |
-| `BASIC_AUTH`                   | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})`                    |
-| `CF_MTLS_TRUSTED_CERTS`        | JSON config for CF mTLS authentication (see [CF mTLS Authentication](#cf-mtls-authentication))                          |
-| `BOOTSTRAP_DYNATRACE_ONEAGENT` | Bootstrap Dyntrace OneAgent for enabling observability via Dynatrace (possible values: `true\|false`, default: `false`) |
+| Environment Variable           | Description                                                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `WEBHOOK_SECRET`               | GitHub webhook secret for signature validation (required for webhook security in GitHub mode)                                                                                              |
+| `BASIC_AUTH`                   | JSON object with username:password-hash pairs for basic authentication (e.g., `{"admin":"$2y$..."})`                                                                                       |
+| `CF_MTLS_TRUSTED_CERTS`        | JSON config for CF mTLS authentication (see [CF mTLS Authentication](#cf-mtls-authentication))                                                                                             |
+| `USE_BTP_CREDENTIAL_STORE`     | Read secrets from a bound SAP BTP Credential Store (see [Secrets from SAP BTP Credential Store](#secrets-from-sap-btp-credential-store), possible values: `true\|false`, default: `false`) |
+| `BOOTSTRAP_DYNATRACE_ONEAGENT` | Bootstrap Dyntrace OneAgent for enabling observability via Dynatrace (possible values: `true\|false`, default: `false`)                                                                    |
 
 ## System Requirements
 
@@ -469,6 +470,30 @@ cf push <your-app-name> \
 --docker-image "ghcr.io/open-resource-discovery/provider-server:<your-new-version>" \
 --docker-username <docker-username>
 ```
+
+#### Secrets from SAP BTP Credential Store
+
+On Cloud Foundry, secrets like `GITHUB_TOKEN`, `WEBHOOK_SECRET` and `BASIC_AUTH`, as well as the `CF_MTLS_TRUSTED_CERTS` configuration, can be read from a bound [SAP BTP Credential Store](https://help.sap.com/docs/credential-store) instance instead of environment variables. This is disabled by default and enabled with `USE_BTP_CREDENTIAL_STORE=true`.
+
+1. In the Credential Store instance, create a namespace and add every secret as a **password** named like the environment variable (e.g. `GITHUB_TOKEN`). A password can hold up to 4 KB.
+2. Bind the instance to the app with `list` and `read` permissions for the namespaces to read from, enable the Credential Store and restage:
+
+```bash
+cf bind-service <your-app-name> <credstore-instance> -c '{"authorization":{"namespace_permissions":{"<namespace>":["list","read"]}}}'
+cf set-env <your-app-name> USE_BTP_CREDENTIAL_STORE true
+cf restage <your-app-name>
+```
+
+On startup, the server then:
+
+- reads all Credential Store bindings from `VCAP_SERVICES` and stops with an error message if none is bound,
+- reads all passwords of all namespaces listed in the `namespace_permissions` of the bindings and merges them (if a password exists in multiple namespaces with different values, the last one wins and a warning is logged; passwords with an empty value are ignored),
+- sets them as environment variables, overriding values from the environment and the `.env` file. Runtime and platform variables (`NODE_*`, `VCAP_*`, `CF_*` except `CF_MTLS_TRUSTED_CERTS`, and `USE_BTP_CREDENTIAL_STORE`) cannot be set this way and are ignored with a warning.
+
+The binding authentication types `mtls` (default) and `basic` are supported, with and without payload encryption.
+
+> [!WARNING]
+> On Cloud Foundry, providing secrets (`GITHUB_TOKEN`, `WEBHOOK_SECRET`, `BASIC_AUTH`) via environment variables or the `.env` file is deprecated and will no longer be supported in an upcoming version. Such secrets are logged as a warning, also when the Credential Store is disabled. Outside of Cloud Foundry, secrets can still be provided via environment variables.
 
 ## GitHub Token Permissions
 

@@ -4,6 +4,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Added
+
+- Read secrets from a bound SAP BTP Credential Store on Cloud Foundry, enabled via `USE_BTP_CREDENTIAL_STORE=true` (disabled by default). The passwords of all bound namespaces (secrets and the `CF_MTLS_TRUSTED_CERTS` configuration) are merged and override the environment / `.env` file; runtime and platform variables (`NODE_*`, `VCAP_*`, `CF_*`) are ignored. The server stops with an error message if no Credential Store is bound.
+
+### Deprecated
+
+- Providing secrets (`GITHUB_TOKEN`, `WEBHOOK_SECRET`, `BASIC_AUTH`) via environment variables or the `.env` file on Cloud Foundry. Such secrets are logged as a warning; support will be removed in an upcoming version. Outside of Cloud Foundry, secrets in the environment remain supported.
+
 ### Changed
 
 - Update the ORD specification dependency and bundled examples to ORD 1.17.

@@ -1,5 +1,12 @@
 import { log } from "src/util/logger.js";
 
+/**
+ * Whether the server runs on Cloud Foundry. Uses the same indicator as the cf-mtls authentication check.
+ */
+export function isCloudFoundryEnvironment(env: NodeJS.ProcessEnv = process.env): boolean {
+  return (env.CF_INSTANCE_GUID ?? "").trim() !== "";
+}
+
 export function getBaseUrlFromVcapEnv(vcapEnvString: string | undefined): string | undefined {
   if (!vcapEnvString) {
     return;
