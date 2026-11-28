@@ -117,12 +117,12 @@
     "hono": "4.13.16",
     "fast-xml-parser": "5.12.0",
     "seroval": "1.6.11",
-    "undici": "8.12.4",
+    "undici": "8.14.0",
     "@scalar/json-magic": {
-      "undici": "7.30.1"
+      "undici": "8.14.0"
     },
     "isomorphic-dompurify": {
-      "undici": "7.30.1"
+      "undici": "8.14.0"
     },
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.8"
