@@ -8,9 +8,9 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-COPY package*.json tsconfig*.json ./
+COPY package*.json tsconfig*.json .npmrc ./
 
-RUN npm ci
+RUN npm install --global --ignore-scripts npm@11.20.0 && npm ci --ignore-scripts
 
 COPY ./src ./src
 COPY ./public ./public

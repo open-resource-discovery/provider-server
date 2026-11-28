@@ -12,8 +12,7 @@
     "dist/"
   ],
   "scripts": {
-    "prebuild": "rimraf ./dist",
-    "build": "tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
+    "build": "rimraf ./dist && tsc -p tsconfig.prod.json && tsc-alias -p tsconfig.prod.json",
     "build:ui": "vite build",
     "build:all": "npm run build && npm run build:ui",
     "prepublishOnly": "npm run build:all",
@@ -31,7 +30,9 @@
     "test:ui": "vitest run",
     "test:ui:watch": "vitest",
     "coverage": "jest --coverage --maxWorkers=1",
-    "prepare": "[ ! -z \"$CF_INSTANCE_IP\" ] || is-ci || husky"
+    "prepare": "[ ! -z \"$CF_INSTANCE_IP\" ] || is-ci || husky",
+    "setup:hooks": "[ ! -z \"$CF_INSTANCE_IP\" ] || is-ci || husky",
+    "publish:package": "npm run build:all && npm publish"
   },
   "repository": {
     "type": "git",
@@ -126,6 +127,23 @@
     },
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.8"
+    },
+    "dompurify": "3.4.17"
+  },
+  "packageManager": "npm@11.20.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11.20.0",
+      "onFail": "error"
     }
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": false,
+    "@scarf/scarf@1.4.0": false,
+    "esbuild@0.28.2": false,
+    "fsevents@2.3.3": false,
+    "unrs-resolver@1.12.2": false,
+    "vue-demi@0.14.10": false
   }
 }
